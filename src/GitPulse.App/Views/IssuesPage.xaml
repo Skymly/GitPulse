@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GitPulse.App.ViewModels"
+             xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
+             x:Class="GitPulse.App.Views.IssuesPage"
+             x:DataType="vm:IssuesViewModel"
+             Title="Issues">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+
+        <!-- Header: repo name + back button -->
+        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
+            <Button Text="← Back"
+                    Clicked="OnBackClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    Padding="8,4" />
+            <Label Text="{Binding RepoFullName.Value}"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center" />
+        </HorizontalStackLayout>
+
+        <!-- State filter tabs -->
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" Padding="16,0">
+            <Button Text="Open"
+                    Clicked="OnFilterOpen"
+                    x:Name="OpenTab"
+                    Padding="16,4"
+                    FontSize="13" />
+            <Button Text="Closed"
+                    Clicked="OnFilterClosed"
+                    x:Name="ClosedTab"
+                    Padding="16,4"
+                    FontSize="13" />
+            <Button Text="All"
+                    Clicked="OnFilterAll"
+                    x:Name="AllTab"
+                    Padding="16,4"
+                    FontSize="13" />
+        </HorizontalStackLayout>
+
+        <!-- Error banner -->
+        <Border Grid.Row="2"
+                IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                BackgroundColor="{StaticResource Red100}"
+                StrokeShape="RoundRectangle 8"
+                Padding="12"
+                Margin="16,4,16,0">
+            <Label Text="{Binding ErrorMessage.Value}"
+                   TextColor="{StaticResource Red900}"
+                   FontSize="13" />
+        </Border>
+
+        <!-- Issues list -->
+        <CollectionView Grid.Row="3"
+                        ItemsSource="{Binding Issues}"
+                        Margin="16,8,16,0"
+                        SelectionMode="Single"
+                        SelectionChanged="OnIssueSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:Issue">
+                    <Border Margin="0,0,0,8"
+                            Padding="14"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="{StaticResource Gray200}">
+                        <VerticalStackLayout Spacing="4">
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="#"
+                                       FontSize="14"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding Number}"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Primary}" />
+                                <Label Text="{Binding Title}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="2" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Spacing="12" Margin="0,2,0,0">
+                                <Label Text="{Binding State}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Green700}"
+                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}" />
+                                <Label Text="{Binding State}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Purple700}"
+                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}" />
+                                <Label Text="💬 {Binding CommentsCount}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding User.Login, StringFormat='by {0}'}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Gray500}" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <ActivityIndicator Grid.Row="3"
+                           IsRunning="{Binding IsLoading.Value}"
+                           IsVisible="{Binding IsLoading.Value}"
+                           VerticalOptions="Start"
+                           Margin="0,16,0,0" />
+
+    </Grid>
+
+</ContentPage>

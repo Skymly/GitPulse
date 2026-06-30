@@ -21,12 +21,30 @@ namespace GitPulse.GitHubApi;
 /// </remarks>
 public interface IGitHubReposApi
 {
+    // ── Repositories ──────────────────────────────────────────────
+
     [Get("/user/repos")]
     Observable<Repo[]> ListMyRepos();
 
     [Get("/repos/{owner}/{repo}")]
     Observable<Repo> GetRepo(string owner, string repo);
 
+    // ── Issues ────────────────────────────────────────────────────
+
     [Get("/repos/{owner}/{repo}/issues")]
     Observable<Issue[]> ListIssues(string owner, string repo);
+
+    [Get("/repos/{owner}/{repo}/issues/{number}")]
+    Observable<Issue> GetIssue(string owner, string repo, int number);
+
+    [Get("/repos/{owner}/{repo}/issues/{number}/comments")]
+    Observable<Comment[]> ListIssueComments(string owner, string repo, int number);
+
+    // ── Pull Requests ─────────────────────────────────────────────
+
+    [Get("/repos/{owner}/{repo}/pulls")]
+    Observable<PullRequest[]> ListPullRequests(string owner, string repo);
+
+    [Get("/repos/{owner}/{repo}/pulls/{number}")]
+    Observable<PullRequest> GetPullRequest(string owner, string repo, int number);
 }

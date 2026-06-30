@@ -41,10 +41,14 @@ public static class MauiProgram
         // ViewModels (transient — each page gets a fresh instance).
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<ReposViewModel>();
+        builder.Services.AddTransient<IssuesViewModel>();
+        builder.Services.AddTransient<IssueDetailViewModel>();
 
         // Pages (transient — resolved via DI when Shell navigates).
         builder.Services.AddTransient<ReposPage>();
         builder.Services.AddTransient<SettingsPage>();
+        builder.Services.AddTransient<IssuesPage>();
+        builder.Services.AddTransient<IssueDetailPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

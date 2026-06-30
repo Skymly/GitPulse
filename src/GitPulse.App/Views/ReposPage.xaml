@@ -33,7 +33,8 @@
         <CollectionView Grid.Row="2"
                         ItemsSource="{Binding Repos}"
                         Margin="16,8,16,0"
-                        SelectionMode="None">
+                        SelectionMode="Single"
+                        SelectionChanged="OnRepoSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Repo">
                     <Border Margin="0,0,0,8"

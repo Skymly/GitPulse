@@ -1,4 +1,5 @@
 using GitPulse.App.ViewModels;
+using GitPulse.Core.Models;
 using R3;
 
 namespace GitPulse.App.Views;
@@ -79,5 +80,23 @@ public partial class ReposPage : ContentPage
         SearchBar.TextChanged -= OnSearchBarTextChanged;
         // ViewModels are transient; dispose to release R3 subscriptions.
         _viewModel.Dispose();
+    }
+
+    private async void OnRepoSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is Repo repo)
+        {
+            // Deselect so the same item can be re-tapped later.
+            ((CollectionView)sender!).SelectedItem = null;
+
+            // Parse owner/repo from FullName (format: "owner/repo").
+            var parts = repo.FullName.Split('/', 2);
+            if (parts.Length == 2)
+            {
+                await Shell.Current.GoToAsync(
+                    $"IssuesPage?owner={Uri.EscapeDataString(parts[0])}" +
+                    $"&repo={Uri.EscapeDataString(parts[1])}");
+            }
+        }
     }
 }

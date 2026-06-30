@@ -7,6 +7,28 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — M2 (issue/PR list & detail)
+
+- New Core models: `Label`, `Comment`, `PullRequest`, `PullRequestRef`.
+  `Issue` expanded with `Labels`, `CommentsCount`, `MilestoneTitle`,
+  `PullRequestRef` (for PR detection).
+- Extended `IGitHubReposApi` with 5 new declarative methods:
+  `GetIssue`, `ListIssueComments`, `ListPullRequests`, `GetPullRequest`.
+- `IssuesViewModel` with R3 state filtering (open/closed/all) via
+  `BindableReactiveProperty<string> StateFilter`.
+- `IssuesPage` (XAML) with CollectionView, state filter tabs (Open/Closed/All),
+  back navigation, issue selection → detail navigation.
+- `IssueDetailViewModel` loading issue + comments sequentially via
+  `GetIssue` + `ListIssueComments`.
+- `IssueDetailPage` (XAML) with issue header (state, author, date, body),
+  comments list via BindableLayout, error banner, loading indicator.
+- Shell navigation: `ReposPage` → tap repo → `IssuesPage?owner=&repo=` →
+  tap issue → `IssueDetailPage?owner=&repo=&number=`.
+- New converters: `StringEqualsConverter`, `NotNullConverter`,
+  `IntGreaterThanZeroConverter`.
+- 6 new unit tests for Issue/Comment/PullRequest/Label model defaults.
+  Total: 14 tests passing.
+
 ### Added — M1 (auth + repository list browsing)
 
 - `ICredentialStore` platform implementations:

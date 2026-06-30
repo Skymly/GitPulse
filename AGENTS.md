@@ -4,7 +4,7 @@
 
 - **Type**: Personal project (Skymly workspace)
 - **Remote**: https://github.com/Skymly/GitPulse
-- **Stage**: M1 (auth + repository list browsing) — credential storage, settings page, repos list with reactive search debounce
+- **Stage**: M2 (issue/PR list & detail) — auth, repo browsing, issue list with state filter, issue detail with comments
 - **Purpose**: Real-world showcase application for [Observables](https://github.com/Skymly/Observables) (declarative reactive HTTP/events bridging for R3). Not a toy demo — a working GitHub client the author uses day-to-day.
 
 ## Tech Stack
@@ -150,6 +150,7 @@ should surface — tracked for upstream feedback.
 |-----------|---------|---------------------|
 | **M0** ✅ | Project skeleton: solution, projects, Nuke, CI, docs, empty MAUI app builds | — |
 | **M1** ✅ | Auth + repository list browsing | RestAPI + Events |
+| **M2** ✅ | Issue/PR list & detail | RestAPI + Events |
 | **M2** | Issue/PR list & detail | RestAPI + Events |
 | **M3** | Issue/PR CRUD (comments, state, labels) | RestAPI |
 | **M4** | Notification center (polling-simulated realtime) | Events (+ Sse optional) |

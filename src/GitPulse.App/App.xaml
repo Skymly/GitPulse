@@ -14,6 +14,9 @@
             <!-- Global converters -->
             <conv:InvertedBoolConverter x:Key="InvertedBoolConverter" />
             <conv:StringToBoolConverter x:Key="StringToBoolConverter" />
+            <conv:StringEqualsConverter x:Key="StringEqualsConverter" />
+            <conv:NotNullConverter x:Key="NotNullConverter" />
+            <conv:IntGreaterThanZeroConverter x:Key="IntGreaterThanZeroConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

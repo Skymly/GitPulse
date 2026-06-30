@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GitPulse.App.ViewModels"
+             xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
+             x:Class="GitPulse.App.Views.IssueDetailPage"
+             x:DataType="vm:IssueDetailViewModel"
+             Title="Issue Detail">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Back button + title -->
+        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
+            <Button Text="Back"
+                    Clicked="OnBackClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    Padding="8,4" />
+            <Label Text="{Binding Title.Value}"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1" />
+        </HorizontalStackLayout>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16" Spacing="12">
+
+                <!-- Issue header -->
+                <Border StrokeShape="RoundRectangle 8"
+                         Stroke="{StaticResource Gray200}"
+                         Padding="16">
+                    <VerticalStackLayout Spacing="8">
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="{Binding Issue.Value.State}"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Green700}" />
+                            <Label Text="{Binding Issue.Value.User.Login, StringFormat='by {0}'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}" />
+                            <Label Text="{Binding Issue.Value.CreatedAt, StringFormat='{0:yyyy-MM-dd}'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}" />
+                        </HorizontalStackLayout>
+
+                        <Label Text="{Binding Issue.Value.Body}"
+                               FontSize="14"
+                               LineBreakMode="WordWrap" />
+
+                        <HorizontalStackLayout Spacing="16" Margin="0,4,0,0">
+                            <Label Text="{Binding Issue.Value.CommentsCount, StringFormat='Comments: {0}'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Comments section header -->
+                <Label Text="Comments"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       Margin="0,8,0,4" />
+
+                <!-- Comments list via BindableLayout -->
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Comments}"
+                                     Spacing="8">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:Comment">
+                            <Border Padding="14"
+                                    StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource Gray200}">
+                                <VerticalStackLayout Spacing="6">
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="{Binding User.Login}"
+                                               FontSize="13"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource Primary}" />
+                                        <Label Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource Gray500}"
+                                               VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding Body}"
+                                           FontSize="13"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <!-- Error banner -->
+                <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                        BackgroundColor="{StaticResource Red100}"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="12">
+                    <Label Text="{Binding ErrorMessage.Value}"
+                           TextColor="{StaticResource Red900}"
+                           FontSize="13" />
+                </Border>
+
+                <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
+                                   IsVisible="{Binding IsLoading.Value}" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>
