@@ -2,6 +2,7 @@
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:GitPulse.App"
+             xmlns:conv="clr-namespace:GitPulse.App.Converters"
              x:Class="GitPulse.App.App">
     <Application.Resources>
         <ResourceDictionary>
@@ -9,6 +10,10 @@
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Global converters -->
+            <conv:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            <conv:StringToBoolConverter x:Key="StringToBoolConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -63,6 +63,7 @@
 		<PackageReference Include="Observables.Events.R3" Version="0.1.4" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+		<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>

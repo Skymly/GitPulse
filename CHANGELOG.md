@@ -7,6 +7,52 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — M1 (auth + repository list browsing)
+
+- `ICredentialStore` platform implementations:
+  - Windows: DPAPI (CurrentUser scope), persisted to `%APPDATA%/GitPulse/token.bin`
+  - Android: MAUI `SecureStorage` (Android KeyStore + EncryptedSharedPreferences)
+- `SettingsViewModel` with R3 `BindableReactiveProperty` state (TokenInput,
+  HasToken, StatusMessage, IsBusy) and `SaveToken`/`ClearToken` commands.
+- `SettingsPage` (XAML) with PAT entry, save/clear buttons, status feedback.
+- `ReposViewModel` showcasing `Observables.RestAPI.R3` — calls
+  `IGitHubReposApi.ListMyRepos()` via `RestService.For<T>`, manages state
+  via R3 `BindableReactiveProperty` (SearchText, IsLoading, IsAuthenticated,
+  ErrorMessage) and `ObservableCollection<Repo>`.
+- `ReposPage` (XAML) with `CollectionView` repo list, search bar, error
+  banner, loading indicator.
+- Reactive search debounce pipeline in `ReposPage.xaml.cs` — R3 `Subject<T>`
+  bridge → `Debounce(300ms)` → `DistinctUntilChanged` → `ObserveOn` →
+  ViewModel `SearchText`. Manual bridge documented as workaround for the
+  Observables.Events.R3 + MAUI internal interface issue (see Known limitations).
+- `AppShell` updated to `TabBar` navigation (Repos + Settings tabs).
+- Global XAML converters: `InvertedBoolConverter`, `StringToBoolConverter`.
+- DI registration for pages, ViewModels, and platform credential stores.
+- 6 unit tests for `GitHubClientFactory` (auth header, base address, accept,
+  API version, user agent, no-token case). Total: 8 tests passing.
+
+### Fixed
+
+- CI: MAUI Windows target failed with `NETSDK1112` (runtime pack not
+  downloaded). Added a second `DotNetRestore` step in the Nuke `Restore`
+  target with explicit `win-x64` RID so the runtime pack is fetched.
+
+### Known limitations
+
+- **Observables 0.1.4 RestAPI path validation**: `ValidatePathTemplate` does
+  not exclude `[Query]`/`[Body]` parameters when comparing path placeholders
+  to method parameters, so query/body parameters cannot coexist with path
+  parameters on the same method. GitPulse works around this by using only
+  path parameters on API methods; pagination/filtering will use a custom
+  `HttpMessageHandler` until the upstream validation is relaxed. Tracked
+  for upstream feedback.
+- **Observables 0.1.4 Events + MAUI internal interfaces**: The source-
+  generated `.Events()` extension for `Microsoft.Maui.Controls.SearchBar`
+  emits code referencing `IControlsVisualElement` (internal in MAUI),
+  causing CS0122. GitPulse bridges the event manually via an R3 `Subject<T>`
+  in the page code-behind; the reactive pipeline itself is unaffected.
+  Tracked for upstream feedback.
+
 ### Added — M0 (project skeleton)
 
 - Solution `GitPulse.slnx` with five projects:

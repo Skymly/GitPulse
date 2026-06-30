@@ -1,33 +1,55 @@
-﻿using GitPulse.Core.Abstractions;
+using GitPulse.App.ViewModels;
+using GitPulse.App.Views;
+using GitPulse.Core.Abstractions;
 using GitPulse.GitHubApi;
 using Microsoft.Extensions.Logging;
 using R3;
 using R3.Maui;
 
+#if WINDOWS
+using GitPulse.App.Platforms.Windows;
+#elif ANDROID
+using GitPulse.App.Platforms.Android;
+#endif
+
 namespace GitPulse.App;
 
 public static class MauiProgram
 {
-	public static MauiApp CreateMauiApp()
-	{
-		var builder = MauiApp.CreateBuilder();
-		builder
-			.UseMauiApp<App>()
-			.ConfigureFonts(fonts =>
-			{
-				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-			})
-			.UseR3();
+    public static MauiApp CreateMauiApp()
+    {
+        var builder = MauiApp.CreateBuilder();
+        builder
+            .UseMauiApp<App>()
+            .ConfigureFonts(fonts =>
+            {
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+            })
+            .UseR3();
 
-		// Application services (expanded per milestone).
-		// ICredentialStore is registered per-platform in platform entry points.
-		builder.Services.AddSingleton<IGitHubClientFactory, GitHubClientFactory>();
-
-#if DEBUG
-		builder.Logging.AddDebug();
+        // Platform-specific credential store.
+#if WINDOWS
+		builder.Services.AddSingleton<ICredentialStore, WindowsCredentialStore>();
+#elif ANDROID
+        builder.Services.AddSingleton<ICredentialStore, AndroidCredentialStore>();
 #endif
 
-		return builder.Build();
-	}
+        // Application services.
+        builder.Services.AddSingleton<IGitHubClientFactory, GitHubClientFactory>();
+
+        // ViewModels (transient — each page gets a fresh instance).
+        builder.Services.AddTransient<SettingsViewModel>();
+        builder.Services.AddTransient<ReposViewModel>();
+
+        // Pages (transient — resolved via DI when Shell navigates).
+        builder.Services.AddTransient<ReposPage>();
+        builder.Services.AddTransient<SettingsPage>();
+
+#if DEBUG
+        builder.Logging.AddDebug();
+#endif
+
+        return builder.Build();
+    }
 }

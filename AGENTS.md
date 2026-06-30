@@ -4,7 +4,7 @@
 
 - **Type**: Personal project (Skymly workspace)
 - **Remote**: https://github.com/Skymly/GitPulse
-- **Stage**: M0 (project skeleton) — solution, project structure, Nuke build, CI, docs framework in place; empty MAUI app builds
+- **Stage**: M1 (auth + repository list browsing) — credential storage, settings page, repos list with reactive search debounce
 - **Purpose**: Real-world showcase application for [Observables](https://github.com/Skymly/Observables) (declarative reactive HTTP/events bridging for R3). Not a toy demo — a working GitHub client the author uses day-to-day.
 
 ## Tech Stack
@@ -88,31 +88,51 @@ var api = RestService.For<IGitHubReposApi>(httpClient);
 
 ### Events domain (UI layer showcase)
 
-MAUI control events → `Observable<T>` streams:
+MAUI control events → `Observable<T>` streams. The intended source-generated
+form is:
 
 ```csharp
 searchBar.Events().TextChanged
     .Select(e => e.NewTextValue ?? string.Empty)
-    .Throttle(TimeSpan.FromMilliseconds(300))
+    .Debounce(TimeSpan.FromMilliseconds(300), TimeProvider.System)
     .DistinctUntilChanged()
     .Subscribe(text => vm.SearchText.Value = text);
 ```
 
-### Known Observables 0.1.4 limitation (discovered via this project)
+**However**, the generated `.Events()` extension for `Microsoft.Maui.Controls.SearchBar`
+produces code referencing `IControlsVisualElement` — an internal MAUI interface —
+causing CS0122. Until the upstream generator handles MAUI's internal accessibility,
+GitPulse bridges the event manually via an R3 `Subject<T>` in the page code-behind
+(`ReposPage.xaml.cs`). The pipeline (Debounce + DistinctUntilChanged + ObserveOn)
+is identical; only the event→Observable bridge is manual instead of source-generated.
 
-`ValidatePathTemplate` in `Observables.RestAPI.SourceGenerators.Shared/Parser.cs`
-requires the set of path placeholders to **equal** the set of all non-CancellationToken
-parameter names. It does **not** exclude `[Query]`/`[Body]`/`[Header]` parameters,
-so query/body parameters cannot coexist with path parameters on the same method
-in 0.1.4. The `ClassifyParameter` routine correctly identifies `[Query]` parameters,
+### Known Observables 0.1.4 limitations (discovered via this project)
+
+**1. RestAPI path validation** — `ValidatePathTemplate` in
+`Observables.RestAPI.SourceGenerators.Shared/Parser.cs` requires the set of path
+placeholders to **equal** the set of all non-CancellationToken parameter names.
+It does **not** exclude `[Query]`/`[Body]`/`[Header]` parameters, so query/body
+parameters cannot coexist with path parameters on the same method in 0.1.4. The
+`ClassifyParameter` routine correctly identifies `[Query]` parameters,
 but the validation runs before classification and rejects the interface.
 
 **Workaround in GitPulse**: API methods use only path parameters (no `[Query]`).
 Pagination and filtering are handled via a custom `HttpMessageHandler` or
 dedicated query-only methods until the upstream validation is relaxed.
 
-This is exactly the kind of real-world friction a showcase project should
-surface — tracked for upstream feedback.
+**2. Events + MAUI internal interfaces** — The source-generated `.Events()`
+extension for `Microsoft.Maui.Controls.SearchBar` (and likely other MAUI
+controls) emits code referencing `IControlsVisualElement`, which is
+`internal` in MAUI. This causes CS0122 at compile time. The generator does
+not account for MAUI's internal accessibility boundaries.
+
+**Workaround in GitPulse**: The search debounce pipeline in `ReposPage.xaml.cs`
+uses a manual R3 `Subject<T>` bridge instead of the source-generated
+`.Events()` extension. The reactive pipeline itself (Debounce +
+DistinctUntilChanged + ObserveOn) is unaffected.
+
+Both issues are exactly the kind of real-world friction a showcase project
+should surface — tracked for upstream feedback.
 
 ## Authentication & Credentials
 
@@ -129,7 +149,7 @@ surface — tracked for upstream feedback.
 | Milestone | Content | Observables domains |
 |-----------|---------|---------------------|
 | **M0** ✅ | Project skeleton: solution, projects, Nuke, CI, docs, empty MAUI app builds | — |
-| **M1** | Auth + repository list browsing | RestAPI + Events |
+| **M1** ✅ | Auth + repository list browsing | RestAPI + Events |
 | **M2** | Issue/PR list & detail | RestAPI + Events |
 | **M3** | Issue/PR CRUD (comments, state, labels) | RestAPI |
 | **M4** | Notification center (polling-simulated realtime) | Events (+ Sse optional) |

@@ -1,9 +1,9 @@
-﻿namespace GitPulse.App;
+namespace GitPulse.App;
 
 public partial class AppShell : Shell
 {
-	public AppShell()
-	{
-		InitializeComponent();
-	}
+    public AppShell()
+    {
+        InitializeComponent();
+    }
 }

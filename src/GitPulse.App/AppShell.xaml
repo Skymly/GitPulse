@@ -3,12 +3,20 @@
     x:Class="GitPulse.App.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:GitPulse.App"
-    Title="GitPulse.App">
+    xmlns:views="clr-namespace:GitPulse.App.Views"
+    Title="GitPulse">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <TabBar Route="MainTabBar">
+        <ShellContent
+            Title="Repos"
+            Icon="dotnet_bot.png"
+            ContentTemplate="{DataTemplate views:ReposPage}"
+            Route="ReposPage" />
+
+        <ShellContent
+            Title="Settings"
+            ContentTemplate="{DataTemplate views:SettingsPage}"
+            Route="SettingsPage" />
+    </TabBar>
 
 </Shell>

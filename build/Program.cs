@@ -6,6 +6,7 @@ using Nuke.Common;
 using Nuke.Common.Execution;
 using Nuke.Common.IO;
 using Nuke.Common.Tools.DotNet;
+using Nuke.Common.Tooling;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
 [UnsetVisualStudioEnvironmentVariables]
@@ -77,10 +78,32 @@ sealed class Build : NukeBuild
         .DependsOn(Restore)
         .Executes(() =>
         {
+            // Build library projects + tests via the test project (which
+            // transitively builds Core/GitHubApi/Services). This avoids
+            // building the App project which needs special runtime handling.
+            foreach (string relativePath in TestProjectRelativePaths)
+            {
+                DotNetBuild(s => s
+                    .SetProjectFile(Root / relativePath)
+                    .SetConfiguration(Configuration)
+                    .EnableNoRestore());
+            }
+
+            // Build the App project's Windows target. Building with an explicit
+            // RID triggers Mono runtime pack resolution for the Android TFM
+            // (NU1102), so we build without a RID. The .NET runtime pack for
+            // win-x64 is provided by the installed SDK on Windows.
             DotNetBuild(s => s
-                .SetProjectFile(SolutionFile)
+                .SetProjectFile(AppProject)
                 .SetConfiguration(Configuration)
-                .EnableNoRestore());
+                .SetFramework(WindowsFramework));
+
+            // Build the App project's Android target (no RID needed; Mono
+            // runtime comes from the MAUI workload).
+            DotNetBuild(s => s
+                .SetProjectFile(AppProject)
+                .SetConfiguration(Configuration)
+                .SetFramework("net10.0-android"));
         });
 
     Target UnitTest => _ => _

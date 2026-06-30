@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GitPulse.App.ViewModels"
+             xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
+             x:Class="GitPulse.App.Views.ReposPage"
+             x:DataType="vm:ReposViewModel"
+             Title="Repositories">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- Search bar: TextChanged event is bridged to an Observable
+             via R3 Subject in the code-behind (debounced). -->
+        <SearchBar x:Name="SearchBar"
+                   Grid.Row="0"
+                   Placeholder="Filter repositories..."
+                   Text="{Binding SearchText.Value}"
+                   Margin="16,12,16,8" />
+
+        <!-- Error banner -->
+        <Border Grid.Row="1"
+                IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                BackgroundColor="{StaticResource Red100}"
+                StrokeShape="RoundRectangle 8"
+                Padding="12"
+                Margin="16,0">
+            <Label Text="{Binding ErrorMessage.Value}"
+                   TextColor="{StaticResource Red900}"
+                   FontSize="13" />
+        </Border>
+
+        <!-- Repository list -->
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding Repos}"
+                        Margin="16,8,16,0"
+                        SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:Repo">
+                    <Border Margin="0,0,0,8"
+                            Padding="14"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="{StaticResource Gray200}">
+                        <VerticalStackLayout Spacing="4">
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="{Binding Name}"
+                                       FontSize="16"
+                                       FontAttributes="Bold" />
+                                <Label Text="private"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Gray500}"
+                                       IsVisible="{Binding Private}"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                            <Label Text="{Binding Description}"
+                                   FontSize="13"
+                                   TextColor="{StaticResource Gray600}"
+                                   MaxLines="2"
+                                   LineBreakMode="TailTruncation"
+                                   IsVisible="{Binding Description, Converter={StaticResource StringToBoolConverter}}" />
+                            <HorizontalStackLayout Spacing="16" Margin="0,4,0,0">
+                                <Label Text="★ {Binding StargazersCount}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="⑂ {Binding ForksCount}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="⚠ {Binding OpenIssuesCount}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Loading indicator + refresh -->
+        <VerticalStackLayout Grid.Row="3" Padding="16">
+            <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
+                               IsVisible="{Binding IsLoading.Value}" />
+            <Button Text="Load Repositories"
+                    Command="{Binding LoadCommand}"
+                    IsVisible="{Binding IsLoading.Value, Converter={StaticResource InvertedBoolConverter}}"
+                    HorizontalOptions="Center" />
+        </VerticalStackLayout>
+
+    </Grid>
+
+</ContentPage>

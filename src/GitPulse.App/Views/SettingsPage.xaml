@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GitPulse.App.ViewModels"
+             x:Class="GitPulse.App.Views.SettingsPage"
+             x:DataType="vm:SettingsViewModel"
+             Title="Settings">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16" MaximumWidthRequest="600"
+                              HorizontalOptions="Center">
+
+            <Label Text="GitHub Authentication"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   Margin="0,0,0,8" />
+
+            <Label Text="Enter a Personal Access Token (PAT) with repo scope."
+                   FontSize="14"
+                   TextColor="{StaticResource Gray400}" />
+
+            <Entry Placeholder="ghp_..."
+                   IsPassword="True"
+                   Text="{Binding TokenInput.Value}"
+                   IsEnabled="{Binding IsBusy.Value, Converter={StaticResource InvertedBoolConverter}}" />
+
+            <HorizontalStackLayout Spacing="12">
+                <Button Text="Save Token"
+                        Command="{Binding SaveTokenCommand}"
+                        IsEnabled="{Binding IsBusy.Value, Converter={StaticResource InvertedBoolConverter}}" />
+                <Button Text="Clear Token"
+                        Command="{Binding ClearTokenCommand}"
+                        IsEnabled="{Binding HasToken.Value}"
+                        BackgroundColor="{StaticResource Gray200}"
+                        TextColor="Black" />
+            </HorizontalStackLayout>
+
+            <Label Text="{Binding StatusMessage.Value}"
+                   FontSize="14"
+                   IsVisible="{Binding StatusMessage.Value, Converter={StaticResource StringToBoolConverter}}" />
+
+            <Border IsVisible="{Binding HasToken.Value}"
+                    BackgroundColor="{StaticResource Green100}"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="16">
+                <Label Text="A token is currently stored."
+                       TextColor="{StaticResource Green900}"
+                       FontSize="14" />
+            </Border>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy.Value}"
+                               IsVisible="{Binding IsBusy.Value}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
