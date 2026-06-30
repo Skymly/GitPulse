@@ -1,0 +1,49 @@
+<Project>
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Company>Skymly</Company>
+    <Product>GitPulse</Product>
+    <Copyright>Copyright (c) 2026 Skymly</Copyright>
+
+    <!-- Versioning via MinVer (Git-tag-based). AssemblyVersion,
+         FileVersion, Version, PackageVersion and InformationalVersion
+         are set automatically by MinVer from the latest version tag.
+         Tag prefix "v" matches the CI release trigger (refs/tags/v*).
+         MinVerMinimumMajorMinor preserves the 0.1.* baseline until the
+         first v0.1.0 tag is created. -->
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
+  </PropertyGroup>
+
+  <!-- MinVer build-time package. Excluded from the Nuke _build project
+       which doesn't need versioning. Under CPM the version comes from
+       Directory.Packages.props; projects that opt out of CPM (e.g. the
+       MAUI App) carry an explicit version here. -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != '_build' And '$(ManagePackageVersionsCentrally)' != 'false'">
+    <PackageReference Include="MinVer">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' != '_build' And '$(ManagePackageVersionsCentrally)' == 'false'">
+    <PackageReference Include="MinVer" Version="7.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Central package management is enabled in Directory.Packages.props. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- Treat warnings as errors in Release to catch issues early.
+       Disabled for the Nuke _build project which has its own conventions. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' And '$(MSBuildProjectName)' != '_build'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

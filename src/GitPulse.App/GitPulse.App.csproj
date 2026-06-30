@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net10.0-android</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+
+		<OutputType>Exe</OutputType>
+		<RootNamespace>GitPulse.App</RootNamespace>
+		<UseMaui>true</UseMaui>
+		<SingleProject>true</SingleProject>
+
+		<!-- Enable XAML source generation for faster build times and improved performance. -->
+		<MauiXamlInflator>SourceGen</MauiXamlInflator>
+
+		<!-- Display name -->
+		<ApplicationTitle>GitPulse</ApplicationTitle>
+
+		<!-- App Identifier -->
+		<ApplicationId>com.skymly.gitpulse</ApplicationId>
+
+		<!-- Versions (overridden by MinVer at build time for assembly/version metadata) -->
+		<ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+		<ApplicationVersion>1</ApplicationVersion>
+
+		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
+		<WindowsPackageType>None</WindowsPackageType>
+
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+
+		<!-- The MAUI App project opts out of central package management because
+		     UseMaui=true implicitly references MAUI/WindowsAppSDK packages whose
+		     versions are driven by $(MauiVersion). Managing those centrally would
+		     require duplicating the SDK's transitive version matrix. Library
+		     projects (Core/GitHubApi/Services/Tests) still use CPM. -->
+		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- App Icon -->
+		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+
+		<!-- Splash Screen -->
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+
+		<!-- Images -->
+		<MauiImage Include="Resources\Images\*" />
+		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
+
+		<!-- Custom Fonts -->
+		<MauiFont Include="Resources\Fonts\*" />
+
+		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+		<PackageReference Include="R3" Version="1.3.0" />
+		<PackageReference Include="R3Extensions.Maui" Version="1.3.0" />
+		<PackageReference Include="Observables.RestAPI.R3" Version="0.1.4" />
+		<PackageReference Include="Observables.Events.R3" Version="0.1.4" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\GitPulse.Core\GitPulse.Core.csproj" />
+		<ProjectReference Include="..\GitPulse.GitHubApi\GitPulse.GitHubApi.csproj" />
+		<ProjectReference Include="..\GitPulse.Services\GitPulse.Services.csproj" />
+	</ItemGroup>
+
+</Project>

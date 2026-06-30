@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>GitPulse.GitHubApi</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="R3" />
+		<PackageReference Include="Observables.RestAPI.R3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\GitPulse.Core\GitPulse.Core.csproj" />
+	</ItemGroup>
+
+</Project>

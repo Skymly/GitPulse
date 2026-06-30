@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>GitPulse.Tests</RootNamespace>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="xunit.v3" />
+		<PackageReference Include="xunit.runner.visualstudio" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\GitPulse.Core\GitPulse.Core.csproj" />
+		<ProjectReference Include="..\..\src\GitPulse.GitHubApi\GitPulse.GitHubApi.csproj" />
+		<ProjectReference Include="..\..\src\GitPulse.Services\GitPulse.Services.csproj" />
+	</ItemGroup>
+
+</Project>

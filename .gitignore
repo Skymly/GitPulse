@@ -1,0 +1,71 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+*.cache
+*.log
+*.pidb
+*.swp
+
+## Test results
+[Tt]est[Rr]esults/
+*.trx
+
+## Visual Studio
+.vs/
+*.vspscc
+*.vssscc
+
+## Rider
+.idea/
+
+## Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+## OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+## Secrets
+appsettings.local.json
+*.secret.json
+.env
+
+## Nuke
+.nuke/temp/
+
+## Publish / artifacts
+publish/
+artifacts/
+
+## MAUI / Android
+*.apk
+*.aab
+*.keystore
+*.keystore.sha1
+*.keystore.sha256
+*.keystore.md5
+*.keystore.sha512
+*.keystore.pem
+*.keystore.pk8
+Platforms/Android/Resources/values/Secrets.xml

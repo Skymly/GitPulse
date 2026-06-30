@@ -1,0 +1,160 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Cross-platform library tests (Linux, macOS).
+  # The App project targets net10.0-windows / net10.0-android, so only the
+  # library projects (Core/GitHubApi/Services) and tests are built here.
+  ci-lib:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history required by MinVer (Git-tag-based versioning).
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.slnx', 'Directory.Packages.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Run library CI via Nuke (CiLib)
+        run: dotnet run --project build/_build.csproj -- --root . --target CiLib --configuration Release
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: TestResults/
+          if-no-files-found: warn
+
+      - name: Upload code coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-${{ matrix.os }}
+          path: TestResults/**/coverage.cobertura.xml
+          if-no-files-found: warn
+
+  # Full CI on Windows: format check + full solution build (incl. MAUI App) + tests.
+  ci-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history required by MinVer (Git-tag-based versioning).
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        id: setup-dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.slnx', 'Directory.Packages.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Run full CI via Nuke (CiAll)
+        env:
+          # dotnet format internally spawns a child process to load the
+          # workspace; DOTNET_ROOT ensures it finds the correct SDK.
+          DOTNET_ROOT: ${{ steps.setup-dotnet.outputs.dotnet-path }}
+        run: dotnet run --project build/_build.csproj -- --root . --target CiAll --configuration Release
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows
+          path: TestResults/
+          if-no-files-found: warn
+
+      - name: Upload code coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-windows
+          path: TestResults/**/coverage.cobertura.xml
+          if-no-files-found: warn
+
+  # Release build: publish self-contained Windows executable on tag pushes.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ci-lib, ci-windows]
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history required by MinVer (Git-tag-based versioning).
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.slnx', 'Directory.Packages.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Run release pipeline via Nuke (Release)
+        run: dotnet run --project build/_build.csproj -- --root . --target Release --configuration Release
+
+      - name: Upload publish artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GitPulse-win-x64
+          path: artifacts/publish/win-x64/
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/publish/win-x64/GitPulse.exe
+          draft: false
+          generate_release_notes: true
+          fail_on_unmatched_files: true

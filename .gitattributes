@@ -1,0 +1,20 @@
+# Normalize line endings to LF across all platforms so dotnet format
+# produces identical results on Windows and Linux CI runners.
+* text=auto eol=lf
+
+# Binary files — never normalize
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.dll binary
+*.exe binary
+*.zip binary
+*.7z binary
+*.apk binary
+*.aab binary
+*.keystore binary
+*.ttf binary
+*.otf binary
