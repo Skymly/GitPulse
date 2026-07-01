@@ -11,13 +11,11 @@ namespace GitPulse.GitHubApi;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Observables 0.1.4 limitation:</b> <c>ValidatePathTemplate</c> requires the set of path
-/// placeholders to equal the set of all non-CancellationToken parameter names. It does not
-/// exclude <c>[Query]</c>/<c>[Body]</c> parameters, so query/body parameters cannot coexist
-/// with path parameters on the same method in 0.1.4. Pagination (<c>page</c>/<c>per_page</c>)
-/// and filtering (<c>state</c>) query parameters are injected by a custom
-/// <see cref="HttpMessageHandler"/> (<c>GitHubQueryHandler</c>) rather than declared as
-/// <c>[Query]</c> parameters. See <see href="https://github.com/Skymly/Observables/issues/111"/>.
+/// <b>Observables 0.1.5:</b> <c>ValidatePathTemplate</c> now runs after parameter
+/// classification, so <c>[Body]</c>/<c>[Query]</c>/<c>[Header]</c> parameters are
+/// correctly excluded from path-template validation. Path + body parameters can
+/// coexist on the same method. See
+/// <see href="https://github.com/Skymly/Observables/issues/111"/>.
 /// </para>
 /// <para>
 /// <b>Pagination via <c>ApiResponse&lt;T&gt;</c>:</b> List methods that need the
@@ -47,8 +45,25 @@ public interface IGitHubReposApi
     [Get("/repos/{owner}/{repo}/issues/{number}")]
     Observable<Issue> GetIssue(string owner, string repo, int number);
 
+    [Post("/repos/{owner}/{repo}/issues")]
+    Observable<Issue> CreateIssue(string owner, string repo, [Body] IssueCreateRequest body);
+
+    [Patch("/repos/{owner}/{repo}/issues/{number}")]
+    Observable<Issue> UpdateIssue(string owner, string repo, int number, [Body] IssueUpdateRequest body);
+
     [Get("/repos/{owner}/{repo}/issues/{number}/comments")]
     Observable<Comment[]> ListIssueComments(string owner, string repo, int number);
+
+    [Post("/repos/{owner}/{repo}/issues/{number}/comments")]
+    Observable<Comment> CreateIssueComment(string owner, string repo, int number, [Body] CommentCreateRequest body);
+
+    // ── Labels ────────────────────────────────────────────────────
+
+    [Get("/repos/{owner}/{repo}/issues/{number}/labels")]
+    Observable<Label[]> ListIssueLabels(string owner, string repo, int number);
+
+    [Put("/repos/{owner}/{repo}/issues/{number}/labels")]
+    Observable<Label[]> ReplaceIssueLabels(string owner, string repo, int number, [Body] LabelsReplaceRequest body);
 
     // ── Pull Requests ─────────────────────────────────────────────
 

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
+             x:Class="GitPulse.App.Views.CreateIssuePage"
+             x:DataType="vm:CreateIssueViewModel"
+             Title="New Issue">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Back button -->
+        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
+            <Button Text="← Back"
+                    Clicked="OnBackClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    Padding="8,4" />
+            <Label Text="New Issue"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center" />
+        </HorizontalStackLayout>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16" Spacing="12">
+
+                <!-- Title -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Title"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Entry Text="{Binding TitleInput.Value}"
+                           Placeholder="Issue title"
+                           FontSize="14" />
+                </VerticalStackLayout>
+
+                <!-- Body -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Description (Markdown)"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Editor Text="{Binding BodyInput.Value}"
+                            Placeholder="Describe the issue..."
+                            AutoSize="TextChanges"
+                            FontSize="14"
+                            MinimumHeightRequest="120" />
+                </VerticalStackLayout>
+
+                <!-- Labels -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Labels (comma-separated, optional)"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Entry Text="{Binding LabelsInput.Value}"
+                           Placeholder="bug, enhancement, ..."
+                           FontSize="14" />
+                </VerticalStackLayout>
+
+                <!-- Error banner -->
+                <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                        BackgroundColor="{StaticResource Red100}"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="12">
+                    <Label Text="{Binding ErrorMessage.Value}"
+                           TextColor="{StaticResource Red900}"
+                           FontSize="13" />
+                </Border>
+
+                <!-- Create button -->
+                <Button Text="Create Issue"
+                        Command="{Binding CreateCommand}"
+                        IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
+                        HorizontalOptions="Start"
+                        Padding="24,8"
+                        FontSize="14" />
+
+                <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
+                                   IsVisible="{Binding IsSaving.Value}" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>

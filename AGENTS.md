@@ -4,7 +4,7 @@
 
 - **Type**: Personal project (Skymly workspace)
 - **Remote**: https://github.com/Skymly/GitPulse
-- **Stage**: M2 complete + pagination & markdown — auth, repo browsing, issue & PR lists with server-side state filter + pagination, issue & PR detail with markdown-rendered body & comments
+- **Stage**: M3 complete (CRUD) — auth, repo browsing, issue & PR lists with pagination, issue & PR detail with markdown, CRUD operations (comments, state toggle, labels, new issue)
 - **Purpose**: Real-world showcase application for [Observables](https://github.com/Skymly/Observables) (declarative reactive HTTP/events bridging for R3). Not a toy demo — a working GitHub client the author uses day-to-day.
 
 ## Tech Stack
@@ -124,19 +124,21 @@ is identical; only the event→Observable bridge is manual instead of source-gen
 
 ### Known Observables 0.1.4 limitations (discovered via this project)
 
-**1. RestAPI path validation** — `ValidatePathTemplate` in
-`Observables.RestAPI.SourceGenerators.Shared/Parser.cs` requires the set of path
-placeholders to **equal** the set of all non-CancellationToken parameter names.
-It does **not** exclude `[Query]`/`[Body]`/`[Header]` parameters, so query/body
-parameters cannot coexist with path parameters on the same method in 0.1.4. The
-`ClassifyParameter` routine correctly identifies `[Query]` parameters,
-but the validation runs before classification and rejects the interface.
+**1. RestAPI path validation (OBS3004) — FIXED in 0.1.5** —
+`ValidatePathTemplate` in `Observables.RestAPI.SourceGenerators.Shared/Parser.cs`
+previously required the set of path placeholders to **equal** the set of all
+non-CancellationToken parameter names, rejecting `[Query]`/`[Body]`/`[Header]`
+parameters. In 0.1.5, validation runs **after** parameter classification, so
+non-path parameters are correctly excluded. Path + `[Body]` parameters now
+coexist on the same method — M3 CRUD operations use this directly.
 
-**Workaround in GitPulse**: API methods use only path parameters (no `[Query]`).
-Pagination (`page`/`per_page`) and filtering (`state`) query parameters are
+**Before the fix (0.1.4)**: API methods used only path parameters (no `[Query]`).
+Pagination (`page`/`per_page`) and filtering (`state`) query parameters were
 injected by `GitHubQueryHandler` (Core/Http), a `DelegatingHandler` that
-modifies the request URI before it reaches the inner handler. The ViewModel
-holds the handler instance across load calls to persist `Page`/`State` state.
+modifies the request URI before it reaches the inner handler. This workaround
+remains in place for pagination (since `ApiResponse<T>` + `Link` header is
+still needed for `CanLoadMore` detection), but CRUD `[Body]` parameters are
+now declared directly on the interface.
 Upstream issue: https://github.com/Skymly/Observables/issues/111
 
 **2. Events + MAUI internal interfaces** — The source-generated `.Events()`
@@ -172,7 +174,7 @@ should surface — tracked for upstream feedback.
 | **M0** ✅ | Project skeleton: solution, projects, Nuke, CI, docs, empty MAUI app builds | — |
 | **M1** ✅ | Auth + repository list browsing | RestAPI + Events |
 | **M2** ✅ | Issue/PR list & detail (issues + PRs, state filter, detail with comments) | RestAPI + Events |
-| **M3** | Issue/PR CRUD (comments, state, labels) | RestAPI |
+| **M3** ✅ | Issue/PR CRUD (comments, state toggle, labels, new issue) | RestAPI |
 | **M4** | Notification center (polling-simulated realtime) | Events (+ Sse optional) |
 | **M5** | File browsing & editing | RestAPI |
 | **M6** | PR review & merge | RestAPI |

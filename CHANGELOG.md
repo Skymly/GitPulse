@@ -7,6 +7,40 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — M3 CRUD operations (issue/PR write via Observables 0.1.5)
+
+- Upgraded to `Observables.RestAPI.R3` 0.1.5 — the upstream OBS3004 fix
+  (`ValidatePathTemplate` now runs after parameter classification) allows
+  path + `[Body]` parameters to coexist on the same declarative interface
+  method. See https://github.com/Skymly/Observables/issues/111.
+- `IGitHubReposApi` new CRUD methods (all declarative, path + `[Body]`):
+  - `CreateIssue` — POST /repos/{owner}/{repo}/issues
+  - `UpdateIssue` — PATCH /repos/{owner}/{repo}/issues/{number} (state toggle)
+  - `CreateIssueComment` — POST /repos/{owner}/{repo}/issues/{number}/comments
+  - `ListIssueLabels` — GET /repos/{owner}/{repo}/issues/{number}/labels
+  - `ReplaceIssueLabels` — PUT /repos/{owner}/{repo}/issues/{number}/labels
+- Request body DTOs (`IssueCreateRequest`, `IssueUpdateRequest`,
+  `CommentCreateRequest`, `LabelsReplaceRequest`) in Core/Models.
+- `IssueDetailViewModel` — `AddCommentCommand`, `ToggleStateCommand`,
+  `SaveLabelsCommand` with `CommentInput`/`LabelInput` reactive properties
+  and `IsSaving` state.
+- `PullRequestDetailViewModel` — `AddCommentCommand` (PR comments use the
+  issue comments endpoint), `ToggleStateCommand` (PR state via issue PATCH).
+- `CreateIssueViewModel` — new ViewModel for the "New Issue" form with
+  `TitleInput`/`BodyInput`/`LabelsInput` and `CreateCommand`; navigates
+  to issue detail on success.
+- `CreateIssuePage` (XAML) — title entry, markdown body editor,
+  comma-separated labels entry, create button, error banner.
+- `IssueDetailPage` — Close/Reopen button, labels editor (entry + save),
+  comment input (editor + comment button).
+- `PullRequestDetailPage` — Close/Reopen button, comment input.
+- `IssuesPage` — "+ New Issue" button → `CreateIssuePage`.
+- AppShell registered `CreateIssuePage` route; MauiProgram DI registered
+  `CreateIssueViewModel` + `CreateIssuePage`.
+- Tests: `IssueDetailViewModelCrudTests` (3 tests: add comment, toggle
+  state, empty input guard), `CreateIssueViewModelTests` (4 tests:
+  initialize, empty title guard, valid create, no-token guard). 35 total.
+
 ### Added — Pagination (server-side via `ApiResponse<T>` + `Link` header)
 
 - `IGitHubReposApi` list methods now return `Observable<ApiResponse<T>>`

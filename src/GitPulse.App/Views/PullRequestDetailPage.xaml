@@ -86,13 +86,28 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Open in browser button -->
-                <Button Text="Open in browser ↗"
-                        Command="{Binding OpenInBrowserCommand}"
-                        CommandParameter="{Binding PullRequest.Value.HtmlUrl}"
-                        HorizontalOptions="Start"
-                        Padding="16,6"
-                        FontSize="13" />
+                <!-- Open in browser + state toggle -->
+                <HorizontalStackLayout Spacing="12">
+                    <Button Text="Open in browser ↗"
+                            Command="{Binding OpenInBrowserCommand}"
+                            CommandParameter="{Binding PullRequest.Value.HtmlUrl}"
+                            Padding="16,6"
+                            FontSize="13" />
+                    <Button Text="Close"
+                            Command="{Binding ToggleStateCommand}"
+                            IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}"
+                            BackgroundColor="{StaticResource Purple700}"
+                            TextColor="White"
+                            Padding="16,6"
+                            FontSize="13" />
+                    <Button Text="Reopen"
+                            Command="{Binding ToggleStateCommand}"
+                            IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}"
+                            BackgroundColor="{StaticResource Green700}"
+                            TextColor="White"
+                            Padding="16,6"
+                            FontSize="13" />
+                </HorizontalStackLayout>
 
                 <!-- Comments section header -->
                 <Label Text="Conversation"
@@ -129,6 +144,26 @@
                             </Border>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <!-- Comment input -->
+                <VerticalStackLayout Spacing="8" Margin="0,8,0,0">
+                    <Label Text="Add a comment"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Editor Text="{Binding CommentInput.Value}"
+                            Placeholder="Write a comment... (Markdown supported)"
+                            AutoSize="TextChanges"
+                            FontSize="14"
+                            MinimumHeightRequest="80" />
+                    <Button Text="Comment"
+                            Command="{Binding AddCommentCommand}"
+                            IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
+                            HorizontalOptions="Start"
+                            Padding="24,8"
+                            FontSize="14" />
+                    <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
+                                       IsVisible="{Binding IsSaving.Value}" />
                 </VerticalStackLayout>
 
                 <!-- Error banner -->

@@ -12,8 +12,8 @@
 
   <!-- Observables (Skymly) — source generators bridging events & IO to R3 -->
   <ItemGroup>
-    <PackageVersion Include="Observables.RestAPI.R3" Version="0.1.4" />
-    <PackageVersion Include="Observables.Events.R3" Version="0.1.4" />
+    <PackageVersion Include="Observables.RestAPI.R3" Version="0.1.5" />
+    <PackageVersion Include="Observables.Events.R3" Version="0.1.5" />
   </ItemGroup>
 
   <!-- MVVM infrastructure -->

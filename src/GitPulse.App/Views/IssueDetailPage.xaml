@@ -57,7 +57,39 @@
                             <Label Text="{Binding Issue.Value.CommentsCount, StringFormat='Comments: {0}'}"
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}" />
+                            <Button Text="{Binding Issue.Value.State, StringFormat='Close {0}'}"
+                                    Command="{Binding ToggleStateCommand}"
+                                    IsVisible="{Binding Issue.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}"
+                                    BackgroundColor="{StaticResource Purple700}"
+                                    TextColor="White"
+                                    Padding="16,4"
+                                    FontSize="12" />
+                            <Button Text="Reopen"
+                                    Command="{Binding ToggleStateCommand}"
+                                    IsVisible="{Binding Issue.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}"
+                                    BackgroundColor="{StaticResource Green700}"
+                                    TextColor="White"
+                                    Padding="16,4"
+                                    FontSize="12" />
                         </HorizontalStackLayout>
+
+                        <!-- Labels editor -->
+                        <VerticalStackLayout Spacing="4" Margin="0,4,0,0">
+                            <Label Text="Labels"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Gray500}" />
+                            <HorizontalStackLayout Spacing="8">
+                                <Entry Text="{Binding LabelInput.Value}"
+                                       Placeholder="bug, enhancement, ..."
+                                       FontSize="13"
+                                       HorizontalOptions="Fill" />
+                                <Button Text="Save"
+                                        Command="{Binding SaveLabelsCommand}"
+                                        Padding="16,4"
+                                        FontSize="12" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
@@ -96,6 +128,26 @@
                             </Border>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <!-- Comment input -->
+                <VerticalStackLayout Spacing="8" Margin="0,8,0,0">
+                    <Label Text="Add a comment"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Editor Text="{Binding CommentInput.Value}"
+                            Placeholder="Write a comment... (Markdown supported)"
+                            AutoSize="TextChanges"
+                            FontSize="14"
+                            MinimumHeightRequest="80" />
+                    <Button Text="Comment"
+                            Command="{Binding AddCommentCommand}"
+                            IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
+                            HorizontalOptions="Start"
+                            Padding="24,8"
+                            FontSize="14" />
+                    <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
+                                       IsVisible="{Binding IsSaving.Value}" />
                 </VerticalStackLayout>
 
                 <!-- Error banner -->
