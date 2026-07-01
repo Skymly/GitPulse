@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
+using GitPulse.Core.Http;
 using GitPulse.Core.Models;
 using GitPulse.GitHubApi;
 using Observables.RestAPI;
@@ -10,10 +11,11 @@ namespace GitPulse.ViewModels;
 
 /// <summary>
 /// Pull requests list view model for a specific repository. Demonstrates
-/// <see cref="IGitHubReposApi.ListPullRequests"/> and reactive state filtering
-/// (open / closed / all) via R3 <see cref="BindableReactiveProperty{T}"/>.
-/// Mirrors <see cref="IssuesViewModel"/> but operates on
-/// <see cref="PullRequest"/> models.
+/// <see cref="IGitHubReposApi.ListPullRequestsPaged"/> returning
+/// <see cref="ApiResponse{T}"/> (exposing the <c>Link</c> header for
+/// pagination), reactive state filtering (open / closed / all) via R3
+/// <see cref="BindableReactiveProperty{T}"/>, and server-side pagination
+/// via <see cref="GitHubQueryHandler"/>.
 /// </summary>
 public sealed partial class PullRequestsViewModel : IDisposable
 {
@@ -22,9 +24,12 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
     private string _owner = string.Empty;
     private string _repo = string.Empty;
-    private readonly List<PullRequest> _allPrs = [];
+    private HttpClient? _pagedClient;
+    private GitHubQueryHandler? _queryHandler;
+    private int _currentPage;
+    private bool _hasNextPage;
 
-    /// <summary>Pull requests currently displayed (after state filter).</summary>
+    /// <summary>Pull requests currently displayed.</summary>
     public ObservableCollection<PullRequest> PullRequests { get; } = [];
 
     /// <summary>Filter: "open", "closed", or "all".</summary>
@@ -32,6 +37,9 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
     /// <summary>Whether a load operation is in progress.</summary>
     public BindableReactiveProperty<bool> IsLoading { get; } = new(false);
+
+    /// <summary>Whether more pages can be loaded.</summary>
+    public BindableReactiveProperty<bool> CanLoadMore { get; } = new(false);
 
     /// <summary>Error message; empty when no error.</summary>
     public BindableReactiveProperty<string> ErrorMessage { get; } = new(string.Empty);
@@ -48,7 +56,7 @@ public sealed partial class PullRequestsViewModel : IDisposable
     public PullRequestsViewModel(IGitHubClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
-        StateFilter.Subscribe(ApplyStateFilter).AddTo(_disposables);
+        StateFilter.Subscribe(OnStateChanged).AddTo(_disposables);
     }
 
     /// <summary>
@@ -64,14 +72,10 @@ public sealed partial class PullRequestsViewModel : IDisposable
         RepoFullName.Value = $"{owner}/{repo}";
     }
 
-    private void ApplyStateFilter(string state)
+    private void OnStateChanged(string state)
     {
-        PullRequests.Clear();
-        foreach (var pr in _allPrs)
-        {
-            if (state == "all" || pr.State == state)
-                PullRequests.Add(pr);
-        }
+        if (_queryHandler is not null)
+            _ = LoadCommand.ExecuteAsync(null);
     }
 
     [RelayCommand]
@@ -85,20 +89,33 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            _pagedClient?.Dispose();
+
+            var (client, queryHandler) = await _clientFactory.CreatePagedClientAsync();
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                client.Dispose();
                 return;
             }
 
+            _pagedClient = client;
+            _queryHandler = queryHandler;
+            _queryHandler.State = StateFilter.Value;
+            _queryHandler.Page = 1;
+            _queryHandler.PerPage = 30;
+
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var prs = await api.ListPullRequests(_owner, _repo).FirstAsync(cts.Token);
+            var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(cts.Token);
 
-            _allPrs.Clear();
-            _allPrs.AddRange(prs);
-            ApplyStateFilter(StateFilter.Value);
+            PullRequests.Clear();
+            foreach (var pr in response.Content ?? [])
+                PullRequests.Add(pr);
+
+            _currentPage = 1;
+            _hasNextPage = LinkHeaderParser.GetNextUrl(response.Headers) is not null;
+            CanLoadMore.Value = _hasNextPage;
         }
         catch (OperationCanceledException)
         {
@@ -114,14 +131,55 @@ public sealed partial class PullRequestsViewModel : IDisposable
         }
     }
 
+    /// <summary>Load the next page of pull requests (appends to the list).</summary>
+    [RelayCommand]
+    private async Task LoadMoreAsync()
+    {
+        if (!_hasNextPage || _queryHandler is null || _pagedClient is null || IsLoading.Value)
+            return;
+
+        IsLoading.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            _queryHandler.Page = _currentPage + 1;
+
+            var api = RestService.For<IGitHubReposApi>(_pagedClient);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(cts.Token);
+
+            foreach (var pr in response.Content ?? [])
+                PullRequests.Add(pr);
+
+            _currentPage++;
+            _hasNextPage = LinkHeaderParser.GetNextUrl(response.Headers) is not null;
+            CanLoadMore.Value = _hasNextPage;
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Load more failed: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading.Value = false;
+        }
+    }
+
     public void Dispose()
     {
         _disposables.Dispose();
         StateFilter.Dispose();
         IsLoading.Dispose();
+        CanLoadMore.Dispose();
         ErrorMessage.Dispose();
         RepoFullName.Dispose();
         Owner.Dispose();
         RepoName.Dispose();
+        _pagedClient?.Dispose();
     }
 }

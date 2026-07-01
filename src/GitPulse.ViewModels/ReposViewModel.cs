@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
+using GitPulse.Core.Http;
 using GitPulse.Core.Models;
 using GitPulse.GitHubApi;
 using Observables.RestAPI;
@@ -12,13 +13,19 @@ namespace GitPulse.ViewModels;
 /// Repository list view model — the primary showcase of
 /// <see cref="IGitHubReposApi"/> (Observables.RestAPI.R3) and
 /// R3 <see cref="BindableReactiveProperty{T}"/> state management.
+/// Supports pagination via <see cref="ApiResponse{T}"/> + <c>Link</c> header.
 /// </summary>
 public sealed partial class ReposViewModel : IDisposable
 {
     private readonly IGitHubClientFactory _clientFactory;
     private readonly CompositeDisposable _disposables = [];
 
-    /// <summary>Repos currently displayed.</summary>
+    private HttpClient? _pagedClient;
+    private GitHubQueryHandler? _queryHandler;
+    private int _currentPage;
+    private bool _hasNextPage;
+
+    /// <summary>Repos currently displayed (after search filter).</summary>
     public ObservableCollection<Repo> Repos { get; } = [];
 
     /// <summary>Filtered view of <see cref="Repos"/> based on <see cref="SearchText"/>.</summary>
@@ -33,6 +40,9 @@ public sealed partial class ReposViewModel : IDisposable
     /// <summary>Whether the user is authenticated (has a stored token).</summary>
     public BindableReactiveProperty<bool> IsAuthenticated { get; } = new(false);
 
+    /// <summary>Whether more pages can be loaded.</summary>
+    public BindableReactiveProperty<bool> CanLoadMore { get; } = new(false);
+
     /// <summary>Error message shown on failure; empty when no error.</summary>
     public BindableReactiveProperty<string> ErrorMessage { get; } = new(string.Empty);
 
@@ -40,13 +50,11 @@ public sealed partial class ReposViewModel : IDisposable
     {
         _clientFactory = clientFactory;
 
-        // Reactive filter: whenever Repos changes or SearchText changes,
-        // recompute the filtered list.
         FilteredRepos = new ReadOnlyObservableCollection<Repo>(Repos);
 
         // Subscribe to SearchText changes to filter the list in real-time.
-        // The debounce (Throttle) is applied in the page code-behind via
-        // the Observables.Events domain — this handler does the actual filter.
+        // The debounce is applied in the page code-behind via the
+        // Observables.Events domain — this handler does the actual filter.
         SearchText.Subscribe(ApplyFilter).AddTo(_disposables);
 
         _ = CheckAuthAsync();
@@ -77,8 +85,6 @@ public sealed partial class ReposViewModel : IDisposable
 
     private async Task CheckAuthAsync()
     {
-        // The client factory reads the token from ICredentialStore internally;
-        // if the token is absent, IsAuthenticated stays false.
         var client = await _clientFactory.CreateClientAsync();
         IsAuthenticated.Value = client.DefaultRequestHeaders.Authorization is not null;
     }
@@ -91,25 +97,34 @@ public sealed partial class ReposViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            _pagedClient?.Dispose();
+            _allRepos.Clear();
+
+            var (client, queryHandler) = await _clientFactory.CreatePagedClientAsync();
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
                 IsAuthenticated.Value = false;
+                client.Dispose();
                 return;
             }
 
             IsAuthenticated.Value = true;
+            _pagedClient = client;
+            _queryHandler = queryHandler;
+            _queryHandler.Page = 1;
+            _queryHandler.PerPage = 30;
+
             var api = RestService.For<IGitHubReposApi>(client);
-
-            // Observables.RestAPI returns an Observable<Repo[]>; we await the
-            // first emission. This is the core RestAPI domain showcase.
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var repos = await api.ListMyRepos().FirstAsync(cts.Token);
+            var response = await api.ListMyReposPaged().FirstAsync(cts.Token);
 
-            _allRepos.Clear();
-            _allRepos.AddRange(repos);
+            _allRepos.AddRange(response.Content ?? []);
             ApplyFilter(SearchText.Value);
+
+            _currentPage = 1;
+            _hasNextPage = LinkHeaderParser.GetNextUrl(response.Headers) is not null;
+            CanLoadMore.Value = _hasNextPage;
         }
         catch (OperationCanceledException)
         {
@@ -125,12 +140,53 @@ public sealed partial class ReposViewModel : IDisposable
         }
     }
 
+    /// <summary>Load the next page of repositories (appends to the list).</summary>
+    [RelayCommand]
+    private async Task LoadMoreAsync()
+    {
+        if (!_hasNextPage || _queryHandler is null || _pagedClient is null || IsLoading.Value)
+            return;
+
+        IsLoading.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            _queryHandler.Page = _currentPage + 1;
+
+            var api = RestService.For<IGitHubReposApi>(_pagedClient);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var response = await api.ListMyReposPaged().FirstAsync(cts.Token);
+
+            _allRepos.AddRange(response.Content ?? []);
+            ApplyFilter(SearchText.Value);
+
+            _currentPage++;
+            _hasNextPage = LinkHeaderParser.GetNextUrl(response.Headers) is not null;
+            CanLoadMore.Value = _hasNextPage;
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Load more failed: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading.Value = false;
+        }
+    }
+
     public void Dispose()
     {
         _disposables.Dispose();
         SearchText.Dispose();
         IsLoading.Dispose();
         IsAuthenticated.Dispose();
+        CanLoadMore.Dispose();
         ErrorMessage.Dispose();
+        _pagedClient?.Dispose();
     }
 }

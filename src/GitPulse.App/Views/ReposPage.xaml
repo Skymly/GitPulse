@@ -75,14 +75,20 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <!-- Loading indicator + refresh -->
-        <VerticalStackLayout Grid.Row="3" Padding="16">
+        <!-- Loading indicator + refresh + load more -->
+        <VerticalStackLayout Grid.Row="3" Padding="16" Spacing="8">
             <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
                                IsVisible="{Binding IsLoading.Value}" />
             <Button Text="Load Repositories"
                     Command="{Binding LoadCommand}"
                     IsVisible="{Binding IsLoading.Value, Converter={StaticResource InvertedBoolConverter}}"
                     HorizontalOptions="Center" />
+            <Button Text="Load more"
+                    Command="{Binding LoadMoreCommand}"
+                    IsVisible="{Binding CanLoadMore.Value}"
+                    HorizontalOptions="Center"
+                    Padding="24,8"
+                    FontSize="13" />
         </VerticalStackLayout>
 
     </Grid>

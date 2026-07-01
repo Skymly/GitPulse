@@ -11,21 +11,25 @@ namespace GitPulse.Tests.TestHelpers;
 /// </summary>
 public sealed class MockHttpHandler : HttpMessageHandler
 {
-    private readonly Dictionary<string, Func<HttpRequestMessage, string>> _routes = new();
+    private readonly Dictionary<string, Func<HttpRequestMessage, MockResponse>> _routes = new();
 
     /// <summary>
-    /// Register a canned JSON response for requests whose absolute path
-    /// ends with <paramref name="pathSuffix"/>.
+    /// Register a canned response (JSON body + optional Link header) for
+    /// requests whose absolute path ends with <paramref name="pathSuffix"/>.
     /// </summary>
-    public MockHttpHandler When(string pathSuffix, Func<HttpRequestMessage, string> respond)
+    public MockHttpHandler When(string pathSuffix, Func<HttpRequestMessage, MockResponse> respond)
     {
         _routes[pathSuffix] = respond;
         return this;
     }
 
-    /// <summary>Shorthand for a constant JSON body.</summary>
+    /// <summary>Shorthand for a constant JSON body with no Link header.</summary>
     public MockHttpHandler When(string pathSuffix, string jsonBody)
-        => When(pathSuffix, _ => jsonBody);
+        => When(pathSuffix, _ => new MockResponse(jsonBody));
+
+    /// <summary>Shorthand for a JSON body with a Link header.</summary>
+    public MockHttpHandler When(string pathSuffix, string jsonBody, string? linkHeader)
+        => When(pathSuffix, _ => new MockResponse(jsonBody, linkHeader));
 
     protected override Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
@@ -36,11 +40,13 @@ public sealed class MockHttpHandler : HttpMessageHandler
         {
             if (path.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
             {
-                var body = responder(request);
+                var mock = responder(request);
                 var response = new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StringContent(body, Encoding.UTF8, "application/json"),
+                    Content = new StringContent(mock.Body, Encoding.UTF8, "application/json"),
                 };
+                if (!string.IsNullOrEmpty(mock.LinkHeader))
+                    response.Headers.Add("Link", mock.LinkHeader);
                 return Task.FromResult(response);
             }
         }
@@ -51,3 +57,6 @@ public sealed class MockHttpHandler : HttpMessageHandler
         });
     }
 }
+
+/// <summary>Canned response payload for <see cref="MockHttpHandler"/>.</summary>
+public sealed record MockResponse(string Body, string? LinkHeader = null);

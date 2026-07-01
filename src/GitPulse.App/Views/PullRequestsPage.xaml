@@ -7,7 +7,7 @@
              x:DataType="vm:PullRequestsViewModel"
              Title="Pull Requests">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
 
         <!-- Header: repo name + back button -->
         <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
@@ -126,6 +126,16 @@
                            IsVisible="{Binding IsLoading.Value}"
                            VerticalOptions="Start"
                            Margin="0,16,0,0" />
+
+        <!-- Load more button -->
+        <Button Grid.Row="4"
+                Text="Load more"
+                Command="{Binding LoadMoreCommand}"
+                IsVisible="{Binding CanLoadMore.Value}"
+                HorizontalOptions="Center"
+                Padding="24,8"
+                Margin="0,8,0,16"
+                FontSize="13" />
 
     </Grid>
 

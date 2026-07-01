@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using GitPulse.Core.Abstractions;
+using GitPulse.Core.Http;
 
 namespace GitPulse.Tests.TestHelpers;
 
@@ -23,7 +24,20 @@ public sealed class FakeGitHubClientFactory : IGitHubClientFactory
 
     public Task<HttpClient> CreateClientAsync(CancellationToken ct = default)
     {
-        var client = new HttpClient(_handler, disposeHandler: false)
+        return Task.FromResult(BuildClient(_handler));
+    }
+
+    public Task<(HttpClient Client, GitHubQueryHandler QueryHandler)> CreatePagedClientAsync(
+        CancellationToken ct = default)
+    {
+        var queryHandler = new GitHubQueryHandler(_handler);
+        var client = BuildClient(queryHandler);
+        return Task.FromResult<(HttpClient, GitHubQueryHandler)>((client, queryHandler));
+    }
+
+    private HttpClient BuildClient(HttpMessageHandler handler)
+    {
+        var client = new HttpClient(handler, disposeHandler: false)
         {
             BaseAddress = new Uri("https://api.github.com/"),
         };
@@ -39,6 +53,6 @@ public sealed class FakeGitHubClientFactory : IGitHubClientFactory
         client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
         client.DefaultRequestHeaders.UserAgent.ParseAdd("GitPulse");
 
-        return Task.FromResult(client);
+        return client;
     }
 }

@@ -15,6 +15,18 @@ public class IssuesViewModelTests
         return $"[{string.Join(",", items)}]";
     }
 
+    /// <summary>
+    /// Link header for page 2 of a 3-page result set (used to test CanLoadMore).
+    /// </summary>
+    private const string LinkHasNext =
+        "<https://api.github.com/repos/owner/repo/issues?page=2>; rel=\"next\", " +
+        "<https://api.github.com/repos/owner/repo/issues?page=3>; rel=\"last\"";
+
+    /// <summary>Link header with no next page (last page).</summary>
+    private const string LinkNoNext =
+        "<https://api.github.com/repos/owner/repo/issues?page=1>; rel=\"prev\", " +
+        "<https://api.github.com/repos/owner/repo/issues?page=1>; rel=\"first\"";
+
     [Fact]
     public void Initialize_SetsOwnerRepoAndFullName()
     {
@@ -47,7 +59,7 @@ public class IssuesViewModelTests
     public async Task Load_WithToken_PopulatesIssues()
     {
         var handler = new MockHttpHandler()
-            .When("/repos/owner/repo/issues", IssuesJson("open", "closed", "open"));
+            .When("/repos/owner/repo/issues", IssuesJson("open", "open", "closed"), LinkHasNext);
         var factory = new FakeGitHubClientFactory(handler);
         var vm = new IssuesViewModel(factory);
         vm.Initialize("owner", "repo");
@@ -55,44 +67,40 @@ public class IssuesViewModelTests
         await vm.LoadCommand.ExecuteAsync(null);
 
         Assert.Empty(vm.ErrorMessage.Value);
-        // Default filter is "open" → only the 2 open issues appear.
-        Assert.Equal(2, vm.Issues.Count);
-        Assert.Equal("Issue 1", vm.Issues[0].Title);
-        Assert.Equal("Issue 3", vm.Issues[1].Title);
-        vm.Dispose();
-    }
-
-    [Fact]
-    public async Task StateFilter_All_ShowsEveryIssue()
-    {
-        var handler = new MockHttpHandler()
-            .When("/repos/owner/repo/issues", IssuesJson("open", "closed", "open"));
-        var factory = new FakeGitHubClientFactory(handler);
-        var vm = new IssuesViewModel(factory);
-        vm.Initialize("owner", "repo");
-        await vm.LoadCommand.ExecuteAsync(null);
-
-        // Switch to "all" — reactive subscription re-filters.
-        vm.StateFilter.Value = "all";
-
+        // State filter is server-side now; the mock returns all 3 regardless.
+        // The query handler injects state=open, but the mock doesn't filter.
         Assert.Equal(3, vm.Issues.Count);
+        Assert.True(vm.CanLoadMore.Value);
         vm.Dispose();
     }
 
     [Fact]
-    public async Task StateFilter_Closed_ShowsOnlyClosed()
+    public async Task Load_WithNoNextLink_SetsCanLoadMoreFalse()
     {
         var handler = new MockHttpHandler()
-            .When("/repos/owner/repo/issues", IssuesJson("open", "closed", "open"));
+            .When("/repos/owner/repo/issues", IssuesJson("open"), LinkNoNext);
         var factory = new FakeGitHubClientFactory(handler);
         var vm = new IssuesViewModel(factory);
         vm.Initialize("owner", "repo");
+
         await vm.LoadCommand.ExecuteAsync(null);
 
-        vm.StateFilter.Value = "closed";
+        Assert.False(vm.CanLoadMore.Value);
+        vm.Dispose();
+    }
 
-        Assert.Single(vm.Issues);
-        Assert.Equal("closed", vm.Issues[0].State);
+    [Fact]
+    public async Task Load_WithNullLinkHeader_SetsCanLoadMoreFalse()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", IssuesJson("open"));
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanLoadMore.Value);
         vm.Dispose();
     }
 }

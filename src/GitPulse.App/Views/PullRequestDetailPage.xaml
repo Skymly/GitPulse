@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
              xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
+             xmlns:idk="clr-namespace:Indiko.Maui.Controls.Markdown;assembly=Indiko.Maui.Controls.Markdown"
              x:Class="GitPulse.App.Views.PullRequestDetailPage"
              x:DataType="vm:PullRequestDetailViewModel"
              Title="PR Detail">
@@ -76,9 +77,12 @@
                                    TextColor="{StaticResource Gray600}" />
                         </HorizontalStackLayout>
 
-                        <Label Text="{Binding PullRequest.Value.Body}"
-                               FontSize="14"
-                               LineBreakMode="WordWrap" />
+                        <idk:MarkdownView MarkdownText="{Binding PullRequest.Value.Body}"
+                                          UseAppTheme="True"
+                                          H1FontSize="20"
+                                          H2FontSize="18"
+                                          H3FontSize="16"
+                                          TextFontSize="14" />
                     </VerticalStackLayout>
                 </Border>
 
@@ -115,9 +119,12 @@
                                                TextColor="{StaticResource Gray500}"
                                                VerticalOptions="Center" />
                                     </HorizontalStackLayout>
-                                    <Label Text="{Binding Body}"
-                                           FontSize="13"
-                                           LineBreakMode="WordWrap" />
+                                    <idk:MarkdownView MarkdownText="{Binding Body}"
+                                                      UseAppTheme="True"
+                                                      H1FontSize="16"
+                                                      H2FontSize="15"
+                                                      H3FontSize="14"
+                                                      TextFontSize="13" />
                                 </VerticalStackLayout>
                             </Border>
                         </DataTemplate>

@@ -1,4 +1,5 @@
 using GitPulse.Core.Abstractions;
+using GitPulse.Core.Http;
 
 namespace GitPulse.Services;
 
@@ -24,7 +25,21 @@ public sealed class GitHubClientFactory : IGitHubClientFactory
     public async Task<HttpClient> CreateClientAsync(CancellationToken ct = default)
     {
         var token = await _credentialStore.GetTokenAsync(ct);
-        var client = new HttpClient
+        return BuildClient(token, new HttpClientHandler());
+    }
+
+    public async Task<(HttpClient Client, GitHubQueryHandler QueryHandler)> CreatePagedClientAsync(
+        CancellationToken ct = default)
+    {
+        var token = await _credentialStore.GetTokenAsync(ct);
+        var queryHandler = new GitHubQueryHandler(new HttpClientHandler());
+        var client = BuildClient(token, queryHandler);
+        return (client, queryHandler);
+    }
+
+    private HttpClient BuildClient(string? token, HttpMessageHandler handler)
+    {
+        var client = new HttpClient(handler)
         {
             BaseAddress = new Uri(ApiBaseAddress),
         };

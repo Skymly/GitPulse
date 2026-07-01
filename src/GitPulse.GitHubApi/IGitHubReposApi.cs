@@ -14,9 +14,19 @@ namespace GitPulse.GitHubApi;
 /// <b>Observables 0.1.4 limitation:</b> <c>ValidatePathTemplate</c> requires the set of path
 /// placeholders to equal the set of all non-CancellationToken parameter names. It does not
 /// exclude <c>[Query]</c>/<c>[Body]</c> parameters, so query/body parameters cannot coexist
-/// with path parameters on the same method in 0.1.4. Pagination and filtering will be handled
-/// via a custom <see cref="HttpMessageHandler"/> or dedicated query-only methods until the
-/// upstream validation is relaxed.
+/// with path parameters on the same method in 0.1.4. Pagination (<c>page</c>/<c>per_page</c>)
+/// and filtering (<c>state</c>) query parameters are injected by a custom
+/// <see cref="HttpMessageHandler"/> (<c>GitHubQueryHandler</c>) rather than declared as
+/// <c>[Query]</c> parameters. See <see href="https://github.com/Skymly/Observables/issues/111"/>.
+/// </para>
+/// <para>
+/// <b>Pagination via <c>ApiResponse&lt;T&gt;</c>:</b> List methods that need the
+/// <c>Link</c> response header (for <c>rel="next"</c> pagination detection) return
+/// <c>Observable&lt;ApiResponse&lt;T&gt;&gt;</c> instead of <c>Observable&lt;T&gt;</c>.
+/// The <c>ApiResponse&lt;T&gt;</c> wrapper exposes <c>Headers</c> (including <c>Link</c>)
+/// alongside the deserialized <c>Content</c>. The page number is controlled by the
+/// <c>GitHubQueryHandler</c> which injects <c>page</c>/<c>per_page</c> query parameters
+/// into outgoing requests.
 /// </para>
 /// </remarks>
 public interface IGitHubReposApi
@@ -24,7 +34,7 @@ public interface IGitHubReposApi
     // ── Repositories ──────────────────────────────────────────────
 
     [Get("/user/repos")]
-    Observable<Repo[]> ListMyRepos();
+    Observable<ApiResponse<Repo[]>> ListMyReposPaged();
 
     [Get("/repos/{owner}/{repo}")]
     Observable<Repo> GetRepo(string owner, string repo);
@@ -32,7 +42,7 @@ public interface IGitHubReposApi
     // ── Issues ────────────────────────────────────────────────────
 
     [Get("/repos/{owner}/{repo}/issues")]
-    Observable<Issue[]> ListIssues(string owner, string repo);
+    Observable<ApiResponse<Issue[]>> ListIssuesPaged(string owner, string repo);
 
     [Get("/repos/{owner}/{repo}/issues/{number}")]
     Observable<Issue> GetIssue(string owner, string repo, int number);
@@ -43,7 +53,7 @@ public interface IGitHubReposApi
     // ── Pull Requests ─────────────────────────────────────────────
 
     [Get("/repos/{owner}/{repo}/pulls")]
-    Observable<PullRequest[]> ListPullRequests(string owner, string repo);
+    Observable<ApiResponse<PullRequest[]>> ListPullRequestsPaged(string owner, string repo);
 
     [Get("/repos/{owner}/{repo}/pulls/{number}")]
     Observable<PullRequest> GetPullRequest(string owner, string repo, int number);

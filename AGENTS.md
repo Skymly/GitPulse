@@ -4,7 +4,7 @@
 
 - **Type**: Personal project (Skymly workspace)
 - **Remote**: https://github.com/Skymly/GitPulse
-- **Stage**: M2 complete (issue/PR list & detail) — auth, repo browsing, issue & PR lists with state filter, issue & PR detail with comments
+- **Stage**: M2 complete + pagination & markdown — auth, repo browsing, issue & PR lists with server-side state filter + pagination, issue & PR detail with markdown-rendered body & comments
 - **Purpose**: Real-world showcase application for [Observables](https://github.com/Skymly/Observables) (declarative reactive HTTP/events bridging for R3). Not a toy demo — a working GitHub client the author uses day-to-day.
 
 ## Tech Stack
@@ -13,6 +13,7 @@
 - **R3** 1.3.0+ + **R3Extensions.Maui** (`UseR3()`, `BindableReactiveProperty<T>`)
 - **Observables.RestAPI.R3** + **Observables.Events.R3** (source-generated reactive bridges)
 - **CommunityToolkit.Mvvm** (RelayCommand etc.); state management via R3 `BindableReactiveProperty<T>`
+- **Indiko.Maui.Controls.Markdown** 1.5.0 (native MAUI markdown rendering, no WebView)
 - **MinVer** (Git-tag-based versioning)
 - **Nuke** build orchestration
 - **xunit.v3** testing
@@ -29,9 +30,10 @@
 src/
   GitPulse.App/         — MAUI UI (Views, DI, platform entry points, BrowserLauncher)
   GitPulse.ViewModels/  — ViewModels (R3 state, MAUI-free, testable on net10.0)
-  GitPulse.Core/        — Domain models, abstractions (no UI/IO)
+  GitPulse.Core/        — Domain models, abstractions, HTTP helpers (no UI/IO)
+    └─ Http/            — GitHubQueryHandler, LinkHeaderParser
   GitPulse.GitHubApi/   — Observables.RestAPI declarative interfaces + DTOs
-  GitPulse.Services/    — Auth, caching, polling, app config
+  GitPulse.Services/    — GitHubClientFactory (auth, header setup, paged client)
 tests/
   GitPulse.Tests/       — Unit tests (+ TestHelpers: MockHttpHandler, FakeGitHubClientFactory)
 build/                  — Nuke build script (_build.csproj + Program.cs)
@@ -78,15 +80,27 @@ Declarative interfaces — the source generator produces `HttpClient` proxy impl
 ```csharp
 public interface IGitHubReposApi
 {
+    // ApiResponse<T> exposes response Headers (including Link for pagination)
     [Get("/user/repos")]
-    Observable<Repo[]> ListMyRepos();
+    Observable<ApiResponse<Repo[]>> ListMyReposPaged();
 
     [Get("/repos/{owner}/{repo}")]
     Observable<Repo> GetRepo(string owner, string repo);
+
+    // Path-only parameters — query params injected via GitHubQueryHandler
+    [Get("/repos/{owner}/{repo}/issues")]
+    Observable<ApiResponse<Issue[]>> ListIssuesPaged(string owner, string repo);
 }
 
 var api = RestService.For<IGitHubReposApi>(httpClient);
 ```
+
+**Pagination via `ApiResponse<T>`**: List methods return
+`Observable<ApiResponse<T>>` to expose the `Link` response header. The
+`ApiResponse<T>` wrapper provides `Content` (deserialized body) and
+`Headers` (including `Link` for `rel="next"` detection). Query parameters
+(`page`, `per_page`, `state`) are injected by `GitHubQueryHandler`
+(Core/Http) at the HTTP layer, working around OBS3004.
 
 ### Events domain (UI layer showcase)
 
@@ -119,8 +133,11 @@ parameters cannot coexist with path parameters on the same method in 0.1.4. The
 but the validation runs before classification and rejects the interface.
 
 **Workaround in GitPulse**: API methods use only path parameters (no `[Query]`).
-Pagination and filtering are handled via a custom `HttpMessageHandler` or
-dedicated query-only methods until the upstream validation is relaxed.
+Pagination (`page`/`per_page`) and filtering (`state`) query parameters are
+injected by `GitHubQueryHandler` (Core/Http), a `DelegatingHandler` that
+modifies the request URI before it reaches the inner handler. The ViewModel
+holds the handler instance across load calls to persist `Page`/`State` state.
+Upstream issue: https://github.com/Skymly/Observables/issues/111
 
 **2. Events + MAUI internal interfaces** — The source-generated `.Events()`
 extension for `Microsoft.Maui.Controls.SearchBar` (and likely other MAUI

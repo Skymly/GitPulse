@@ -7,6 +7,49 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — Pagination (server-side via `ApiResponse<T>` + `Link` header)
+
+- `IGitHubReposApi` list methods now return `Observable<ApiResponse<T>>`
+  (instead of `Observable<T>`) to expose response headers. The
+  `ApiResponse<T>` wrapper provides `Content` (deserialized body) and
+  `Headers` (including the `Link` header for pagination detection).
+  Renamed: `ListMyRepos` → `ListMyReposPaged`, `ListIssues` →
+  `ListIssuesPaged`, `ListPullRequests` → `ListPullRequestsPaged`.
+- `GitHubQueryHandler` (Core/Http) — `DelegatingHandler` that injects
+  `page`, `per_page`, and `state` query parameters into outgoing requests.
+  Works around the Observables 0.1.4 OBS3004 limitation (path + `[Query]`
+  parameters cannot coexist). The handler is per-ViewModel-load-cycle:
+  `IGitHubClientFactory.CreatePagedClientAsync` returns
+  `(HttpClient, GitHubQueryHandler)` so the ViewModel can set `Page`/`State`
+  before each request.
+- `LinkHeaderParser` (Core/Http) — parses RFC 8288 `Link` headers to
+  extract `rel="next"` URL and page number. Uses source-generated regex.
+- `IGitHubClientFactory.CreatePagedClientAsync` — new method returning a
+  client backed by `GitHubQueryHandler` alongside the handler instance.
+- ViewModels (`ReposViewModel`, `IssuesViewModel`, `PullRequestsViewModel`)
+  now support "Load more" pagination: `CanLoadMore` reactive property
+  driven by `Link` header `rel="next"` presence, `LoadMoreCommand`
+  increments page and appends results. State filter changed from
+  client-side filtering to server-side (via `GitHubQueryHandler.State`),
+  triggering a reload from page 1 on filter change.
+- UI: "Load more" button added to `ReposPage`, `IssuesPage`,
+  `PullRequestsPage` (visible when `CanLoadMore` is true).
+- Tests: `LinkHeaderParserTests` (6 tests), updated
+  `IssuesViewModelTests` and `PullRequestsViewModelTests` for paged API
+  + `MockHttpHandler` now supports `Link` header in canned responses.
+
+### Added — Markdown rendering (issue/PR body + comments)
+
+- `Indiko.Maui.Controls.Markdown` 1.5.0 — native MAUI markdown viewer
+  (no WebView). Renders headings, bold/italic/strikethrough, inline code,
+  code blocks, lists, tables, blockquotes, links, images. Uses
+  `MarkdownThemeDefaults.GitHub` theme with `UseAppTheme` for light/dark.
+- `IssueDetailPage` and `PullRequestDetailPage` — issue/PR body and
+  comment bodies now rendered as markdown via `MarkdownView` instead of
+  plain `Label`. Replaces the previous `LineBreakMode="WordWrap"` text
+  display with full markdown formatting.
+- `MauiProgram` registers `UseMarkdownView()`.
+
 ### Changed — Services layer reorganization
 
 - Moved `GitHubClientFactory` from `GitPulse.GitHubApi` to `GitPulse.Services`

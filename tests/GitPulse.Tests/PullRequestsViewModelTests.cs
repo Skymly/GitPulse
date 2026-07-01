@@ -17,6 +17,10 @@ public class PullRequestsViewModelTests
         return $"[{string.Join(",", items)}]";
     }
 
+    private const string LinkHasNext =
+        "<https://api.github.com/repos/owner/repo/pulls?page=2>; rel=\"next\", " +
+        "<https://api.github.com/repos/owner/repo/pulls?page=5>; rel=\"last\"";
+
     [Fact]
     public void Initialize_SetsOwnerRepoAndFullName()
     {
@@ -31,11 +35,12 @@ public class PullRequestsViewModelTests
     }
 
     [Fact]
-    public async Task Load_WithToken_PopulatesPullRequests()
+    public async Task Load_WithToken_PopulatesPullRequestsAndCanLoadMore()
     {
         var handler = new MockHttpHandler()
             .When("/repos/owner/repo/pulls",
-                PrsJson(("open", false, false), ("closed", false, true), ("open", true, false)));
+                PrsJson(("open", false, false), ("closed", false, true), ("open", true, false)),
+                LinkHasNext);
         var factory = new FakeGitHubClientFactory(handler);
         var vm = new PullRequestsViewModel(factory);
         vm.Initialize("owner", "repo");
@@ -43,28 +48,9 @@ public class PullRequestsViewModelTests
         await vm.LoadCommand.ExecuteAsync(null);
 
         Assert.Empty(vm.ErrorMessage.Value);
-        // Default filter is "open" → 2 open PRs (including the draft).
-        Assert.Equal(2, vm.PullRequests.Count);
-        Assert.Equal("PR 1", vm.PullRequests[0].Title);
-        Assert.True(vm.PullRequests[1].Draft);
-        vm.Dispose();
-    }
-
-    [Fact]
-    public async Task StateFilter_Closed_ShowsOnlyClosed()
-    {
-        var handler = new MockHttpHandler()
-            .When("/repos/owner/repo/pulls",
-                PrsJson(("open", false, false), ("closed", false, true)));
-        var factory = new FakeGitHubClientFactory(handler);
-        var vm = new PullRequestsViewModel(factory);
-        vm.Initialize("owner", "repo");
-        await vm.LoadCommand.ExecuteAsync(null);
-
-        vm.StateFilter.Value = "closed";
-
-        Assert.Single(vm.PullRequests);
-        Assert.True(vm.PullRequests[0].Merged);
+        Assert.Equal(3, vm.PullRequests.Count);
+        Assert.True(vm.CanLoadMore.Value);
+        Assert.True(vm.PullRequests[2].Draft);
         vm.Dispose();
     }
 
