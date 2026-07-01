@@ -6,7 +6,7 @@ using GitPulse.GitHubApi;
 using Observables.RestAPI;
 using R3;
 
-namespace GitPulse.App.ViewModels;
+namespace GitPulse.ViewModels;
 
 /// <summary>
 /// Repository list view model — the primary showcase of

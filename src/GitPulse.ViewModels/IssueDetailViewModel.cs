@@ -6,7 +6,7 @@ using GitPulse.GitHubApi;
 using Observables.RestAPI;
 using R3;
 
-namespace GitPulse.App.ViewModels;
+namespace GitPulse.ViewModels;
 
 /// <summary>
 /// Issue detail view model — shows a single issue and its comments.
@@ -16,6 +16,7 @@ namespace GitPulse.App.ViewModels;
 public sealed partial class IssueDetailViewModel : IDisposable
 {
     private readonly IGitHubClientFactory _clientFactory;
+    private readonly IBrowserLauncher _browserLauncher;
 
     private string _owner = string.Empty;
     private string _repo = string.Empty;
@@ -36,16 +37,17 @@ public sealed partial class IssueDetailViewModel : IDisposable
     /// <summary>Issue title for the page header.</summary>
     public BindableReactiveProperty<string> Title { get; } = new(string.Empty);
 
-    public IssueDetailViewModel(IGitHubClientFactory clientFactory)
+    public IssueDetailViewModel(IGitHubClientFactory clientFactory, IBrowserLauncher browserLauncher)
     {
         _clientFactory = clientFactory;
+        _browserLauncher = browserLauncher;
     }
 
     [RelayCommand]
     private async Task OpenInBrowserAsync(string url)
     {
         if (!string.IsNullOrEmpty(url))
-            await Launcher.OpenAsync(url);
+            await _browserLauncher.OpenAsync(url);
     }
 
     public void Initialize(string owner, string repo, int issueNumber)

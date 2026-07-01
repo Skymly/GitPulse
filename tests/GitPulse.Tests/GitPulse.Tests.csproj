@@ -17,6 +17,7 @@
 		<ProjectReference Include="..\..\src\GitPulse.Core\GitPulse.Core.csproj" />
 		<ProjectReference Include="..\..\src\GitPulse.GitHubApi\GitPulse.GitHubApi.csproj" />
 		<ProjectReference Include="..\..\src\GitPulse.Services\GitPulse.Services.csproj" />
+		<ProjectReference Include="..\..\src\GitPulse.ViewModels\GitPulse.ViewModels.csproj" />
 	</ItemGroup>
 
 </Project>

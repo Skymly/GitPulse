@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
 using R3;
 
-namespace GitPulse.App.ViewModels;
+namespace GitPulse.ViewModels;
 
 /// <summary>
 /// Settings page view model — manages GitHub PAT entry, validation, and storage.

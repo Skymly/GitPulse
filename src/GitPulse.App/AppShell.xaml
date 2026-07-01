@@ -30,4 +30,14 @@
         ContentTemplate="{DataTemplate views:IssueDetailPage}"
         Route="IssueDetailPage" />
 
+    <ShellContent
+        Title="Pull Requests"
+        ContentTemplate="{DataTemplate views:PullRequestsPage}"
+        Route="PullRequestsPage" />
+
+    <ShellContent
+        Title="PR Detail"
+        ContentTemplate="{DataTemplate views:PullRequestDetailPage}"
+        Route="PullRequestDetailPage" />
+
 </Shell>

@@ -3,9 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
              xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
-             x:Class="GitPulse.App.Views.IssueDetailPage"
-             x:DataType="vm:IssueDetailViewModel"
-             Title="Issue Detail">
+             x:Class="GitPulse.App.Views.PullRequestDetailPage"
+             x:DataType="vm:PullRequestDetailViewModel"
+             Title="PR Detail">
 
     <Grid RowDefinitions="Auto,*">
 
@@ -27,38 +27,71 @@
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="16" Spacing="12">
 
-                <!-- Issue header -->
+                <!-- PR header -->
                 <Border StrokeShape="RoundRectangle 8"
                          Stroke="{StaticResource Gray200}"
                          Padding="16">
                     <VerticalStackLayout Spacing="8">
                         <HorizontalStackLayout Spacing="8">
-                            <Label Text="{Binding Issue.Value.State}"
+                            <Label Text="{Binding PullRequest.Value.State}"
                                    FontSize="12"
                                    FontAttributes="Bold"
-                                   TextColor="{StaticResource Green700}" />
-                            <Label Text="{Binding Issue.Value.User.Login, StringFormat='by {0}'}"
+                                   TextColor="{StaticResource Green700}"
+                                   IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}" />
+                            <Label Text="{Binding PullRequest.Value.State}"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Purple700}"
+                                   IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}" />
+                            <Label Text="draft"
+                                   FontSize="12"
+                                   FontAttributes="Italic"
+                                   TextColor="{StaticResource Orange900}"
+                                   IsVisible="{Binding PullRequest.Value.Draft}" />
+                            <Label Text="merged"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Purple700}"
+                                   IsVisible="{Binding PullRequest.Value.Merged}" />
+                            <Label Text="{Binding PullRequest.Value.User.Login, StringFormat='by {0}'}"
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}" />
-                            <Label Text="{Binding Issue.Value.CreatedAt, StringFormat='{0:yyyy-MM-dd}'}"
+                            <Label Text="{Binding PullRequest.Value.CreatedAt, StringFormat='{0:yyyy-MM-dd}'}"
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}" />
                         </HorizontalStackLayout>
 
-                        <Label Text="{Binding Issue.Value.Body}"
+                        <!-- Branch ref line: head → base -->
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="{Binding PullRequest.Value.HeadRef}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Gray600}" />
+                            <Label Text="→"
+                                   FontSize="13"
+                                   TextColor="{StaticResource Gray500}" />
+                            <Label Text="{Binding PullRequest.Value.BaseRef}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Gray600}" />
+                        </HorizontalStackLayout>
+
+                        <Label Text="{Binding PullRequest.Value.Body}"
                                FontSize="14"
                                LineBreakMode="WordWrap" />
-
-                        <HorizontalStackLayout Spacing="16" Margin="0,4,0,0">
-                            <Label Text="{Binding Issue.Value.CommentsCount, StringFormat='Comments: {0}'}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource Gray500}" />
-                        </HorizontalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Open in browser button -->
+                <Button Text="Open in browser ↗"
+                        Command="{Binding OpenInBrowserCommand}"
+                        CommandParameter="{Binding PullRequest.Value.HtmlUrl}"
+                        HorizontalOptions="Start"
+                        Padding="16,6"
+                        FontSize="13" />
+
                 <!-- Comments section header -->
-                <Label Text="Comments"
+                <Label Text="Conversation"
                        FontSize="16"
                        FontAttributes="Bold"
                        Margin="0,8,0,4" />

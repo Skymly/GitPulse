@@ -1,4 +1,4 @@
-using GitPulse.App.ViewModels;
+using GitPulse.ViewModels;
 
 namespace GitPulse.App.Views;
 

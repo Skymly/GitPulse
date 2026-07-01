@@ -4,7 +4,7 @@
 
 - **Type**: Personal project (Skymly workspace)
 - **Remote**: https://github.com/Skymly/GitPulse
-- **Stage**: M2 (issue/PR list & detail) — auth, repo browsing, issue list with state filter, issue detail with comments
+- **Stage**: M2 complete (issue/PR list & detail) — auth, repo browsing, issue & PR lists with state filter, issue & PR detail with comments
 - **Purpose**: Real-world showcase application for [Observables](https://github.com/Skymly/Observables) (declarative reactive HTTP/events bridging for R3). Not a toy demo — a working GitHub client the author uses day-to-day.
 
 ## Tech Stack
@@ -27,12 +27,13 @@
 
 ```
 src/
-  GitPulse.App/         — MAUI UI (Views, ViewModels, DI, platform entry points)
+  GitPulse.App/         — MAUI UI (Views, DI, platform entry points, BrowserLauncher)
+  GitPulse.ViewModels/  — ViewModels (R3 state, MAUI-free, testable on net10.0)
   GitPulse.Core/        — Domain models, abstractions (no UI/IO)
   GitPulse.GitHubApi/   — Observables.RestAPI declarative interfaces + DTOs
   GitPulse.Services/    — Auth, caching, polling, app config
 tests/
-  GitPulse.Tests/       — Unit tests
+  GitPulse.Tests/       — Unit tests (+ TestHelpers: MockHttpHandler, FakeGitHubClientFactory)
 build/                  — Nuke build script (_build.csproj + Program.cs)
 .nuke/                  — Nuke parameters & schema
 ```
@@ -41,8 +42,9 @@ build/                  — Nuke build script (_build.csproj + Program.cs)
 
 | Layer | Responsibility | Depends on |
 |-------|---------------|------------|
-| **App** | MAUI Views (XAML), ViewModels (R3 state), `MauiProgram` (DI + `UseR3()`), platform entry | Core, GitHubApi, Services |
-| **Core** | Domain models (`Repo`, `Issue`, `User`), abstractions (`ICredentialStore`, `IGitHubClientFactory`) | none |
+| **App** | MAUI Views (XAML), `MauiProgram` (DI + `UseR3()`), platform entry, `BrowserLauncher` | Core, GitHubApi, Services, ViewModels |
+| **ViewModels** | ViewModels (R3 `BindableReactiveProperty` state, `[RelayCommand]`), `RepoNavigationArgs` | Core, GitHubApi |
+| **Core** | Domain models (`Repo`, `Issue`, `User`, `PullRequest`, `Comment`, `Label`), abstractions (`ICredentialStore`, `IGitHubClientFactory`, `IBrowserLauncher`) | none |
 | **GitHubApi** | Declarative `IGitHubReposApi` etc. (Observables.RestAPI), `GitHubClientFactory` | Core |
 | **Services** | Auth, caching, notification polling, app config | Core, GitHubApi |
 
@@ -150,8 +152,7 @@ should surface — tracked for upstream feedback.
 |-----------|---------|---------------------|
 | **M0** ✅ | Project skeleton: solution, projects, Nuke, CI, docs, empty MAUI app builds | — |
 | **M1** ✅ | Auth + repository list browsing | RestAPI + Events |
-| **M2** ✅ | Issue/PR list & detail | RestAPI + Events |
-| **M2** | Issue/PR list & detail | RestAPI + Events |
+| **M2** ✅ | Issue/PR list & detail (issues + PRs, state filter, detail with comments) | RestAPI + Events |
 | **M3** | Issue/PR CRUD (comments, state, labels) | RestAPI |
 | **M4** | Notification center (polling-simulated realtime) | Events (+ Sse optional) |
 | **M5** | File browsing & editing | RestAPI |

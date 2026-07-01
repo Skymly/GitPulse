@@ -1,4 +1,4 @@
-using GitPulse.App.ViewModels;
+using GitPulse.ViewModels;
 using GitPulse.Core.Models;
 using R3;
 

@@ -1,4 +1,4 @@
-namespace GitPulse.App.ViewModels;
+namespace GitPulse.ViewModels;
 
 /// <summary>
 /// Navigation parameter for the Issues page, carrying the repository

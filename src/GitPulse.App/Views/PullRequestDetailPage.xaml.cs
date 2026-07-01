@@ -3,17 +3,18 @@ using GitPulse.ViewModels;
 namespace GitPulse.App.Views;
 
 /// <summary>
-/// Issue detail page — receives owner/repo/number via Shell query parameters.
+/// Pull request detail page — receives owner/repo/number via Shell query
+/// parameters. Shows the PR and its conversation comments.
 /// </summary>
 [QueryProperty("OwnerQuery", "owner")]
 [QueryProperty("RepoQuery", "repo")]
 [QueryProperty("NumberQuery", "number")]
-public partial class IssueDetailPage : ContentPage
+public partial class PullRequestDetailPage : ContentPage
 {
-    private readonly IssueDetailViewModel _viewModel;
+    private readonly PullRequestDetailViewModel _viewModel;
     private bool _loaded;
 
-    public IssueDetailPage(IssueDetailViewModel viewModel)
+    public PullRequestDetailPage(PullRequestDetailViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;

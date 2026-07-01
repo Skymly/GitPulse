@@ -3,13 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
              xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
-             x:Class="GitPulse.App.Views.IssuesPage"
-             x:DataType="vm:IssuesViewModel"
-             Title="Issues">
+             x:Class="GitPulse.App.Views.PullRequestsPage"
+             x:DataType="vm:PullRequestsViewModel"
+             Title="Pull Requests">
 
     <Grid RowDefinitions="Auto,Auto,Auto,*">
 
-        <!-- Header: repo name + back button + PRs entry -->
+        <!-- Header: repo name + back button -->
         <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
             <Button Text="← Back"
                     Clicked="OnBackClicked"
@@ -20,12 +20,6 @@
                    FontSize="18"
                    FontAttributes="Bold"
                    VerticalOptions="Center" />
-            <Button Text="PRs →"
-                    Clicked="OnPrsClicked"
-                    BackgroundColor="Transparent"
-                    TextColor="{StaticResource Primary}"
-                    Padding="8,4"
-                    VerticalOptions="Center" />
         </HorizontalStackLayout>
 
         <!-- State filter tabs -->
@@ -59,14 +53,14 @@
                    FontSize="13" />
         </Border>
 
-        <!-- Issues list -->
+        <!-- Pull requests list -->
         <CollectionView Grid.Row="3"
-                        ItemsSource="{Binding Issues}"
+                        ItemsSource="{Binding PullRequests}"
                         Margin="16,8,16,0"
                         SelectionMode="Single"
-                        SelectionChanged="OnIssueSelected">
+                        SelectionChanged="OnPrSelected">
             <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="models:Issue">
+                <DataTemplate x:DataType="models:PullRequest">
                     <Border Margin="0,0,0,8"
                             Padding="14"
                             StrokeShape="RoundRectangle 8"
@@ -95,12 +89,31 @@
                                        FontSize="11"
                                        TextColor="{StaticResource Purple700}"
                                        IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}" />
-                                <Label Text="💬 {Binding CommentsCount}"
+                                <Label Text="draft"
                                        FontSize="11"
-                                       TextColor="{StaticResource Gray500}" />
+                                       FontAttributes="Italic"
+                                       TextColor="{StaticResource Orange900}"
+                                       IsVisible="{Binding Draft}" />
+                                <Label Text="merged"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Purple700}"
+                                       IsVisible="{Binding Merged}" />
                                 <Label Text="{Binding User.Login, StringFormat='by {0}'}"
                                        FontSize="11"
                                        TextColor="{StaticResource Gray500}" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Spacing="8" Margin="0,2,0,0">
+                                <Label Text="{Binding HeadRef, StringFormat='{0}'}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Gray600}" />
+                                <Label Text="→"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding BaseRef}"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Gray600}" />
                             </HorizontalStackLayout>
                         </VerticalStackLayout>
                     </Border>

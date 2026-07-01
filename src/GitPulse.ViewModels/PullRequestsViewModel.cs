@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Models;
@@ -7,24 +6,26 @@ using GitPulse.GitHubApi;
 using Observables.RestAPI;
 using R3;
 
-namespace GitPulse.App.ViewModels;
+namespace GitPulse.ViewModels;
 
 /// <summary>
-/// Issues list view model for a specific repository. Demonstrates
-/// <see cref="IGitHubReposApi.ListIssues"/> and reactive state filtering
+/// Pull requests list view model for a specific repository. Demonstrates
+/// <see cref="IGitHubReposApi.ListPullRequests"/> and reactive state filtering
 /// (open / closed / all) via R3 <see cref="BindableReactiveProperty{T}"/>.
+/// Mirrors <see cref="IssuesViewModel"/> but operates on
+/// <see cref="PullRequest"/> models.
 /// </summary>
-public sealed partial class IssuesViewModel : IDisposable
+public sealed partial class PullRequestsViewModel : IDisposable
 {
     private readonly IGitHubClientFactory _clientFactory;
     private readonly CompositeDisposable _disposables = [];
 
     private string _owner = string.Empty;
     private string _repo = string.Empty;
-    private readonly List<Issue> _allIssues = [];
+    private readonly List<PullRequest> _allPrs = [];
 
-    /// <summary>Issues currently displayed (after state filter).</summary>
-    public ObservableCollection<Issue> Issues { get; } = [];
+    /// <summary>Pull requests currently displayed (after state filter).</summary>
+    public ObservableCollection<PullRequest> PullRequests { get; } = [];
 
     /// <summary>Filter: "open", "closed", or "all".</summary>
     public BindableReactiveProperty<string> StateFilter { get; } = new("open");
@@ -38,13 +39,13 @@ public sealed partial class IssuesViewModel : IDisposable
     /// <summary>Repository full name for display (owner/repo).</summary>
     public BindableReactiveProperty<string> RepoFullName { get; } = new(string.Empty);
 
-    /// <summary>Owner part (for navigation to issue detail).</summary>
+    /// <summary>Owner part (for navigation to PR detail).</summary>
     public BindableReactiveProperty<string> Owner { get; } = new(string.Empty);
 
-    /// <summary>Repo name part (for navigation to issue detail).</summary>
+    /// <summary>Repo name part (for navigation to PR detail).</summary>
     public BindableReactiveProperty<string> RepoName { get; } = new(string.Empty);
 
-    public IssuesViewModel(IGitHubClientFactory clientFactory)
+    public PullRequestsViewModel(IGitHubClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
         StateFilter.Subscribe(ApplyStateFilter).AddTo(_disposables);
@@ -52,7 +53,7 @@ public sealed partial class IssuesViewModel : IDisposable
 
     /// <summary>
     /// Initialize with repository coordinates. Called by the page when
-    /// navigated to with <see cref="RepoNavigationArgs"/>.
+    /// navigated to via Shell query parameters.
     /// </summary>
     public void Initialize(string owner, string repo)
     {
@@ -65,11 +66,11 @@ public sealed partial class IssuesViewModel : IDisposable
 
     private void ApplyStateFilter(string state)
     {
-        Issues.Clear();
-        foreach (var issue in _allIssues)
+        PullRequests.Clear();
+        foreach (var pr in _allPrs)
         {
-            if (state == "all" || issue.State == state)
-                Issues.Add(issue);
+            if (state == "all" || pr.State == state)
+                PullRequests.Add(pr);
         }
     }
 
@@ -93,10 +94,10 @@ public sealed partial class IssuesViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var issues = await api.ListIssues(_owner, _repo).FirstAsync(cts.Token);
+            var prs = await api.ListPullRequests(_owner, _repo).FirstAsync(cts.Token);
 
-            _allIssues.Clear();
-            _allIssues.AddRange(issues);
+            _allPrs.Clear();
+            _allPrs.AddRange(prs);
             ApplyStateFilter(StateFilter.Value);
         }
         catch (OperationCanceledException)

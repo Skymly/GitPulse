@@ -1,20 +1,20 @@
-using GitPulse.ViewModels;
 using GitPulse.Core.Models;
+using GitPulse.ViewModels;
 
 namespace GitPulse.App.Views;
 
 /// <summary>
-/// Issues list page — receives owner/repo via Shell navigation query
-/// parameters, loads issues for the selected repository.
+/// Pull requests list page — receives owner/repo via Shell navigation query
+/// parameters, loads pull requests for the selected repository.
 /// </summary>
 [QueryProperty("OwnerQuery", "owner")]
 [QueryProperty("RepoQuery", "repo")]
-public partial class IssuesPage : ContentPage
+public partial class PullRequestsPage : ContentPage
 {
-    private readonly IssuesViewModel _viewModel;
+    private readonly PullRequestsViewModel _viewModel;
     private bool _loaded;
 
-    public IssuesPage(IssuesViewModel viewModel)
+    public PullRequestsPage(PullRequestsViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;
@@ -43,24 +43,17 @@ public partial class IssuesPage : ContentPage
         }
     }
 
-    private async void OpenIssueDetail(Issue issue)
+    private async void OpenPrDetail(PullRequest pr)
     {
         await Shell.Current.GoToAsync(
-            $"IssueDetailPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
+            $"PullRequestDetailPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}"
-            + $"&number={issue.Number}");
+            + $"&number={pr.Number}");
     }
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
         _ = Shell.Current.GoToAsync("..");
-    }
-
-    private async void OnPrsClicked(object? sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync(
-            $"PullRequestsPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
-            + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}");
     }
 
     private void OnFilterOpen(object? sender, EventArgs e)
@@ -96,12 +89,12 @@ public partial class IssuesPage : ContentPage
         AllTab.TextColor = active == "all" ? Colors.White : Colors.Black;
     }
 
-    private void OnIssueSelected(object? sender, SelectionChangedEventArgs e)
+    private void OnPrSelected(object? sender, SelectionChangedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is Issue issue)
+        if (e.CurrentSelection.FirstOrDefault() is PullRequest pr)
         {
             ((CollectionView)sender!).SelectedItem = null;
-            OpenIssueDetail(issue);
+            OpenPrDetail(pr);
         }
     }
 

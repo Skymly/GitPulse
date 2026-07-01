@@ -27,6 +27,13 @@
     <Color x:Key="Gray900">#212121</Color>
     <Color x:Key="Gray950">#141414</Color>
 
+    <!-- Semantic state colors (issue/PR state badges, error banners). -->
+    <Color x:Key="Green700">#15803D</Color>
+    <Color x:Key="Purple700">#7E22CE</Color>
+    <Color x:Key="Orange900">#9A3412</Color>
+    <Color x:Key="Red100">#FEE2E2</Color>
+    <Color x:Key="Red900">#991B1B</Color>
+
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
     <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
     <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}"/>

@@ -4,6 +4,7 @@
     <Project Path="src/GitPulse.Core/GitPulse.Core.csproj" />
     <Project Path="src/GitPulse.GitHubApi/GitPulse.GitHubApi.csproj" />
     <Project Path="src/GitPulse.Services/GitPulse.Services.csproj" />
+    <Project Path="src/GitPulse.ViewModels/GitPulse.ViewModels.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GitPulse.Tests/GitPulse.Tests.csproj" />

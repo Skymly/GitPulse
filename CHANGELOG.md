@@ -7,6 +7,43 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — M2 completion (PR list & detail + ViewModel testability)
+
+- New `GitPulse.ViewModels` project (net10.0) — ViewModels extracted from the
+  MAUI App project so they are testable without a MAUI host. References Core
+  + GitHubApi + R3 + CommunityToolkit.Mvvm. The App project now references
+  ViewModels; all XAML `xmlns:vm` updated to the new assembly.
+- New `IBrowserLauncher` abstraction (Core) — decouples ViewModels from
+  MAUI `Launcher.OpenAsync`. `BrowserLauncher` implementation lives in the
+  App layer; `FakeBrowserLauncher` in tests records opened URLs.
+- `PullRequestsViewModel` — mirrors `IssuesViewModel` with
+  `ListPullRequests` and reactive state filtering (open/closed/all).
+- `PullRequestDetailViewModel` — uses `GetPullRequest` +
+  `ListIssueComments` (PR conversation comments share the issue comments
+  endpoint in the GitHub REST API).
+- `PullRequestsPage` (XAML) — CollectionView with state filter tabs,
+  draft/merged badges, head→base ref display, back navigation, PR
+  selection → detail navigation.
+- `PullRequestDetailPage` (XAML) — PR header (state, draft, merged,
+  author, date, head→base, body), "Open in browser" button, conversation
+  comments via BindableLayout, error banner, loading indicator.
+- Shell navigation: `IssuesPage` → "PRs →" button →
+  `PullRequestsPage?owner=&repo=` → tap PR →
+  `PullRequestDetailPage?owner=&repo=&number=`.
+- AppShell registered `PullRequestsPage` + `PullRequestDetailPage` routes;
+  MauiProgram DI registered 2 new ViewModels + 2 new Pages +
+  `IBrowserLauncher`.
+- Test infrastructure: `MockHttpHandler` (canned JSON by URI path),
+  `FakeGitHubClientFactory` (HttpClient with mock handler + optional auth),
+  `FakeBrowserLauncher`.
+- 9 new ViewModel tests (IssuesViewModel: Initialize, no-token error, Load
+  success, state filter all/closed; PullRequestsViewModel: Initialize,
+  Load success, state filter closed, no-token error). Total: 23 tests
+  passing.
+- Added missing semantic color resources to `Colors.xaml`: `Green700`,
+  `Purple700`, `Orange900`, `Red100`, `Red900` (previously referenced by
+  IssuesPage/IssueDetailPage but undefined — latent runtime bug fixed).
+
 ### Added — M2 (issue/PR list & detail)
 
 - New Core models: `Label`, `Comment`, `PullRequest`, `PullRequestRef`.

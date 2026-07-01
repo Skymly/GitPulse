@@ -1,7 +1,8 @@
-using GitPulse.App.ViewModels;
+using GitPulse.App.Services;
 using GitPulse.App.Views;
 using GitPulse.Core.Abstractions;
 using GitPulse.GitHubApi;
+using GitPulse.ViewModels;
 using Microsoft.Extensions.Logging;
 using R3;
 using R3.Maui;
@@ -37,18 +38,23 @@ public static class MauiProgram
 
         // Application services.
         builder.Services.AddSingleton<IGitHubClientFactory, GitHubClientFactory>();
+        builder.Services.AddSingleton<IBrowserLauncher, BrowserLauncher>();
 
         // ViewModels (transient — each page gets a fresh instance).
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<ReposViewModel>();
         builder.Services.AddTransient<IssuesViewModel>();
         builder.Services.AddTransient<IssueDetailViewModel>();
+        builder.Services.AddTransient<PullRequestsViewModel>();
+        builder.Services.AddTransient<PullRequestDetailViewModel>();
 
         // Pages (transient — resolved via DI when Shell navigates).
         builder.Services.AddTransient<ReposPage>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<IssuesPage>();
         builder.Services.AddTransient<IssueDetailPage>();
+        builder.Services.AddTransient<PullRequestsPage>();
+        builder.Services.AddTransient<PullRequestDetailPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();
