@@ -7,6 +7,18 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Changed — Services layer reorganization
+
+- Moved `GitHubClientFactory` from `GitPulse.GitHubApi` to `GitPulse.Services`
+  (namespace `GitPulse.GitHubApi` → `GitPulse.Services`). The factory is auth
+  infrastructure, not a declarative API contract — it belongs with other
+  service-layer concerns. The GitHubApi layer now contains only Observables.RestAPI
+  declarative interfaces.
+- Credential store implementations remain in `App/Platforms/{Windows,Android}/`
+  because they use platform-specific APIs (DPAPI / MAUI SecureStorage) that
+  require the MAUI host. `ICredentialStore` abstraction stays in Core.
+- Updated `AGENTS.md` layer table to reflect the new boundary.
+
 ### Added — M2 completion (PR list & detail + ViewModel testability)
 
 - New `GitPulse.ViewModels` project (net10.0) — ViewModels extracted from the

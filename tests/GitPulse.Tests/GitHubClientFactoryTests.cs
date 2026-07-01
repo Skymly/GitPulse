@@ -1,6 +1,6 @@
 using System.Net.Http.Headers;
 using GitPulse.Core.Abstractions;
-using GitPulse.GitHubApi;
+using GitPulse.Services;
 using Xunit;
 using Xunit.Sdk;
 

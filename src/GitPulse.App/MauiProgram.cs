@@ -1,7 +1,7 @@
 using GitPulse.App.Services;
 using GitPulse.App.Views;
 using GitPulse.Core.Abstractions;
-using GitPulse.GitHubApi;
+using GitPulse.Services;
 using GitPulse.ViewModels;
 using Microsoft.Extensions.Logging;
 using R3;

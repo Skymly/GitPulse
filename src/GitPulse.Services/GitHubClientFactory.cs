@@ -1,6 +1,6 @@
 using GitPulse.Core.Abstractions;
 
-namespace GitPulse.GitHubApi;
+namespace GitPulse.Services;
 
 /// <summary>
 /// Builds an <see cref="HttpClient"/> with GitHub-required headers.

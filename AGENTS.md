@@ -45,8 +45,8 @@ build/                  — Nuke build script (_build.csproj + Program.cs)
 | **App** | MAUI Views (XAML), `MauiProgram` (DI + `UseR3()`), platform entry, `BrowserLauncher` | Core, GitHubApi, Services, ViewModels |
 | **ViewModels** | ViewModels (R3 `BindableReactiveProperty` state, `[RelayCommand]`), `RepoNavigationArgs` | Core, GitHubApi |
 | **Core** | Domain models (`Repo`, `Issue`, `User`, `PullRequest`, `Comment`, `Label`), abstractions (`ICredentialStore`, `IGitHubClientFactory`, `IBrowserLauncher`) | none |
-| **GitHubApi** | Declarative `IGitHubReposApi` etc. (Observables.RestAPI), `GitHubClientFactory` | Core |
-| **Services** | Auth, caching, notification polling, app config | Core, GitHubApi |
+| **GitHubApi** | Declarative `IGitHubReposApi` etc. (Observables.RestAPI) | Core |
+| **Services** | `GitHubClientFactory`, auth infrastructure, caching, notification polling, app config | Core, GitHubApi |
 
 ## Build & CI (Nuke)
 
@@ -139,10 +139,12 @@ should surface — tracked for upstream feedback.
 ## Authentication & Credentials
 
 - PAT (Personal Access Token) as the sole auth method (GitHub App OAuth deferred)
-- `ICredentialStore` abstraction:
-  - Windows: DPAPI (CurrentUser scope)
-  - Android: `SecureStorage` (MAUI Essentials)
-- `GitHubClientFactory` builds `HttpClient` with `Authorization: Bearer <PAT>`,
+- `ICredentialStore` abstraction (Core):
+  - Windows: DPAPI (CurrentUser scope) — implementation in `App/Platforms/Windows/`
+  - Android: `SecureStorage` (MAUI Essentials) — implementation in `App/Platforms/Android/`
+  - Platform implementations live in the App project because they use platform-specific
+    APIs (DPAPI / MAUI SecureStorage) that require the MAUI host or Windows-only packages.
+- `GitHubClientFactory` (Services layer) builds `HttpClient` with `Authorization: Bearer <PAT>`,
   `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`,
   `User-Agent: GitPulse`
 
