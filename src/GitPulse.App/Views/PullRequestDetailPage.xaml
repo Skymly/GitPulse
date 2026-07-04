@@ -109,6 +109,72 @@
                             FontSize="13" />
                 </HorizontalStackLayout>
 
+                <!-- M6: PR merge section -->
+                <Border StrokeShape="RoundRectangle 8"
+                         Stroke="{StaticResource Gray200}"
+                         Padding="16"
+                         IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
+                    <VerticalStackLayout Spacing="10">
+                        <!-- Merge status label -->
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="Merge status:"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Gray600}" />
+                            <Label Text="{Binding MergeStatus.Value}"
+                                   FontSize="13"
+                                   TextColor="{StaticResource Primary}" />
+                        </HorizontalStackLayout>
+
+                        <!-- PR stats: commits, additions, deletions, changed files -->
+                        <HorizontalStackLayout Spacing="16">
+                            <Label Text="{Binding PullRequest.Value.Commits, StringFormat='{0} commits'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}" />
+                            <Label Text="{Binding PullRequest.Value.Additions, StringFormat='+{0}'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Green700}" />
+                            <Label Text="{Binding PullRequest.Value.Deletions, StringFormat='-{0}'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Red900}" />
+                            <Label Text="{Binding PullRequest.Value.ChangedFiles, StringFormat='{0} files'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}" />
+                        </HorizontalStackLayout>
+
+                        <!-- Merge method picker + merge button (visible when mergeable) -->
+                        <HorizontalStackLayout Spacing="12"
+                                               IsVisible="{Binding CanMerge.Value}">
+                            <Picker Title="Method"
+                                    SelectedItem="{Binding MergeMethod.Value}"
+                                    FontSize="13">
+                                <Picker.ItemsSource>
+                                    <x:Array Type="{x:Type x:String}">
+                                        <x:String>merge</x:String>
+                                        <x:String>squash</x:String>
+                                        <x:String>rebase</x:String>
+                                    </x:Array>
+                                </Picker.ItemsSource>
+                            </Picker>
+                            <Button Text="Merge"
+                                    Command="{Binding MergeCommand}"
+                                    BackgroundColor="{StaticResource Green700}"
+                                    TextColor="White"
+                                    Padding="24,8"
+                                    FontSize="14" />
+                            <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
+                                               IsVisible="{Binding IsSaving.Value}" />
+                        </HorizontalStackLayout>
+
+                        <!-- Merged result (visible after merge) -->
+                        <Label Text="✓ Merged successfully"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Green700}"
+                               IsVisible="{Binding IsMerged.Value}" />
+                    </VerticalStackLayout>
+                </Border>
+
                 <!-- Comments section header -->
                 <Label Text="Conversation"
                        FontSize="16"

@@ -73,6 +73,16 @@ public interface IGitHubReposApi
     [Get("/repos/{owner}/{repo}/pulls/{number}")]
     Observable<PullRequest> GetPullRequest(string owner, string repo, int number);
 
+    // ── PR Merge (M6: PR review & merge) ─────────────────────────
+
+    /// <summary>
+    /// Merge a pull request. The <see cref="MergeRequest.Method"/> field
+    /// selects merge, squash, or rebase. Returns the merge commit SHA.
+    /// </summary>
+    [Put("/repos/{owner}/{repo}/pulls/{number}/merge")]
+    Observable<MergeResponse> MergePullRequest(
+        string owner, string repo, int number, [Body] MergeRequest body);
+
     // ── Notifications ─────────────────────────────────────────────
     // M4: Notification center with polling-simulated realtime.
     // The poller (INotificationPoller) calls ListNotifications on a

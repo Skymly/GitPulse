@@ -16,6 +16,7 @@ namespace GitPulse.ViewModels;
 /// <see cref="IGitHubReposApi.CreateIssueComment"/> (PR comments use the
 /// issue comments endpoint) and <see cref="IGitHubReposApi.UpdateIssue"/>
 /// (PR state is toggled via the issue PATCH endpoint).
+/// M6 adds PR merge via <see cref="IGitHubReposApi.MergePullRequest"/>.
 /// </summary>
 public sealed partial class PullRequestDetailViewModel : IDisposable
 {
@@ -35,7 +36,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
     /// <summary>Whether a load operation is in progress.</summary>
     public BindableReactiveProperty<bool> IsLoading { get; } = new(false);
 
-    /// <summary>Whether a write operation (comment/state) is in progress.</summary>
+    /// <summary>Whether a write operation (comment/state/merge) is in progress.</summary>
     public BindableReactiveProperty<bool> IsSaving { get; } = new(false);
 
     /// <summary>Error message; empty when no error.</summary>
@@ -46,6 +47,20 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
     /// <summary>Comment input text (two-way bound to editor).</summary>
     public BindableReactiveProperty<string> CommentInput { get; } = new(string.Empty);
+
+    // ── M6: Merge state ──────────────────────────────────────────
+
+    /// <summary>Selected merge method: "merge", "squash", or "rebase".</summary>
+    public BindableReactiveProperty<string> MergeMethod { get; } = new("merge");
+
+    /// <summary>Whether the merge button is enabled (PR is open, mergeable, not draft).</summary>
+    public BindableReactiveProperty<bool> CanMerge { get; } = new(false);
+
+    /// <summary>Status text for mergeability (e.g. "Mergeable", "Conflicts", "Pending").</summary>
+    public BindableReactiveProperty<string> MergeStatus { get; } = new(string.Empty);
+
+    /// <summary>Whether the PR has been merged (shows merge result instead of merge button).</summary>
+    public BindableReactiveProperty<bool> IsMerged { get; } = new(false);
 
     public PullRequestDetailViewModel(IGitHubClientFactory clientFactory, IBrowserLauncher browserLauncher)
     {
@@ -91,6 +106,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
             var pr = await api.GetPullRequest(_owner, _repo, _prNumber).FirstAsync(cts.Token);
             PullRequest.Value = pr;
             Title.Value = $"#{pr.Number} {pr.Title}";
+            UpdateMergeStatus(pr);
 
             var comments = await api.ListIssueComments(_owner, _repo, _prNumber).FirstAsync(cts.Token);
             Comments.Clear();
@@ -202,6 +218,126 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         }
     }
 
+    // ── M6: Merge logic ──────────────────────────────────────────
+
+    /// <summary>
+    /// Update merge-related reactive state from the PR model. Called after
+    /// load and after merge operations.
+    /// </summary>
+    private void UpdateMergeStatus(PullRequest pr)
+    {
+        IsMerged.Value = pr.Merged;
+
+        if (pr.Merged)
+        {
+            CanMerge.Value = false;
+            MergeStatus.Value = "Merged";
+            return;
+        }
+
+        if (pr.State != "open")
+        {
+            CanMerge.Value = false;
+            MergeStatus.Value = "Closed";
+            return;
+        }
+
+        if (pr.Draft)
+        {
+            CanMerge.Value = false;
+            MergeStatus.Value = "Draft — needs to be marked ready for review";
+            return;
+        }
+
+        // Mergeable can be null while GitHub computes it.
+        CanMerge.Value = pr.Mergeable ?? false;
+        MergeStatus.Value = pr.Mergeable switch
+        {
+            true => pr.MergeableState == "clean" ? "Mergeable" : $"Mergeable ({pr.MergeableState})",
+            false => "Conflicts — cannot merge",
+            null => "Checking mergeability...",
+        };
+    }
+
+    /// <summary>Merge the pull request using the selected merge method.</summary>
+    [RelayCommand]
+    private async Task MergeAsync()
+    {
+        if (PullRequest.Value is null || IsSaving.Value || !CanMerge.Value)
+            return;
+
+        IsSaving.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+            var request = new MergeRequest
+            {
+                Method = MergeMethod.Value,
+                CommitTitle = $"Merge #{PullRequest.Value.Number} {PullRequest.Value.Title}",
+            };
+
+            var response = await api.MergePullRequest(_owner, _repo, _prNumber, request)
+                .FirstAsync(cts.Token);
+
+            if (response.Merged)
+            {
+                // Update the PR to reflect merged state.
+                var pr = PullRequest.Value;
+                PullRequest.Value = new PullRequest
+                {
+                    Number = pr.Number,
+                    Title = pr.Title,
+                    Body = pr.Body,
+                    State = "closed",
+                    Draft = pr.Draft,
+                    Merged = true,
+                    HtmlUrl = pr.HtmlUrl,
+                    CreatedAt = pr.CreatedAt,
+                    UpdatedAt = DateTime.UtcNow,
+                    User = pr.User,
+                    MergedBy = pr.User,
+                    HeadRef = pr.HeadRef,
+                    BaseRef = pr.BaseRef,
+                    Mergeable = false,
+                    MergeableState = pr.MergeableState,
+                    MergeCommitSha = response.Sha,
+                    Commits = pr.Commits,
+                    Additions = pr.Additions,
+                    Deletions = pr.Deletions,
+                    ChangedFiles = pr.ChangedFiles,
+                };
+                UpdateMergeStatus(PullRequest.Value);
+            }
+            else
+            {
+                ErrorMessage.Value = response.Message;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Merge failed: {ex.Message}";
+        }
+        finally
+        {
+            IsSaving.Value = false;
+        }
+    }
+
     public void Dispose()
     {
         PullRequest.Dispose();
@@ -210,5 +346,9 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         ErrorMessage.Dispose();
         Title.Dispose();
         CommentInput.Dispose();
+        MergeMethod.Dispose();
+        CanMerge.Dispose();
+        MergeStatus.Dispose();
+        IsMerged.Dispose();
     }
 }
