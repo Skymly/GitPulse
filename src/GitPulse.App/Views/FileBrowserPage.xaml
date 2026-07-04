@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
+             xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
+             x:Class="GitPulse.App.Views.FileBrowserPage"
+             x:DataType="vm:FileBrowserViewModel"
+             Title="Files">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- Header: back + repo name + breadcrumb -->
+        <VerticalStackLayout Grid.Row="0" Padding="16,12,16,4" Spacing="4">
+            <HorizontalStackLayout Spacing="12">
+                <Button Text="← Back"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="8,4" />
+                <Label Text="{Binding RepoFullName.Value}"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center" />
+                <Button Text="GitHub →"
+                        Command="{Binding OpenInBrowserCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="8,4"
+                        FontSize="13"
+                        VerticalOptions="Center" />
+            </HorizontalStackLayout>
+            <!-- Breadcrumb: current path -->
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="↑ Up"
+                        Command="{Binding GoUpCommand}"
+                        IsVisible="{Binding CanGoUp.Value}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="8,2"
+                        FontSize="12" />
+                <Label Text="{Binding CurrentPath.Value, StringFormat='/{0}'}"
+                       FontSize="13"
+                       TextColor="{StaticResource Gray600}"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+
+        <!-- Error banner -->
+        <Border Grid.Row="1"
+                IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                BackgroundColor="{StaticResource Red100}"
+                StrokeShape="RoundRectangle 8"
+                Padding="12"
+                Margin="16,0">
+            <Label Text="{Binding ErrorMessage.Value}"
+                   TextColor="{StaticResource Red900}"
+                   FontSize="13" />
+        </Border>
+
+        <!-- File/directory list -->
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding Entries}"
+                        Margin="16,8,16,0"
+                        SelectionMode="Single"
+                        SelectionChanged="OnEntrySelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ContentEntry">
+                    <Border Margin="0,0,0,4"
+                            Padding="14,10"
+                            StrokeShape="RoundRectangle 6"
+                            Stroke="{StaticResource Gray200}">
+                        <HorizontalStackLayout Spacing="10">
+                            <!-- Folder icon for dirs, file icon for files -->
+                            <Label Text="📁"
+                                   FontSize="18"
+                                   IsVisible="{Binding Type, Converter={StaticResource StringEqualsConverter}, ConverterParameter=dir}" />
+                            <Label Text="📄"
+                                   FontSize="18"
+                                   IsVisible="{Binding Type, Converter={StaticResource StringEqualsConverter}, ConverterParameter=file}" />
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="{Binding Name}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1" />
+                                <Label Text="{Binding Size, StringFormat='{0} bytes'}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Gray500}"
+                                       IsVisible="{Binding Type, Converter={StaticResource StringEqualsConverter}, ConverterParameter=file}" />
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <ActivityIndicator Grid.Row="2"
+                           IsRunning="{Binding IsLoading.Value}"
+                           IsVisible="{Binding IsLoading.Value}"
+                           VerticalOptions="Start"
+                           Margin="0,16,0,0" />
+
+        <!-- New file button -->
+        <Button Grid.Row="3"
+                Text="+ New File"
+                Clicked="OnNewFileClicked"
+                BackgroundColor="{StaticResource Primary}"
+                TextColor="White"
+                HorizontalOptions="Center"
+                Padding="24,8"
+                Margin="0,8,0,16"
+                FontSize="13" />
+
+    </Grid>
+
+</ContentPage>

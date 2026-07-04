@@ -63,6 +63,13 @@ public partial class IssuesPage : ContentPage
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}");
     }
 
+    private async void OnFilesClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync(
+            $"FileBrowserPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
+            + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}");
+    }
+
     private async void OnNewIssueClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync(

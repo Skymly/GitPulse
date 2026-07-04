@@ -26,6 +26,12 @@
                     TextColor="{StaticResource Primary}"
                     Padding="8,4"
                     VerticalOptions="Center" />
+            <Button Text="Files →"
+                    Clicked="OnFilesClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    Padding="8,4"
+                    VerticalOptions="Center" />
             <Button Text="+ New Issue"
                     Clicked="OnNewIssueClicked"
                     BackgroundColor="{StaticResource Primary}"

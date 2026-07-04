@@ -92,4 +92,38 @@ public interface IGitHubReposApi
     /// <summary>Mark all notifications as read (PUT).</summary>
     [Put("/notifications")]
     Observable<Unit> MarkAllRead();
+
+    // ── Repository Contents (M5: File browsing & editing) ────────
+    // The GitHub Contents API uses the same endpoint for directory listing
+    // and file content — the response shape differs based on whether the
+    // path points to a file or directory. We declare two methods with the
+    // same path template but different return types; the caller chooses
+    // based on the entry type from a prior directory listing.
+
+    /// <summary>
+    /// List directory contents. Returns an array of file/directory entries.
+    /// Use an empty <paramref name="path"/> for the repository root.
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/contents/{path}")]
+    Observable<ContentEntry[]> ListContents(string owner, string repo, string path);
+
+    /// <summary>
+    /// Get file content (base64-encoded). Use when the path is known to
+    /// point to a file.
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/contents/{path}")]
+    Observable<FileContent> GetFileContent(string owner, string repo, string path);
+
+    /// <summary>
+    /// Create or update a file. <see cref="FileUpdateRequest.Sha"/> is
+    /// required for updates, omitted for creates.
+    /// </summary>
+    [Put("/repos/{owner}/{repo}/contents/{path}")]
+    Observable<FileCommitResponse> CreateOrUpdateFile(
+        string owner, string repo, string path, [Body] FileUpdateRequest body);
+
+    /// <summary>Delete a file. Requires the file's current SHA.</summary>
+    [Delete("/repos/{owner}/{repo}/contents/{path}")]
+    Observable<FileCommitResponse> DeleteFile(
+        string owner, string repo, string path, [Body] FileDeleteRequest body);
 }

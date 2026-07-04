@@ -51,4 +51,15 @@
         ContentTemplate="{DataTemplate views:PullRequestDetailPage}"
         Route="PullRequestDetailPage" />
 
+    <!-- M5: File browsing & editing -->
+    <ShellContent
+        Title="Files"
+        ContentTemplate="{DataTemplate views:FileBrowserPage}"
+        Route="FileBrowserPage" />
+
+    <ShellContent
+        Title="File Editor"
+        ContentTemplate="{DataTemplate views:FileEditorPage}"
+        Route="FileEditorPage" />
+
 </Shell>

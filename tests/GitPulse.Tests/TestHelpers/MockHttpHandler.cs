@@ -35,6 +35,9 @@ public sealed class MockHttpHandler : HttpMessageHandler
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri?.AbsolutePath ?? string.Empty;
+        // Normalize trailing slash so "/contents/" matches "/contents".
+        if (path.EndsWith('/') && path.Length > 1)
+            path = path[..^1];
 
         foreach (var (suffix, responder) in _routes)
         {
