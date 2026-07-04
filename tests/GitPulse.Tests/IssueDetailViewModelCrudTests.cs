@@ -97,4 +97,142 @@ public class IssueDetailViewModelCrudTests
         Assert.Empty(vm.Comments);
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task Load_WithToken_PopulatesIssueAndComments()
+    {
+        var handler = new MockHttpHandler()
+            .When("/issues/42", IssueJson(42, "open", "Bug description"))
+            .When("/issues/42/comments",
+                $"[{CommentJson(1, "First")},{CommentJson(2, "Second")}]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.NotNull(vm.Issue.Value);
+        Assert.Equal(42, vm.Issue.Value!.Number);
+        Assert.Equal("#42 Issue 42", vm.Title.Value);
+        Assert.Equal(2, vm.Comments.Count);
+        Assert.Equal("First", vm.Comments[0].Body);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WithoutToken_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler();
+        var factory = new FakeGitHubClientFactory(handler, token: null);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.NotEmpty(vm.ErrorMessage.Value);
+        Assert.Null(vm.Issue.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_PopulatesLabelsFromIssuePayload()
+    {
+        var issueJsonWithLabels =
+            $"{{\"number\":42,\"title\":\"Issue 42\",\"state\":\"open\"," +
+            $"\"body\":\"body\",\"user\":{{\"login\":\"alice\"}}," +
+            $"\"labels\":[{{\"name\":\"bug\",\"color\":\"ff0000\"}}," +
+            $"{{\"name\":\"help\",\"color\":\"00ff00\"}}]}}";
+        var handler = new MockHttpHandler()
+            .When("/issues/42", issueJsonWithLabels)
+            .When("/issues/42/comments", "[]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, vm.Labels.Count);
+        Assert.Equal("bug", vm.Labels[0].Name);
+        Assert.Equal("bug, help", vm.LabelInput.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task ToggleState_ChangesClosedToOpen()
+    {
+        var handler = new MockHttpHandler()
+            .When("/issues/42", req =>
+            {
+                if (req.Method == HttpMethod.Patch)
+                    return new MockResponse(IssueJson(42, state: "open"));
+                return new MockResponse(IssueJson(42, state: "closed"));
+            })
+            .When("/issues/42/comments", "[]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("closed", vm.Issue.Value!.State);
+        await vm.ToggleStateCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("open", vm.Issue.Value!.State);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SaveLabels_ReplacesLabelsCollection()
+    {
+        var labelsJson =
+            "[{\"name\":\"bug\",\"color\":\"ff0000\"}," +
+            "{\"name\":\"wontfix\",\"color\":\"000000\"}]";
+        var handler = new MockHttpHandler()
+            .When("/issues/42", IssueJson(42))
+            .When("/issues/42/labels", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                    return new MockResponse(labelsJson);
+                return new MockResponse("[]");
+            })
+            .When("/issues/42/comments", "[]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.LabelInput.Value = "bug, wontfix";
+        await vm.SaveLabelsCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(2, vm.Labels.Count);
+        Assert.Equal("bug", vm.Labels[0].Name);
+        Assert.Equal("wontfix", vm.Labels[1].Name);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SaveLabels_WithEmptyInput_ClearsLabels()
+    {
+        var handler = new MockHttpHandler()
+            .When("/issues/42", IssueJson(42))
+            .When("/issues/42/labels", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                    return new MockResponse("[]");
+                return new MockResponse("[]");
+            })
+            .When("/issues/42/comments", "[]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.LabelInput.Value = "";
+        await vm.SaveLabelsCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.Labels);
+        vm.Dispose();
+    }
 }

@@ -87,4 +87,64 @@ public class IssueModelTests
         Assert.Equal("enhancement", label.Name);
         Assert.Equal(string.Empty, label.Color);
     }
+
+    [Fact]
+    public void Repo_Defaults_AreValid()
+    {
+        var repo = new Repo { Id = 1, Name = "gitpulse" };
+
+        Assert.Equal(1, repo.Id);
+        Assert.Equal("gitpulse", repo.Name);
+        Assert.Equal(string.Empty, repo.FullName);
+        Assert.Null(repo.Description);
+        Assert.Equal(string.Empty, repo.HtmlUrl);
+        Assert.False(repo.Private);
+        Assert.Null(repo.DefaultBranch);
+        Assert.Equal(0, repo.StargazersCount);
+        Assert.Equal(0, repo.ForksCount);
+        Assert.Equal(0, repo.OpenIssuesCount);
+    }
+
+    [Fact]
+    public void User_Defaults_AreValid()
+    {
+        var user = new User { Id = 100, Login = "alice" };
+
+        Assert.Equal(100, user.Id);
+        Assert.Equal("alice", user.Login);
+        Assert.Equal(string.Empty, user.AvatarUrl);
+        Assert.Equal(string.Empty, user.HtmlUrl);
+    }
+
+    [Fact]
+    public void PullRequestRef_Defaults_AreValid()
+    {
+        var prRef = new PullRequestRef { HtmlUrl = "https://github.com/o/r/pull/1" };
+
+        Assert.Equal("https://github.com/o/r/pull/1", prRef.HtmlUrl);
+        Assert.Equal(string.Empty, prRef.Url);
+        Assert.Null(prRef.Merged);
+        Assert.Null(prRef.DiffUrl);
+    }
+
+    [Fact]
+    public void Comment_WithAllFields_PreservesValues()
+    {
+        var comment = new Comment
+        {
+            Id = 500,
+            Body = "Reviewed",
+            CreatedAt = new DateTime(2025, 1, 1),
+            UpdatedAt = new DateTime(2025, 1, 2),
+            User = new User { Login = "reviewer" },
+            HtmlUrl = "https://github.com/o/r/issues/1#issuecomment-500",
+        };
+
+        Assert.Equal(500, comment.Id);
+        Assert.Equal("Reviewed", comment.Body);
+        Assert.Equal(new DateTime(2025, 1, 1), comment.CreatedAt);
+        Assert.Equal(new DateTime(2025, 1, 2), comment.UpdatedAt);
+        Assert.Equal("reviewer", comment.User!.Login);
+        Assert.Equal("https://github.com/o/r/issues/1#issuecomment-500", comment.HtmlUrl);
+    }
 }

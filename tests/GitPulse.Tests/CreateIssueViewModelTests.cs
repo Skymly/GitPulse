@@ -74,4 +74,67 @@ public class CreateIssueViewModelTests
         Assert.Null(vm.CreatedIssueNumber.Value);
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task Create_WithLabels_SetsCreatedIssueNumber()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    return new MockResponse(IssueJson(77, "With labels"));
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreateIssueViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        vm.TitleInput.Value = "With labels";
+        vm.LabelsInput.Value = "bug, help wanted";
+        await vm.CreateCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(77, vm.CreatedIssueNumber.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Create_WithBodyButNoLabels_SetsCreatedIssueNumber()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    return new MockResponse(IssueJson(88, "With body"));
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreateIssueViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        vm.TitleInput.Value = "With body";
+        vm.BodyInput.Value = "This is a detailed body";
+        await vm.CreateCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(88, vm.CreatedIssueNumber.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Create_WithNotFoundResponse_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler(); // No routes → 404
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreateIssueViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        vm.TitleInput.Value = "Test";
+        await vm.CreateCommand.ExecuteAsync(null);
+
+        Assert.NotEmpty(vm.ErrorMessage.Value);
+        Assert.Contains("Create failed", vm.ErrorMessage.Value);
+        Assert.Null(vm.CreatedIssueNumber.Value);
+        vm.Dispose();
+    }
 }

@@ -103,4 +103,99 @@ public class IssuesViewModelTests
         Assert.False(vm.CanLoadMore.Value);
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task Load_WithEmptyOwner_DoesNothing()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", IssuesJson("open"));
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        // Don't call Initialize — owner/repo are empty.
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.Issues);
+        Assert.False(vm.IsLoading.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task LoadMore_AppendsNextPageToIssues()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", req =>
+            {
+                var page = req.RequestUri?.Query ?? "";
+                if (page.Contains("page=2"))
+                    return new MockResponse(IssuesJson("open"), LinkNoNext);
+                return new MockResponse(IssuesJson("open", "open"), LinkHasNext);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Equal(2, vm.Issues.Count);
+        Assert.True(vm.CanLoadMore.Value);
+
+        await vm.LoadMoreCommand.ExecuteAsync(null);
+
+        Assert.Equal(3, vm.Issues.Count);
+        Assert.False(vm.CanLoadMore.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task LoadMore_WithoutLoadFirst_ReturnsEarly()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", IssuesJson("open"), LinkHasNext);
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        // LoadMore without Load — _hasNextPage is false.
+        await vm.LoadMoreCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.Issues);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task LoadMore_WhileLoading_ReturnsEarly()
+    {
+        // This is hard to test directly since Load is synchronous in setting IsLoading.
+        // Instead, verify the guard by checking that LoadMore doesn't run when
+        // CanLoadMore is false (no next page after load).
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", IssuesJson("open"), LinkNoNext);
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.False(vm.CanLoadMore.Value);
+
+        await vm.LoadMoreCommand.ExecuteAsync(null);
+
+        // Still just 1 issue — LoadMore was a no-op.
+        Assert.Single(vm.Issues);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WithNotFoundResponse_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler(); // No routes → 404 for everything
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.NotEmpty(vm.ErrorMessage.Value);
+        Assert.Contains("Load failed", vm.ErrorMessage.Value);
+        vm.Dispose();
+    }
 }

@@ -1,46 +1,38 @@
 <Project>
-
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-
   <!-- Reactive backend (R3) -->
   <ItemGroup>
     <PackageVersion Include="R3" Version="1.3.0" />
     <PackageVersion Include="R3Extensions.Maui" Version="1.3.0" />
   </ItemGroup>
-
   <!-- Observables (Skymly) — source generators bridging events & IO to R3 -->
   <ItemGroup>
     <PackageVersion Include="Observables.RestAPI.R3" Version="0.1.5" />
     <PackageVersion Include="Observables.Events.R3" Version="0.1.5" />
   </ItemGroup>
-
   <!-- MVVM infrastructure -->
   <ItemGroup>
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
   </ItemGroup>
-
   <!-- Logging -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
   </ItemGroup>
-
   <!-- Versioning -->
   <ItemGroup>
     <PackageVersion Include="MinVer" Version="7.0.0" />
   </ItemGroup>
-
   <!-- Build (Nuke) -->
   <ItemGroup>
     <PackageVersion Include="Nuke.Common" Version="10.1.0" />
   </ItemGroup>
-
   <!-- Test -->
   <ItemGroup>
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>
-
 </Project>
