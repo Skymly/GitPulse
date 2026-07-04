@@ -4,7 +4,7 @@
 
 - **Type**: Personal project (Skymly workspace)
 - **Remote**: https://github.com/Skymly/GitPulse
-- **Stage**: M3 complete (CRUD) — auth, repo browsing, issue & PR lists with pagination, issue & PR detail with markdown, CRUD operations (comments, state toggle, labels, new issue)
+- **Stage**: M4 complete (Notifications) — auth, repo browsing, issue & PR lists with pagination, issue & PR detail with markdown, CRUD operations (comments, state toggle, labels, new issue), notification center with polling-simulated realtime (R3 Observable.Interval)
 - **Purpose**: Real-world showcase application for [Observables](https://github.com/Skymly/Observables) (declarative reactive HTTP/events bridging for R3). Not a toy demo — a working GitHub client the author uses day-to-day.
 
 ## Tech Stack
@@ -175,7 +175,7 @@ should surface — tracked for upstream feedback.
 | **M1** ✅ | Auth + repository list browsing | RestAPI + Events |
 | **M2** ✅ | Issue/PR list & detail (issues + PRs, state filter, detail with comments) | RestAPI + Events |
 | **M3** ✅ | Issue/PR CRUD (comments, state toggle, labels, new issue) | RestAPI |
-| **M4** | Notification center (polling-simulated realtime) | Events (+ Sse optional) |
+| **M4** ✅ | Notification center (polling-simulated realtime) | Events (R3 Observable.Interval) |
 | **M5** | File browsing & editing | RestAPI |
 | **M6** | PR review & merge | RestAPI |
 | **M7** | Android adaptation & stabilization | platform abstraction |
