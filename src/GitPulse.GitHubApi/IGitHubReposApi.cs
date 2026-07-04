@@ -72,4 +72,24 @@ public interface IGitHubReposApi
 
     [Get("/repos/{owner}/{repo}/pulls/{number}")]
     Observable<PullRequest> GetPullRequest(string owner, string repo, int number);
+
+    // ── Notifications ─────────────────────────────────────────────
+    // M4: Notification center with polling-simulated realtime.
+    // The poller (INotificationPoller) calls ListNotifications on a
+    // timer (R3 Observable.Interval) and streams results to the UI.
+
+    /// <summary>
+    /// List all notifications for the authenticated user.
+    /// Query params (all, participating) injected by GitHubQueryHandler.
+    /// </summary>
+    [Get("/notifications")]
+    Observable<Notification[]> ListNotifications();
+
+    /// <summary>Mark a single notification thread as read (DELETE).</summary>
+    [Delete("/notifications/threads/{threadId}")]
+    Observable<Unit> MarkThreadRead(string threadId);
+
+    /// <summary>Mark all notifications as read (PUT).</summary>
+    [Put("/notifications")]
+    Observable<Unit> MarkAllRead();
 }

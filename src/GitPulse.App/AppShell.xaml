@@ -14,6 +14,12 @@
             Route="ReposPage" />
 
         <ShellContent
+            Title="Notifications"
+            Icon="dotnet_bot.png"
+            ContentTemplate="{DataTemplate views:NotificationsPage}"
+            Route="NotificationsPage" />
+
+        <ShellContent
             Title="Settings"
             ContentTemplate="{DataTemplate views:SettingsPage}"
             Route="SettingsPage" />

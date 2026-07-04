@@ -41,6 +41,7 @@ public static class MauiProgram
         // Application services.
         builder.Services.AddSingleton<IGitHubClientFactory, GitHubClientFactory>();
         builder.Services.AddSingleton<IBrowserLauncher, BrowserLauncher>();
+        builder.Services.AddSingleton<INotificationPoller, NotificationPoller>();
 
         // ViewModels (transient — each page gets a fresh instance).
         builder.Services.AddTransient<SettingsViewModel>();
@@ -50,6 +51,7 @@ public static class MauiProgram
         builder.Services.AddTransient<CreateIssueViewModel>();
         builder.Services.AddTransient<PullRequestsViewModel>();
         builder.Services.AddTransient<PullRequestDetailViewModel>();
+        builder.Services.AddTransient<NotificationsViewModel>();
 
         // Pages (transient — resolved via DI when Shell navigates).
         builder.Services.AddTransient<ReposPage>();
@@ -59,6 +61,7 @@ public static class MauiProgram
         builder.Services.AddTransient<CreateIssuePage>();
         builder.Services.AddTransient<PullRequestsPage>();
         builder.Services.AddTransient<PullRequestDetailPage>();
+        builder.Services.AddTransient<NotificationsPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();
