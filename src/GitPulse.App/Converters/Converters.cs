@@ -63,8 +63,8 @@ public sealed class IntGreaterThanZeroConverter : IValueConverter
 }
 
 /// <summary>
-/// Truncates a string to the length specified by <see cref="IValueConverter.Convert"/>
-/// <paramref name="parameter"/> (parsed as int). Used for short SHA display.
+/// Truncates a string to the length specified by the <see cref="IValueConverter.Convert"/>
+/// converter parameter (parsed as int). Used for short SHA display.
 /// </summary>
 public sealed class StringTruncateConverter : IValueConverter
 {
