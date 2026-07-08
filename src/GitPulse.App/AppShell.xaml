@@ -27,6 +27,11 @@
 
     <!-- Detail pages (navigated to via GoToAsync, not in TabBar) -->
     <ShellContent
+        Title="Repository"
+        ContentTemplate="{DataTemplate views:RepoDetailPage}"
+        Route="RepoDetailPage" />
+
+    <ShellContent
         Title="Issues"
         ContentTemplate="{DataTemplate views:IssuesPage}"
         Route="IssuesPage" />

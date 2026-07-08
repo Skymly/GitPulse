@@ -37,6 +37,24 @@ public interface IGitHubReposApi
     [Get("/repos/{owner}/{repo}")]
     Observable<Repo> GetRepo(string owner, string repo);
 
+    // ── Repository detail (M7: repo detail page) ──────────────────
+
+    /// <summary>
+    /// Get the preferred README for a repository. Returns a
+    /// <see cref="FileContent"/> with base64-encoded <see cref="FileContent.Content"/>.
+    /// Returns 404 when no README exists.
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/readme")]
+    Observable<FileContent> GetReadme(string owner, string repo);
+
+    /// <summary>List branches for a repository.</summary>
+    [Get("/repos/{owner}/{repo}/branches")]
+    Observable<Branch[]> ListBranches(string owner, string repo);
+
+    /// <summary>List releases for a repository. <see cref="Release.Body"/> contains release notes as Markdown.</summary>
+    [Get("/repos/{owner}/{repo}/releases")]
+    Observable<Release[]> ListReleases(string owner, string repo);
+
     // ── Issues ────────────────────────────────────────────────────
 
     [Get("/repos/{owner}/{repo}/issues")]
@@ -82,6 +100,21 @@ public interface IGitHubReposApi
     [Put("/repos/{owner}/{repo}/pulls/{number}/merge")]
     Observable<MergeResponse> MergePullRequest(
         string owner, string repo, int number, [Body] MergeRequest body);
+
+    // ── PR Diff (M8: diff viewer) ─────────────────────────────────
+
+    /// <summary>List files changed in a pull request.</summary>
+    [Get("/repos/{owner}/{repo}/pulls/{number}/files")]
+    Observable<DiffEntry[]> ListPullRequestFiles(string owner, string repo, int number);
+
+    /// <summary>List review comments on a pull request diff.</summary>
+    [Get("/repos/{owner}/{repo}/pulls/{number}/comments")]
+    Observable<ReviewComment[]> ListReviewComments(string owner, string repo, int number);
+
+    /// <summary>Create a review comment on a specific line of the diff.</summary>
+    [Post("/repos/{owner}/{repo}/pulls/{number}/comments")]
+    Observable<ReviewComment> CreateReviewComment(
+        string owner, string repo, int number, [Body] ReviewCommentRequest body);
 
     // ── Notifications ─────────────────────────────────────────────
     // M4: Notification center with polling-simulated realtime.

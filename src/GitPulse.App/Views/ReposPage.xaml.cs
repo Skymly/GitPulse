@@ -94,7 +94,7 @@ public partial class ReposPage : ContentPage
             if (parts.Length == 2)
             {
                 await Shell.Current.GoToAsync(
-                    $"IssuesPage?owner={Uri.EscapeDataString(parts[0])}" +
+                    $"RepoDetailPage?owner={Uri.EscapeDataString(parts[0])}" +
                     $"&repo={Uri.EscapeDataString(parts[1])}");
             }
         }

@@ -4,11 +4,13 @@
              xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
              xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
              xmlns:idk="clr-namespace:Indiko.Maui.Controls.Markdown;assembly=Indiko.Maui.Controls.Markdown"
+             xmlns:controls="clr-namespace:GitPulse.App.Views.Controls;assembly=GitPulse.App"
              x:Class="GitPulse.App.Views.PullRequestDetailPage"
+             x:Name="_pageRoot"
              x:DataType="vm:PullRequestDetailViewModel"
              Title="PR Detail">
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*">
 
         <!-- Back button + title -->
         <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
@@ -25,7 +27,26 @@
                    MaxLines="1" />
         </HorizontalStackLayout>
 
-        <ScrollView Grid.Row="1">
+        <!-- Tab bar: Conversation / Files -->
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" Padding="16,0,16,8">
+            <Button x:Name="ConversationTab"
+                    Text="Conversation"
+                    Clicked="OnConversationTabClicked"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    Padding="16,6"
+                    FontSize="13" />
+            <Button x:Name="FilesTab"
+                    Text="Files"
+                    Clicked="OnFilesTabClicked"
+                    BackgroundColor="{StaticResource Gray200}"
+                    TextColor="Black"
+                    Padding="16,6"
+                    FontSize="13" />
+        </HorizontalStackLayout>
+
+        <!-- ── Conversation tab ────────────────────────────────────── -->
+        <ScrollView x:Name="ConversationSection" Grid.Row="2">
             <VerticalStackLayout Padding="16" Spacing="12">
 
                 <!-- PR header -->
@@ -244,6 +265,119 @@
 
                 <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
                                    IsVisible="{Binding IsLoading.Value}" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ── Files tab (M8: PR diff viewer) ─────────────────────── -->
+        <ScrollView x:Name="FilesSection" Grid.Row="2" IsVisible="False">
+            <VerticalStackLayout Padding="16" Spacing="12">
+
+                <!-- Changed files list -->
+                <CollectionView x:Name="FilesList"
+                                ItemsSource="{Binding DiffViewModel.Files, Source={x:Reference _pageRoot}}"
+                                SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:DiffEntry">
+                            <VerticalStackLayout Spacing="0" Margin="0,0,0,12">
+                                <!-- File header (click to expand/collapse) -->
+                                <Border StrokeShape="RoundRectangle 8"
+                                         Stroke="{StaticResource Gray200}"
+                                         Padding="12">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+                                        <Button Grid.Row="0" Grid.Column="0"
+                                                Text="▶"
+                                                Clicked="OnFileToggled"
+                                                BackgroundColor="Transparent"
+                                                TextColor="{StaticResource Primary}"
+                                                Padding="4,2"
+                                                FontSize="12" />
+                                        <Label Grid.Row="0" Grid.Column="1"
+                                               Text="{Binding Filename}"
+                                               FontSize="13"
+                                               FontAttributes="Bold"
+                                               LineBreakMode="MiddleTruncation"
+                                               MaxLines="1"
+                                               VerticalOptions="Center" />
+                                        <HorizontalStackLayout Grid.Row="0" Grid.Column="2" Spacing="8" VerticalOptions="Center">
+                                            <Label Text="{Binding Additions, StringFormat='+{0}'}"
+                                                   FontSize="12"
+                                                   TextColor="{StaticResource Green700}" />
+                                            <Label Text="{Binding Deletions, StringFormat='-{0}'}"
+                                                   FontSize="12"
+                                                   TextColor="{StaticResource Red900}" />
+                                        </HorizontalStackLayout>
+                                        <Label Grid.Row="1" Grid.Column="1"
+                                               Text="{Binding Status}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource Gray500}" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- Diff content (hidden by default, toggled by OnFileToggled) -->
+                                <VerticalStackLayout IsVisible="False" Padding="0,4,0,0">
+                                    <controls:DiffView Patch="{Binding Patch}"
+                                                       Filename="{Binding Filename}"
+                                                       HeightRequest="400" />
+
+                                    <!-- Review comments on this file -->
+                                    <Label Text="Review Comments"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           Margin="0,8,0,4" />
+
+                                    <!-- Comment button -->
+                                    <Button Text="💬 Comment on this file"
+                                            Clicked="OnCommentClicked"
+                                            CommandParameter="{Binding Filename}"
+                                            BackgroundColor="Transparent"
+                                            TextColor="{StaticResource Primary}"
+                                            Padding="12,4"
+                                            FontSize="12"
+                                            HorizontalOptions="Start" />
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Comment input panel (shared for new comments and replies) -->
+                <Border StrokeShape="RoundRectangle 8"
+                         Stroke="{StaticResource Gray200}"
+                         Padding="16"
+                         IsVisible="{Binding DiffViewModel.CommentInput.Value, Source={x:Reference _pageRoot}, Converter={StaticResource StringToBoolConverter}}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Write a review comment"
+                               FontSize="14"
+                               FontAttributes="Bold" />
+                        <Editor Text="{Binding DiffViewModel.CommentInput.Value, Source={x:Reference _pageRoot}}"
+                                Placeholder="Write a comment... (Markdown supported)"
+                                AutoSize="TextChanges"
+                                FontSize="14"
+                                MinimumHeightRequest="80" />
+                        <Button Text="Post"
+                                Command="{Binding DiffViewModel.PostCommentCommand, Source={x:Reference _pageRoot}}"
+                                IsEnabled="{Binding DiffViewModel.IsSaving.Value, Source={x:Reference _pageRoot}, Converter={StaticResource InvertedBoolConverter}}"
+                                HorizontalOptions="Start"
+                                Padding="24,8"
+                                FontSize="14" />
+                        <ActivityIndicator IsRunning="{Binding DiffViewModel.IsSaving.Value, Source={x:Reference _pageRoot}}"
+                                           IsVisible="{Binding DiffViewModel.IsSaving.Value, Source={x:Reference _pageRoot}}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Error banner -->
+                <Border IsVisible="{Binding DiffViewModel.ErrorMessage.Value, Source={x:Reference _pageRoot}, Converter={StaticResource StringToBoolConverter}}"
+                        BackgroundColor="{StaticResource Red100}"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="12">
+                    <Label Text="{Binding DiffViewModel.ErrorMessage.Value, Source={x:Reference _pageRoot}}"
+                           TextColor="{StaticResource Red900}"
+                           FontSize="13" />
+                </Border>
+
+                <ActivityIndicator IsRunning="{Binding DiffViewModel.IsLoading.Value, Source={x:Reference _pageRoot}}"
+                                   IsVisible="{Binding DiffViewModel.IsLoading.Value, Source={x:Reference _pageRoot}}" />
 
             </VerticalStackLayout>
         </ScrollView>

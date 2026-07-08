@@ -45,6 +45,12 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
     /// <summary>PR title for the page header.</summary>
     public BindableReactiveProperty<string> Title { get; } = new(string.Empty);
 
+    /// <summary>Repository owner (set by Initialize, used by Files tab).</summary>
+    public BindableReactiveProperty<string> Owner { get; } = new(string.Empty);
+
+    /// <summary>Repository name (set by Initialize, used by Files tab).</summary>
+    public BindableReactiveProperty<string> RepoName { get; } = new(string.Empty);
+
     /// <summary>Comment input text (two-way bound to editor).</summary>
     public BindableReactiveProperty<string> CommentInput { get; } = new(string.Empty);
 
@@ -80,6 +86,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         _owner = owner;
         _repo = repo;
         _prNumber = prNumber;
+        Owner.Value = owner;
+        RepoName.Value = repo;
     }
 
     [RelayCommand]
@@ -345,6 +353,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         IsSaving.Dispose();
         ErrorMessage.Dispose();
         Title.Dispose();
+        Owner.Dispose();
+        RepoName.Dispose();
         CommentInput.Dispose();
         MergeMethod.Dispose();
         CanMerge.Dispose();

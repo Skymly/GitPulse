@@ -61,3 +61,22 @@ public sealed class IntGreaterThanZeroConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
+
+/// <summary>
+/// Truncates a string to the length specified by <see cref="IValueConverter.Convert"/>
+/// <paramref name="parameter"/> (parsed as int). Used for short SHA display.
+/// </summary>
+public sealed class StringTruncateConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not string s || string.IsNullOrEmpty(s))
+            return string.Empty;
+        if (parameter is not string lenStr || !int.TryParse(lenStr, out var len) || len <= 0)
+            return s;
+        return s.Length <= len ? s : s[..len];
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}

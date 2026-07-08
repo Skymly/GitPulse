@@ -33,7 +33,7 @@ public static class MauiProgram
 
         // Platform-specific credential store.
 #if WINDOWS
-		builder.Services.AddSingleton<ICredentialStore, WindowsCredentialStore>();
+        builder.Services.AddSingleton<ICredentialStore, WindowsCredentialStore>();
 #elif ANDROID
         builder.Services.AddSingleton<ICredentialStore, AndroidCredentialStore>();
 #endif
@@ -46,11 +46,13 @@ public static class MauiProgram
         // ViewModels (transient — each page gets a fresh instance).
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<ReposViewModel>();
+        builder.Services.AddTransient<RepoDetailViewModel>();
         builder.Services.AddTransient<IssuesViewModel>();
         builder.Services.AddTransient<IssueDetailViewModel>();
         builder.Services.AddTransient<CreateIssueViewModel>();
         builder.Services.AddTransient<PullRequestsViewModel>();
         builder.Services.AddTransient<PullRequestDetailViewModel>();
+        builder.Services.AddTransient<PrDiffViewModel>();
         builder.Services.AddTransient<NotificationsViewModel>();
         builder.Services.AddTransient<FileBrowserViewModel>();
         builder.Services.AddTransient<FileEditorViewModel>();
@@ -58,6 +60,7 @@ public static class MauiProgram
         // Pages (transient — resolved via DI when Shell navigates).
         builder.Services.AddTransient<ReposPage>();
         builder.Services.AddTransient<SettingsPage>();
+        builder.Services.AddTransient<RepoDetailPage>();
         builder.Services.AddTransient<IssuesPage>();
         builder.Services.AddTransient<IssueDetailPage>();
         builder.Services.AddTransient<CreateIssuePage>();

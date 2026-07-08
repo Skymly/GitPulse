@@ -1,193 +1,126 @@
 # GitPulse — AI Agent Notes
 
-## Project Status
+本文件为在本仓库工作的 AI 编码助手提供上下文。**修改代码前请先阅读本文档与 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。**
 
-- **Type**: Personal project (Skymly workspace)
-- **Remote**: https://github.com/Skymly/GitPulse
-- **Stage**: M6 complete (PR review & merge) — auth, repo browsing, issue & PR lists with pagination, issue & PR detail with markdown, CRUD operations (comments, state toggle, labels, new issue), notification center with polling-simulated realtime (R3 Observable.Interval), repository file browser and editor (view, create, update, delete via Contents API), PR merge with method selection (merge/squash/rebase) and mergeability status
-- **Purpose**: Real-world showcase application for [Observables](https://github.com/Skymly/Observables) (declarative reactive HTTP/events bridging for R3). Not a toy demo — a working GitHub client the author uses day-to-day.
+## 项目状态
 
-## Tech Stack
+| 项 | 说明 |
+|----|------|
+| **类型** | 个人项目（Skymly workspace） |
+| **远程** | https://github.com/Skymly/GitPulse |
+| **阶段** | M6 已发布于 `main`；**M7/M8 工作区进行中**（见 [docs/ROADMAP.md](docs/ROADMAP.md)、[docs/plans/MilestoneM7M8.md](docs/plans/MilestoneM7M8.md)） |
+| **目的** | [Observables](https://github.com/Skymly/Observables) 的真实世界展示应用（声明式 RestAPI + R3）。非玩具 demo，作者日常使用的 GitHub 客户端。 |
+
+## 技术栈
 
 - **.NET 10** (LTS) + **.NET MAUI**
-- **R3** 1.3.0+ + **R3Extensions.Maui** (`UseR3()`, `BindableReactiveProperty<T>`)
-- **Observables.RestAPI.R3** + **Observables.Events.R3** (source-generated reactive bridges)
-- **CommunityToolkit.Mvvm** (RelayCommand etc.); state management via R3 `BindableReactiveProperty<T>`
-- **Indiko.Maui.Controls.Markdown** 1.5.0 (native MAUI markdown rendering, no WebView)
-- **MinVer** (Git-tag-based versioning)
-- **Nuke** build orchestration
-- **xunit.v3** testing
+- **R3** 1.3.0+ + **R3Extensions.Maui**（`UseR3()`、`BindableReactiveProperty<T>`）
+- **Observables.RestAPI.R3** + **Observables.Events.R3** 0.1.5+
+- **CommunityToolkit.Mvvm**（`[RelayCommand]`）
+- **Indiko.Maui.Controls.Markdown** 1.5.0
+- **MinVer**、**Nuke**、**xunit.v3**
 
-## Target Platforms
+## 目标平台
 
-- **Windows** (primary): `net10.0-windows10.0.19041.0`
-- **Android** (secondary): `net10.0-android`
-- iOS / MacCatalyst: deferred until stable
+- **Windows**（主）：`net10.0-windows10.0.19041.0`
+- **Android**（次）：`net10.0-android`
+- iOS / MacCatalyst：暂缓（见 [ADR-005](docs/adr/ADR-005-windows-first-platform-strategy.md)）
 
-## Project Structure
+## 仓库结构
 
 ```
 src/
-  GitPulse.App/         — MAUI UI (Views, DI, platform entry points, BrowserLauncher)
-  GitPulse.ViewModels/  — ViewModels (R3 state, MAUI-free, testable on net10.0)
-  GitPulse.Core/        — Domain models, abstractions, HTTP helpers (no UI/IO)
-    └─ Http/            — GitHubQueryHandler, LinkHeaderParser
-  GitPulse.GitHubApi/   — Observables.RestAPI declarative interfaces + DTOs
-  GitPulse.Services/    — GitHubClientFactory (auth, header setup, paged client)
-tests/
-  GitPulse.Tests/       — Unit tests (+ TestHelpers: MockHttpHandler, FakeGitHubClientFactory)
-build/                  — Nuke build script (_build.csproj + Program.cs)
-.nuke/                  — Nuke parameters & schema
+  GitPulse.App/         — MAUI UI、DI、平台入口
+  GitPulse.ViewModels/  — ViewModel（R3，无 MAUI）
+  GitPulse.Core/        — 模型、抽象、Http/
+  GitPulse.GitHubApi/   — IGitHubReposApi 声明
+  GitPulse.Services/    — GitHubClientFactory、通知轮询
+tests/GitPulse.Tests/
+docs/                   — 文档驱动开发体系
+build/                  — Nuke
 ```
 
-### Layer responsibilities
+分层与 PR 边界见 [docs/spec/Architecture.md](docs/spec/Architecture.md)。
 
-| Layer | Responsibility | Depends on |
-|-------|---------------|------------|
-| **App** | MAUI Views (XAML), `MauiProgram` (DI + `UseR3()`), platform entry, `BrowserLauncher` | Core, GitHubApi, Services, ViewModels |
-| **ViewModels** | ViewModels (R3 `BindableReactiveProperty` state, `[RelayCommand]`), `RepoNavigationArgs` | Core, GitHubApi |
-| **Core** | Domain models (`Repo`, `Issue`, `User`, `PullRequest`, `Comment`, `Label`), abstractions (`ICredentialStore`, `IGitHubClientFactory`, `IBrowserLauncher`) | none |
-| **GitHubApi** | Declarative `IGitHubReposApi` etc. (Observables.RestAPI) | Core |
-| **Services** | `GitHubClientFactory`, auth infrastructure, caching, notification polling, app config | Core, GitHubApi |
+## 跨模块 PR / Issue 边界
 
-## Build & CI (Nuke)
+**每个 PR 只改一个模块**（或 Docs/Repo 元数据）：
 
-| Nuke target | Description |
-|-------------|-------------|
-| **Ci** | `Clean` → `Restore` → `Compile` → `UnitTest` |
-| **CiLib** | Cross-platform library tests only (no App project) |
-| **CiAll** | `Format` + `Ci` (full local/CI verification) |
-| **Test** | Alias for `UnitTest` |
-| **Format** | `dotnet format --verify-no-changes` |
-| **FormatFix** | `dotnet format` (applies formatting) |
-| **Publish** | Self-contained Windows exe → `artifacts/publish/{Runtime}/` |
-| **PublishVerify** | `Publish` + verify entry point exists |
-| **Release** | `CiAll` + `PublishVerify` (full release pipeline) |
+| 模块 | 路径 |
+|------|------|
+| **App** | `src/GitPulse.App/` |
+| **ViewModels** | `src/GitPulse.ViewModels/` |
+| **Core** | `src/GitPulse.Core/` |
+| **GitHubApi** | `src/GitPulse.GitHubApi/` |
+| **Services** | `src/GitPulse.Services/` |
+| **Tests** | `tests/GitPulse.Tests/` |
+| **Docs / Repo** | `docs/`、`README.md`、`CONTRIBUTING.md`、`AGENTS.md`、`build/`、`.github/` |
 
-Parameters: `--configuration`, `--runtime` (default `win-x64`), `--version` (override MinVer), `--windowsFramework`
+## 构建与 CI
 
 ```powershell
-./build.ps1 --target CiAll --configuration Release
-./build.ps1 --target Publish --configuration Release --runtime win-x64
+./build.ps1 --target CiLib --configuration Release   # 库测试（跨平台）
+./build.ps1 --target CiAll --configuration Release  # 含 App + format
 ```
 
-## Observables Showcase Design
+详见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
 
-### RestAPI domain (core showcase)
+## Observables 展示要点
 
-Declarative interfaces — the source generator produces `HttpClient` proxy implementations at compile time:
+| 域 | 文档 |
+|----|------|
+| RestAPI（`IGitHubReposApi`） | [docs/spec/RestApi.md](docs/spec/RestApi.md)、[docs/design/RestApi.md](docs/design/RestApi.md) |
+| Events / R3 UI | [docs/spec/Events.md](docs/spec/Events.md)、[docs/design/Events.md](docs/design/Events.md) |
 
-```csharp
-public interface IGitHubReposApi
-{
-    // ApiResponse<T> exposes response Headers (including Link for pagination)
-    [Get("/user/repos")]
-    Observable<ApiResponse<Repo[]>> ListMyReposPaged();
+**已知上游限制**（须在 Design Doc 中保持同步）：
 
-    [Get("/repos/{owner}/{repo}")]
-    Observable<Repo> GetRepo(string owner, string repo);
+1. **OBS3004** — 0.1.5 已修复 path + `[Body]`；分页仍用 `GitHubQueryHandler`（[ADR-006](docs/adr/ADR-006-github-query-handler-pagination.md)）
+2. **SearchBar `.Events()` CS0122** — 手动 `Subject` 桥接（[ADR-007](docs/adr/ADR-007-manual-searchbar-event-bridge.md)）
 
-    // Path-only parameters — query params injected via GitHubQueryHandler
-    [Get("/repos/{owner}/{repo}/issues")]
-    Observable<ApiResponse<Issue[]>> ListIssuesPaged(string owner, string repo);
-}
+## 认证
 
-var api = RestService.For<IGitHubReposApi>(httpClient);
-```
+- PAT only；`ICredentialStore` 在 App/Platforms（[ADR-004](docs/adr/ADR-004-pat-auth-platform-credential-store.md)）
+- `GitHubClientFactory` 设置 Bearer 与 GitHub API 版本头
 
-**Pagination via `ApiResponse<T>`**: List methods return
-`Observable<ApiResponse<T>>` to expose the `Link` response header. The
-`ApiResponse<T>` wrapper provides `Content` (deserialized body) and
-`Headers` (including `Link` for `rel="next"` detection). Query parameters
-(`page`, `per_page`, `state`) are injected by `GitHubQueryHandler`
-(Core/Http) at the HTTP layer, working around OBS3004.
+## 路线图
 
-### Events domain (UI layer showcase)
+里程碑 **M0–M12** 见 [docs/ROADMAP.md](docs/ROADMAP.md)。**不要在本文件重复完整表格**——以 ROADMAP 为唯一 backlog 源。
 
-MAUI control events → `Observable<T>` streams. The intended source-generated
-form is:
+## 文档体系（文档驱动开发）
 
-```csharp
-searchBar.Events().TextChanged
-    .Select(e => e.NewTextValue ?? string.Empty)
-    .Debounce(TimeSpan.FromMilliseconds(300), TimeProvider.System)
-    .DistinctUntilChanged()
-    .Subscribe(text => vm.SearchText.Value = text);
-```
+本仓库实行**文档驱动开发**，体系源自 [DesignPatterns](https://github.com/Skymly/DesignPatterns)。**先文档后代码**；完整规范见 [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md)。
 
-**However**, the generated `.Events()` extension for `Microsoft.Maui.Controls.SearchBar`
-produces code referencing `IControlsVisualElement` — an internal MAUI interface —
-causing CS0122. Until the upstream generator handles MAUI's internal accessibility,
-GitPulse bridges the event manually via an R3 `Subject<T>` in the page code-behind
-(`ReposPage.xaml.cs`). The pipeline (Debounce + DistinctUntilChanged + ObserveOn)
-is identical; only the event→Observable bridge is manual instead of source-generated.
+| 类型 | 目录 | 用途 |
+|------|------|------|
+| **RFC** | `docs/rfc/` | 新里程碑 / 破坏性 API 变更 |
+| **ADR** | `docs/adr/` | 架构决策（不可变） |
+| **Spec** | `docs/spec/` | 稳定契约 |
+| **Design Doc** | `docs/design/` | 实现细节 |
+| **Plan** | `docs/plans/` | 跨多 PR 任务 |
+| **Review** | `docs/review/` | 评审记录 |
+| **Roadmap** | `docs/ROADMAP.md` | 里程碑 backlog |
 
-### Known Observables 0.1.4 limitations (discovered via this project)
+### Agent 文档工作流
 
-**1. RestAPI path validation (OBS3004) — FIXED in 0.1.5** —
-`ValidatePathTemplate` in `Observables.RestAPI.SourceGenerators.Shared/Parser.cs`
-previously required the set of path placeholders to **equal** the set of all
-non-CancellationToken parameter names, rejecting `[Query]`/`[Body]`/`[Header]`
-parameters. In 0.1.5, validation runs **after** parameter classification, so
-non-path parameters are correctly excluded. Path + `[Body]` parameters now
-coexist on the same method — M3 CRUD operations use this directly.
+| 场景 | Agent 行为 |
+|------|-----------|
+| 新里程碑 / 新 GitHub API 域 | 先 RFC + Plan；无则提示用户 |
+| 改 `IGitHubReposApi` 公共面 | 确认 RFC；更新 Spec |
+| 跨多 PR 任务 | 确认 `docs/plans/` 有 Plan |
+| 实现 PR | 同步 Design Doc + `CHANGELOG.md` `[Unreleased]` |
+| 新建文档 | 使用各目录 `_template.md` |
+| 文档位置 | 维护者文档放在 `docs/`（根目录仅 `AGENTS.md`、`README.md` 等） |
 
-**Before the fix (0.1.4)**: API methods used only path parameters (no `[Query]`).
-Pagination (`page`/`per_page`) and filtering (`state`) query parameters were
-injected by `GitHubQueryHandler` (Core/Http), a `DelegatingHandler` that
-modifies the request URI before it reaches the inner handler. This workaround
-remains in place for pagination (since `ApiResponse<T>` + `Link` header is
-still needed for `CanLoadMore` detection), but CRUD `[Body]` parameters are
-now declared directly on the interface.
-Upstream issue: https://github.com/Skymly/Observables/issues/111
+## 约定
 
-**2. Events + MAUI internal interfaces** — The source-generated `.Events()`
-extension for `Microsoft.Maui.Controls.SearchBar` (and likely other MAUI
-controls) emits code referencing `IControlsVisualElement`, which is
-`internal` in MAUI. This causes CS0122 at compile time. The generator does
-not account for MAUI's internal accessibility boundaries.
+- C# latest；file-scoped namespaces；nullable enabled
+- `async/await` 用于 I/O
+- Issue / PR / Commit：**英语**；与用户对话默认**简体中文**
+- 无 AI 工具名 in commits/PRs
+- Central package management（App 项目除外，见 csproj 注释）
+- Release 下 `TreatWarningsAsErrors`（Nuke `_build` 除外）
 
-**Workaround in GitPulse**: The search debounce pipeline in `ReposPage.xaml.cs`
-uses a manual R3 `Subject<T>` bridge instead of the source-generated
-`.Events()` extension. The reactive pipeline itself (Debounce +
-DistinctUntilChanged + ObserveOn) is unaffected.
+## Git 安全
 
-Both issues are exactly the kind of real-world friction a showcase project
-should surface — tracked for upstream feedback.
-
-## Authentication & Credentials
-
-- PAT (Personal Access Token) as the sole auth method (GitHub App OAuth deferred)
-- `ICredentialStore` abstraction (Core):
-  - Windows: DPAPI (CurrentUser scope) — implementation in `App/Platforms/Windows/`
-  - Android: `SecureStorage` (MAUI Essentials) — implementation in `App/Platforms/Android/`
-  - Platform implementations live in the App project because they use platform-specific
-    APIs (DPAPI / MAUI SecureStorage) that require the MAUI host or Windows-only packages.
-- `GitHubClientFactory` (Services layer) builds `HttpClient` with `Authorization: Bearer <PAT>`,
-  `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`,
-  `User-Agent: GitPulse`
-
-## Milestone Roadmap
-
-| Milestone | Content | Observables domains |
-|-----------|---------|---------------------|
-| **M0** ✅ | Project skeleton: solution, projects, Nuke, CI, docs, empty MAUI app builds | — |
-| **M1** ✅ | Auth + repository list browsing | RestAPI + Events |
-| **M2** ✅ | Issue/PR list & detail (issues + PRs, state filter, detail with comments) | RestAPI + Events |
-| **M3** ✅ | Issue/PR CRUD (comments, state toggle, labels, new issue) | RestAPI |
-| **M4** ✅ | Notification center (polling-simulated realtime) | Events (R3 Observable.Interval) |
-| **M5** ✅ | File browsing & editing | RestAPI |
-| **M6** ✅ | PR review & merge | RestAPI |
-| **M7** | Android adaptation & stabilization | platform abstraction |
-| **M8** | Release v0.1.0 | full pipeline |
-
-## Conventions
-
-- C# latest features allowed
-- `async/await` for all I/O
-- File-scoped namespaces
-- Nullable reference types enabled
-- No AI tool/model attribution in commits
-- Commit messages: English
-- Central package management (`Directory.Packages.props`)
-- `TreatWarningsAsErrors` in Release (excludes Nuke `_build`)
+- 不主动 `commit` / `push` 除非用户明确要求
+- 不 force-push `main`

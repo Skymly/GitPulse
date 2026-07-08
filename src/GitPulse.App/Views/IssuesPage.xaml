@@ -11,7 +11,7 @@
 
         <!-- Header: repo name + back button + PRs entry -->
         <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
-            <Button Text="← Back"
+            <Button Text="← Repo"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"

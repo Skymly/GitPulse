@@ -7,6 +7,50 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — Documentation-driven development system
+
+- Adopted the documentation system from
+  [DesignPatterns](https://github.com/Skymly/DesignPatterns): `docs/DOCUMENTATION.md`
+  (RFC / ADR / Spec / Design / Plan / Review / Roadmap), seven retrospective ADRs,
+  subsystem specs (`Architecture`, `RestApi`, `Events`), active plan
+  `docs/plans/MilestoneM7M8.md`, and PR documentation checklist.
+- Rewrote `AGENTS.md` (fixed corruption, slimmed roadmap → `docs/ROADMAP.md`).
+
+### Added — M7 Repository detail page + Windows Mica/Acrylic
+
+- `RepoDetailPage` — new page inserted between repo list and issues,
+  with three tabs (Overview / Branches / Releases). Overview shows repo
+  metadata (stars, forks, open issues, default branch, last updated),
+  README markdown rendering, and navigation buttons to Issues / PRs /
+  Files / browser. Branches and Releases tabs lazily load on first
+  activation.
+- `RepoDetailViewModel` — parallel load of repo metadata + README
+  (base64-decoded to markdown), lazy `LoadBranchesCommand` and
+  `LoadReleasesCommand` with idempotent guards. README 404 is non-fatal
+  (`HasReadme = false`, placeholder shown).
+- `IGitHubReposApi` new declarative methods:
+  - `GetReadme` — GET /repos/{owner}/{repo}/readme (reuses `FileContent`)
+  - `ListBranches` — GET /repos/{owner}/{repo}/branches
+  - `ListReleases` — GET /repos/{owner}/{repo}/releases
+- New Core models: `Branch` (with `BranchCommit`), `Release`.
+- `Repo` model — added `[JsonPropertyName]` for snake_case fields
+  (`full_name`, `html_url`, `default_branch`, `stargazers_count`,
+  `forks_count`, `open_issues_count`, `updated_at`) to fix deserialization.
+- Windows Mica/Acrylic system backdrop:
+  - `WindowHelpers.TryMicaOrAcrylic` extension (Platforms/Windows) —
+    prefers Mica (Win11 22H2+), falls back to DesktopAcrylic, no-ops
+    on unsupported OS. Ported from WinUI Gallery SystemBackdrops sample.
+  - `WindowsSystemDispatcherQueueHelper` — ensures dispatcher queue
+    for composition callbacks.
+  - `MauiProgram` — `ConfigureLifecycleEvents` hooks `OnWindowCreated`
+    on Windows to apply the backdrop.
+  - Global `ContentPage` style — transparent background on Windows
+    (`OnPlatform WinUI`) so the system backdrop is visible.
+- Navigation flow: `ReposPage` → `RepoDetailPage` (was → `IssuesPage`).
+  `IssuesPage` back button relabeled "← Repo".
+- `RepoDetailViewModelTests` — 10 tests covering Initialize, token
+  guard, parallel load, README 404, lazy-load idempotency, error paths.
+
 ### Added — M3 CRUD operations (issue/PR write via Observables 0.1.5)
 
 - Upgraded to `Observables.RestAPI.R3` 0.1.5 — the upstream OBS3004 fix

@@ -14,11 +14,17 @@ workflow and release conventions.
    ```
 
 2. If you change user-facing behavior, update documentation:
-   - `README.md`
-   - `AGENTS.md` (architecture, milestone roadmap, Observables showcase notes)
+   - `CHANGELOG.md` `[Unreleased]`
+   - `docs/spec/` or `docs/design/` when API or implementation contracts change
+   - `docs/ROADMAP.md` when milestone status changes
+   - `README.md` for user-visible setup or feature list changes
 
-3. Follow existing project layout and conventions (see [AGENTS.md](./AGENTS.md)
-   for the authoritative structure and engineering standards).
+3. Follow the **documentation-driven development** standard in
+   [docs/DOCUMENTATION.md](./docs/DOCUMENTATION.md). New milestones require
+   RFC + Plan before implementation.
+
+4. Follow existing project layout and conventions (see [AGENTS.md](./AGENTS.md)
+   and [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md)).
 
 ### PR conventions
 

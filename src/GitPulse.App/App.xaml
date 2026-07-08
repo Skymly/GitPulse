@@ -17,6 +17,7 @@
             <conv:StringEqualsConverter x:Key="StringEqualsConverter" />
             <conv:NotNullConverter x:Key="NotNullConverter" />
             <conv:IntGreaterThanZeroConverter x:Key="IntGreaterThanZeroConverter" />
+            <conv:StringTruncateConverter x:Key="StringTruncateConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

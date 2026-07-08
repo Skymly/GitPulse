@@ -45,8 +45,12 @@ On first launch, open **Settings** and paste a GitHub Personal Access Token
 
 ## Features
 
-The application is under active development. See the [milestone roadmap](./AGENTS.md#milestone-roadmap)
+The application is under active development. See the [milestone roadmap](./docs/ROADMAP.md)
 for the planned feature progression.
+
+Maintainer documentation (documentation-driven development, ADRs, specs) lives in
+[`docs/`](./docs/README.md) — adapted from the
+[DesignPatterns](https://github.com/Skymly/DesignPatterns) documentation system.
 
 ### Showcase: Observables integration
 
@@ -92,6 +96,7 @@ src/
 tests/
   GitPulse.Tests/       — Unit tests
 build/                  — Nuke build script
+docs/                   — Documentation-driven dev (RFC, ADR, spec, design)
 .nuke/                  — Nuke parameters & schema
 ```
 

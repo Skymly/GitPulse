@@ -21,6 +21,12 @@ public sealed class PullRequest
     public string HeadRef { get; init; } = string.Empty;
     public string BaseRef { get; init; } = string.Empty;
 
+    // ── M8: PR diff viewer fields ─────────────────────────────────
+
+    /// <summary>SHA of the head commit (needed for review comment creation).</summary>
+    [JsonPropertyName("head")]
+    public PullRequestHead? Head { get; init; }
+
     // ── M6: PR review & merge fields ─────────────────────────────
 
     /// <summary>Whether the PR can be merged (null = still computing).</summary>
@@ -50,6 +56,15 @@ public sealed class PullRequest
     /// <summary>Number of files changed.</summary>
     [JsonPropertyName("changed_files")]
     public int ChangedFiles { get; init; }
+}
+
+/// <summary>Head branch reference on a pull request.</summary>
+public sealed class PullRequestHead
+{
+    public string Label { get; init; } = string.Empty;
+    public string Ref { get; init; } = string.Empty;
+    public string Sha { get; init; } = string.Empty;
+    public User? User { get; init; }
 }
 
 /// <summary>
