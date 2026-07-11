@@ -15,6 +15,22 @@ Versions are derived automatically from Git tags by MinVer.
 - Consolidated subsystem API and invariant details into the corresponding
   Design Docs.
 
+### Added — M9 GitHub Search
+
+- Added a fourth main tab for repository, Issue, pull request, and code
+  searches through the GitHub Search REST API.
+- Added explicit search submission with a three-character minimum, result
+  totals, empty and error states, request cancellation, stale-response
+  protection, and `Link`-based pagination.
+- Added direct navigation from search results to repository, Issue, pull
+  request, and file details. Issue and pull request results derive repository
+  coordinates from `repository_url`; code results retain repository, path,
+  and blob SHA data.
+- Added a dedicated declarative `IGitHubSearchApi`, search response models,
+  and coverage for query encoding, qualifiers, pagination, cancellation,
+  rate limits, invalid queries, and deserialization. The library test suite
+  now contains 210 tests.
+
 ### Added — M8 PR diff viewer
 
 - Added a Files Changed view that renders multi-file pull request patches,
