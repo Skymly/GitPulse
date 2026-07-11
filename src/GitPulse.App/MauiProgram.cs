@@ -54,6 +54,7 @@ public static class MauiProgram
         builder.Services.AddTransient<PullRequestDetailViewModel>();
         builder.Services.AddTransient<PrDiffViewModel>();
         builder.Services.AddTransient<NotificationsViewModel>();
+        builder.Services.AddTransient<SearchViewModel>();
         builder.Services.AddTransient<FileBrowserViewModel>();
         builder.Services.AddTransient<FileEditorViewModel>();
 
@@ -67,6 +68,7 @@ public static class MauiProgram
         builder.Services.AddTransient<PullRequestsPage>();
         builder.Services.AddTransient<PullRequestDetailPage>();
         builder.Services.AddTransient<NotificationsPage>();
+        builder.Services.AddTransient<SearchPage>();
         builder.Services.AddTransient<FileBrowserPage>();
         builder.Services.AddTransient<FileEditorPage>();
 
