@@ -120,6 +120,16 @@ public sealed partial class SearchViewModel : IDisposable
             if (IsCurrent(version))
                 ErrorMessage.Value = "Request timed out.";
         }
+        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
+        }
+        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
+        }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {
             if (IsCurrent(version))
@@ -176,6 +186,16 @@ public sealed partial class SearchViewModel : IDisposable
             if (IsCurrent(version))
                 ErrorMessage.Value = "Request timed out.";
         }
+        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
+        }
+        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
+        }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {
             if (IsCurrent(version))
@@ -210,36 +230,42 @@ public sealed partial class SearchViewModel : IDisposable
         {
             case SearchType.Repositories:
             {
-                var response = await api.SearchRepositories(query).FirstAsync(cancellationToken);
+                var response = await api.SearchRepositories(EncodeQuery(query)).FirstAsync(cancellationToken);
                 if (!IsCurrent(version))
                     return;
+                EnsureSearchSucceeded(response);
                 UpdateCollection(Repositories, response.Content?.Items, replace);
                 UpdateSession(session, response.Content, response.Headers);
                 break;
             }
             case SearchType.Issues:
             {
-                var response = await api.SearchIssues($"{query} is:issue").FirstAsync(cancellationToken);
+                var response = await api.SearchIssues(EncodeQuery($"{query} is:issue"))
+                    .FirstAsync(cancellationToken);
                 if (!IsCurrent(version))
                     return;
+                EnsureSearchSucceeded(response);
                 UpdateCollection(Issues, response.Content?.Items, replace);
                 UpdateSession(session, response.Content, response.Headers);
                 break;
             }
             case SearchType.PullRequests:
             {
-                var response = await api.SearchPullRequests($"{query} is:pr").FirstAsync(cancellationToken);
+                var response = await api.SearchPullRequests(EncodeQuery($"{query} is:pr"))
+                    .FirstAsync(cancellationToken);
                 if (!IsCurrent(version))
                     return;
+                EnsureSearchSucceeded(response);
                 UpdateCollection(PullRequests, response.Content?.Items, replace);
                 UpdateSession(session, response.Content, response.Headers);
                 break;
             }
             case SearchType.Code:
             {
-                var response = await api.SearchCode(query).FirstAsync(cancellationToken);
+                var response = await api.SearchCode(EncodeQuery(query)).FirstAsync(cancellationToken);
                 if (!IsCurrent(version))
                     return;
+                EnsureSearchSucceeded(response);
                 UpdateCollection(CodeResults, response.Content?.Items, replace);
                 UpdateSession(session, response.Content, response.Headers);
                 break;
@@ -306,6 +332,18 @@ public sealed partial class SearchViewModel : IDisposable
     {
         session.TotalCount = result?.TotalCount ?? 0;
         session.HasNextPage = LinkHeaderParser.GetNextUrl(headers) is not null;
+    }
+
+    private static string EncodeQuery(string query)
+    {
+        return Uri.EscapeDataString(query);
+    }
+
+    private static void EnsureSearchSucceeded<T>(ApiResponse<T> response)
+    {
+        if (!response.IsSuccessStatusCode)
+            throw new SearchRequestException(
+                response.StatusCode ?? HttpStatusCode.ServiceUnavailable);
     }
 
     private (int Version, CancellationTokenSource RequestCts) BeginRequest()
@@ -378,5 +416,10 @@ public sealed partial class SearchViewModel : IDisposable
             QueryHandler = null;
             HasNextPage = false;
         }
+    }
+
+    private sealed class SearchRequestException(HttpStatusCode statusCode) : Exception
+    {
+        public HttpStatusCode StatusCode { get; } = statusCode;
     }
 }
