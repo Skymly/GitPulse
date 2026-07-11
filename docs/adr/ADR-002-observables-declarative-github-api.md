@@ -4,7 +4,7 @@
 |------|-----|
 | **状态** | Accepted |
 | **日期** | 2026-03-01 |
-| **关联 RFC** | 无 — 项目核心目标 |
+| **关联 Issue** | 无 — 项目核心目标 |
 
 ## 背景
 
@@ -20,10 +20,9 @@ GitPulse 的首要目的是展示 [Observables](https://github.com/Skymly/Observ
 ## 后果
 
 - **正面**：API 面即文档；与 R3 管道自然组合；契合展示目标。
-- **负面**：上游生成器限制需在工作区记录（见 ADR-006、ADR-007）；接口变更须更新 Spec。
+- **负面**：上游生成器限制需在工作区记录（见 ADR-006、ADR-007）；接口变更须更新 Design Doc。
 
 ## 参考
 
-- [spec/RestApi.md](../spec/RestApi.md)
 - [design/RestApi.md](../design/RestApi.md)
 - https://github.com/Skymly/Observables/issues/111

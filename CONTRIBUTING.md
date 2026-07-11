@@ -15,13 +15,12 @@ workflow and release conventions.
 
 2. If you change user-facing behavior, update documentation:
    - `CHANGELOG.md` `[Unreleased]`
-   - `docs/spec/` or `docs/design/` when API or implementation contracts change
+   - `docs/design/` when API, model, or implementation contracts change
    - `docs/ROADMAP.md` when milestone status changes
    - `README.md` for user-visible setup or feature list changes
 
-3. Follow the **documentation-driven development** standard in
-   [docs/DOCUMENTATION.md](./docs/DOCUMENTATION.md). New milestones require
-   RFC + Plan before implementation.
+3. Follow [docs/DOCUMENTATION.md](./docs/DOCUMENTATION.md): record breaking
+   architecture or API decisions in an ADR and update the relevant Design Doc.
 
 4. Follow existing project layout and conventions (see [AGENTS.md](./AGENTS.md)
    and [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md)).
