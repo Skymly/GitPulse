@@ -52,7 +52,7 @@ src/
   GitPulse.Services/   — GitHubClientFactory、通知轮询
 tests/GitPulse.Tests/   — 单元测试 + TestHelpers
 build/                  — Nuke 脚本
-docs/                   — 文档驱动开发体系（见 DOCUMENTATION.md）
+docs/                   — ADR、设计文档与路线图（见 DOCUMENTATION.md）
 ```
 
 ## 架构原则
@@ -89,7 +89,7 @@ CI：[`.github/workflows/build-and-test.yml`](../.github/workflows/build-and-tes
 ## 相关文档
 
 - [docs/README.md](README.md) — 文档索引
-- [DOCUMENTATION.md](DOCUMENTATION.md) — 文档驱动开发标准
+- [DOCUMENTATION.md](DOCUMENTATION.md) — 文档约定
 - [ROADMAP.md](ROADMAP.md) — 里程碑路线图
 - [../CONTRIBUTING.md](../CONTRIBUTING.md) — 贡献流程
 - [../AGENTS.md](../AGENTS.md) — AI Agent 上下文

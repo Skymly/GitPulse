@@ -8,7 +8,7 @@ Closes #
 
 ## Solution module
 
-<!-- Must match a single module in AGENTS.md / docs/spec/Architecture.md. -->
+<!-- Must match a single module in AGENTS.md / docs/design/Architecture.md. -->
 
 - [ ] App (`src/GitPulse.App/`)
 - [ ] ViewModels (`src/GitPulse.ViewModels/`)
@@ -45,11 +45,7 @@ Closes #
 
 <!-- See docs/DOCUMENTATION.md -->
 
-- [ ] New/changed `IGitHubReposApi` or Core models → Spec updated (`docs/spec/`)
-- [ ] Implementation detail changed → Design Doc updated (`docs/design/`)
-- [ ] New RFC → used `docs/rfc/_template.md`
-- [ ] RFC / Plan / Review status changed → frontmatter + archive + README index
-- [ ] New ADR → numbered from `docs/adr/README.md`
-- [ ] `CHANGELOG.md` `[Unreleased]` entry added
-- [ ] `docs/ROADMAP.md` updated (milestone status)
+- [ ] Design Doc updated if API, model, or implementation changed
+- [ ] User-facing documentation synced if needed
+- [ ] `CHANGELOG.md` / `docs/ROADMAP.md` updated if applicable
 - [ ] No documentation changes needed

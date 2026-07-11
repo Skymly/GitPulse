@@ -7,14 +7,13 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
-### Added — Documentation-driven development system
+### Changed — Documentation conventions
 
-- Adopted the documentation system from
-  [DesignPatterns](https://github.com/Skymly/DesignPatterns): `docs/DOCUMENTATION.md`
-  (RFC / ADR / Spec / Design / Plan / Review / Roadmap), seven retrospective ADRs,
-  subsystem specs (`Architecture`, `RestApi`, `Events`), active plan
-  `docs/plans/MilestoneM7M8.md`, and PR documentation checklist.
-- Rewrote `AGENTS.md` (fixed corruption, slimmed roadmap → `docs/ROADMAP.md`).
+- Simplified the internal documentation system to ADRs, Design Docs, and the
+  roadmap; GitHub Issues, PRs, and Releases remain the source for tasks,
+  reviews, and version history.
+- Consolidated subsystem API and invariant details into the corresponding
+  Design Docs.
 
 ### Added — M7 Repository detail page + Windows Mica/Acrylic
 
