@@ -17,7 +17,8 @@
 | [ADR-005](ADR-005-windows-first-platform-strategy.md) | Windows 优先平台策略 | Accepted | 2026-07-06 | — |
 | [ADR-006](ADR-006-github-query-handler-pagination.md) | GitHubQueryHandler 分页注入 | Accepted | 2026-04-01 | — |
 | [ADR-007](ADR-007-manual-searchbar-event-bridge.md) | SearchBar 手动 R3 事件桥接 | Accepted | 2026-04-01 | — |
+| [ADR-008](ADR-008-split-github-search-api-interface.md) | 拆分 GitHub Search API 接口 | Accepted | 2026-07-11 | — |
 
 ## 下一个可用编号
 
-**ADR-008**
+**ADR-009**
