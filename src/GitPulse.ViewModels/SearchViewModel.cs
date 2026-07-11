@@ -229,47 +229,47 @@ public sealed partial class SearchViewModel : IDisposable
         switch (type)
         {
             case SearchType.Repositories:
-            {
-                var response = await api.SearchRepositories(EncodeQuery(query)).FirstAsync(cancellationToken);
-                if (!IsCurrent(version))
-                    return;
-                EnsureSearchSucceeded(response);
-                UpdateCollection(Repositories, response.Content?.Items, replace);
-                UpdateSession(session, response.Content, response.Headers);
-                break;
-            }
+                {
+                    var response = await api.SearchRepositories(EncodeQuery(query)).FirstAsync(cancellationToken);
+                    if (!IsCurrent(version))
+                        return;
+                    EnsureSearchSucceeded(response);
+                    UpdateCollection(Repositories, response.Content?.Items, replace);
+                    UpdateSession(session, response.Content, response.Headers);
+                    break;
+                }
             case SearchType.Issues:
-            {
-                var response = await api.SearchIssues(EncodeQuery($"{query} is:issue"))
-                    .FirstAsync(cancellationToken);
-                if (!IsCurrent(version))
-                    return;
-                EnsureSearchSucceeded(response);
-                UpdateCollection(Issues, response.Content?.Items, replace);
-                UpdateSession(session, response.Content, response.Headers);
-                break;
-            }
+                {
+                    var response = await api.SearchIssues(EncodeQuery($"{query} is:issue"))
+                        .FirstAsync(cancellationToken);
+                    if (!IsCurrent(version))
+                        return;
+                    EnsureSearchSucceeded(response);
+                    UpdateCollection(Issues, response.Content?.Items, replace);
+                    UpdateSession(session, response.Content, response.Headers);
+                    break;
+                }
             case SearchType.PullRequests:
-            {
-                var response = await api.SearchPullRequests(EncodeQuery($"{query} is:pr"))
-                    .FirstAsync(cancellationToken);
-                if (!IsCurrent(version))
-                    return;
-                EnsureSearchSucceeded(response);
-                UpdateCollection(PullRequests, response.Content?.Items, replace);
-                UpdateSession(session, response.Content, response.Headers);
-                break;
-            }
+                {
+                    var response = await api.SearchPullRequests(EncodeQuery($"{query} is:pr"))
+                        .FirstAsync(cancellationToken);
+                    if (!IsCurrent(version))
+                        return;
+                    EnsureSearchSucceeded(response);
+                    UpdateCollection(PullRequests, response.Content?.Items, replace);
+                    UpdateSession(session, response.Content, response.Headers);
+                    break;
+                }
             case SearchType.Code:
-            {
-                var response = await api.SearchCode(EncodeQuery(query)).FirstAsync(cancellationToken);
-                if (!IsCurrent(version))
-                    return;
-                EnsureSearchSucceeded(response);
-                UpdateCollection(CodeResults, response.Content?.Items, replace);
-                UpdateSession(session, response.Content, response.Headers);
-                break;
-            }
+                {
+                    var response = await api.SearchCode(EncodeQuery(query)).FirstAsync(cancellationToken);
+                    if (!IsCurrent(version))
+                        return;
+                    EnsureSearchSucceeded(response);
+                    UpdateCollection(CodeResults, response.Content?.Items, replace);
+                    UpdateSession(session, response.Content, response.Headers);
+                    break;
+                }
             default:
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
