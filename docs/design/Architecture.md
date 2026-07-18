@@ -1,7 +1,7 @@
 # Design Doc: Architecture
 
 > **版本**：Unreleased（目标 v0.1.0）
-> **关联 ADR**：[ADR-001](../adr/ADR-001-layered-solution-architecture.md)、[ADR-004](../adr/ADR-004-pat-auth-platform-credential-store.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)
+> **关联 ADR**：[ADR-001](../adr/ADR-001-layered-solution-architecture.md)、[ADR-004](../adr/ADR-004-pat-auth-platform-credential-store.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)
 
 ## 概述
 
@@ -16,7 +16,7 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 | 项目 | TFM | 职责 | 依赖 |
 |------|-----|------|------|
 | GitPulse.Core | net10.0 | 模型、`ICredentialStore` 等抽象、`GitHubQueryHandler` | — |
-| GitPulse.GitHubApi | net10.0 | `IGitHubReposApi`、`IGitHubSearchApi` 声明 | Core |
+| GitPulse.GitHubApi | net10.0 | `IGitHubReposApi`、`IGitHubSearchApi`、`IGitHubActionsApi` 声明 | Core |
 | GitPulse.Services | net10.0 | `GitHubClientFactory`、`INotificationPoller` | Core, GitHubApi |
 | GitPulse.ViewModels | net10.0 | ViewModel、R3 状态 | Core, GitHubApi |
 | GitPulse.App | net10.0-* | MAUI UI、平台凭据、DI | 以上全部 |
@@ -61,7 +61,7 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 ## 设计权衡
 
 - **凭据在 App 而非 Services**：平台 API 不可在 net10.0 类库中统一抽象。
-- **按域拆分声明式接口**：现有仓库资源保留在 `IGitHubReposApi`；M9 Search 使用独立 `IGitHubSearchApi`，但共享认证 `HttpClient`。后续 Actions 等域按契约和限流边界决定是否拆分。
+- **按域拆分声明式接口**：仓库资源 → `IGitHubReposApi`；Search → `IGitHubSearchApi`（ADR-008）；Actions → `IGitHubActionsApi`（ADR-009）。共享认证 `HttpClient`。
 
 ## 已知局限
 

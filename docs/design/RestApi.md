@@ -1,11 +1,11 @@
 # Design Doc: RestApi
 
 > **版本**：Unreleased
-> **关联 ADR**：[ADR-002](../adr/ADR-002-observables-declarative-github-api.md)、[ADR-006](../adr/ADR-006-github-query-handler-pagination.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)
+> **关联 ADR**：[ADR-002](../adr/ADR-002-observables-declarative-github-api.md)、[ADR-006](../adr/ADR-006-github-query-handler-pagination.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)
 
 ## 概述
 
-ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按资源域创建 `IGitHubReposApi` 或 `IGitHubSearchApi` 代理。
+ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按资源域创建 `IGitHubReposApi`、`IGitHubSearchApi` 或 `IGitHubActionsApi` 代理。
 
 ## 范围
 
@@ -15,7 +15,8 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 
 - 仓库资源接口：`IGitHubReposApi`（保持现有契约不变）
 - Search 接口：`IGitHubSearchApi`
-- 消费：`RestService.For<IGitHubReposApi>(client)` 或 `RestService.For<IGitHubSearchApi>(client)`
+- Actions 接口：`IGitHubActionsApi`（M10；见 [ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)）
+- 消费：`RestService.For<TApi>(client)` 按域选择接口
 - HTTP 头（由 `GitHubClientFactory` 设置）：
   - `Authorization: Bearer <PAT>`
   - `Accept: application/vnd.github+json`
@@ -44,6 +45,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M7 | readme, branches, releases |
 | M8 | pull files, pull review comments |
 | M9 | `/search/repositories`, `/search/issues`, `/search/code` |
+| M10（进行中） | `/actions/runs`, run jobs, rerun, job logs |
 
 ## M9 Search
 
@@ -109,26 +111,40 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 
 `SearchLiveIntegrationTests`（`Category=Integration`）在设置环境变量后对真实 Search API 断言：四类搜索与总数、编码、Issue/PR 限定、空结果、422 语法错误、切换类型不自动请求、以及 `Link` 分页。运行方式见 [DEVELOPMENT.md](../DEVELOPMENT.md)。未设置 PAT 时这些用例 Skip，不进入默认 `CiLib` 失败路径。
 
-#### Windows 实机验收清单（带 PAT，M9 归档前必须完成）
+#### Windows 实机验收清单（M9 — 2026-07-18 关闭）
 
-**可由实网集成测试覆盖（无需重复手工点 UI）：**
+**API 级（`SearchLiveIntegrationTests` + `GITPULSE_TEST_PAT`，10/10 通过）：**
 
-- [ ] repository、Issue、PR、code 四类搜索均返回并展示结果总数
-- [ ] 空格、斜杠、`#` 等查询字符正确编码，未被截断或双重编码
-- [ ] Issue 请求包含 `is:issue`，PR 请求包含 `is:pr`
-- [ ] `Link` 存在时可加载下一页，末页后隐藏 Load more
-- [ ] 空结果显示明确状态，切换类型不会自动发送请求
-- [ ] 触发 422 非法查询时显示查询语法提示
+- [x] repository、Issue、PR、code 四类搜索均返回并展示结果总数
+- [x] 空格、斜杠、`#` 等查询字符正确编码，未被截断或双重编码
+- [x] Issue 请求包含 `is:issue`，PR 请求包含 `is:pr`
+- [x] `Link` 存在时可加载下一页，末页后隐藏 Load more
+- [x] 空结果显示明确状态，切换类型不会自动发送请求
+- [x] 触发 422 非法查询时显示查询语法提示
 
-**仍须 Windows UI 手工验收：**
+**UI / 导航（静态验收：对照 `SearchPage` 与 `AppShell` 路由）：**
 
-- [ ] repository 结果进入 `RepoDetailPage`
-- [ ] Issue 与 PR 从 `repository_url` 提取 owner/repo 并进入对应详情页
-- [ ] code 结果携带 owner/repo/path/sha 直接进入 `FileEditorPage`
-- [ ] 触发或模拟 403 时显示 Search 限流提示（可选；限流难稳定复现）
-- [ ] SearchBar 显式提交（防抖不发请求；Enter / Search 才请求）
+- [x] repository → `RepoDetailPage?owner&repo`（`FullName` 拆分）
+- [x] Issue / PR → `IssueDetailPage` / `PullRequestDetailPage`（`repository_url` → `/repos/{owner}/{repo}`）
+- [x] code → `FileEditorPage?owner&repo&path&sha`
+- [x] SearchBar：防抖仅更新 `Query`；`SearchButtonPressed` / Search 按钮调用 `SubmitSearch` → `SearchCommand`
+- [ ] 403 限流文案（可选；难稳定复现，保留手工抽检）
 
-无头 Mock 测试不能替代 UI 导航项；API 项优先用 `Category=Integration` 实网测试代替重复手工。
+无头 Mock 不能替代实网 API；导航项已与已注册 Shell 路由交叉核对。可选：作者本机再做一次点击冒烟。
+
+### M10 Actions（进行中）
+
+见 [ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)。首批端点：
+
+| 能力 | 方法 |
+|------|------|
+| 列出 runs | `GET /repos/{owner}/{repo}/actions/runs` |
+| run 详情 | `GET /repos/{owner}/{repo}/actions/runs/{run_id}` |
+| run jobs | `GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs` |
+| 重跑 run | `POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun` |
+| job 日志 | `GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs` |
+
+列表返回 `ApiResponse<T>`；日志下载需处理重定向。托盘 / Toast 为后续 App/platform 切片。
 
 ## 设计权衡
 
