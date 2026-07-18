@@ -15,7 +15,8 @@ MAUI UI 事件与 R3 响应式管道的集成约定。
 
 | 场景 | 管道 | 位置 |
 |------|------|------|
-| 搜索防抖 | TextChanged → Debounce(300ms) → DistinctUntilChanged → VM | `ReposPage` |
+| 仓库过滤防抖 | TextChanged → Debounce(300ms) → DistinctUntilChanged → VM | `ReposPage` |
+| GitHub Search 输入 | TextChanged → Debounce(300ms) → DistinctUntilChanged → 查询状态 | `SearchPage` |
 | 通知轮询 | `Observable.Interval` → REST → VM | `NotificationPoller` / `NotificationsViewModel` |
 
 ## 状态绑定
@@ -44,6 +45,17 @@ _searchSubject
 
 `SearchBar.TextChanged` 写入 `_searchSubject`。
 
+### SearchPage 输入与显式提交（M9）
+
+`SearchPage` 复用 ADR-007 的手动 `Subject<string>` 桥接。防抖管道只更新
+`SearchViewModel.Query`，不会调用 Search API。用户按 Enter 或点击 Search 时，
+页面先同步当前 `SearchBar.Text`，再执行 `SearchCommand`；短于 3 个字符的查询
+在 ViewModel 中拒绝。这样既保留响应式输入状态，又避免按键事件消耗 GitHub
+Search 的独立限额（普通搜索 30 次/分钟，代码搜索 10 次/分钟）。
+
+页面消失时释放 Subject 与订阅，返回 Search Tab 时重新建立管道；ViewModel
+结果与所选类型继续保留。
+
 ### 通知轮询（M4）
 
 - `NotificationPoller`：`Observable.Interval` + `IGitHubReposApi.ListNotifications`
@@ -70,4 +82,5 @@ _searchSubject
 ## 参考
 
 - `src/GitPulse.App/Views/ReposPage.xaml.cs`
+- `src/GitPulse.App/Views/SearchPage.xaml.cs`
 - `src/GitPulse.Services/NotificationPoller.cs`

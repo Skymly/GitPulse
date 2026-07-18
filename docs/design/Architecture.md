@@ -50,7 +50,7 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 
 ### 导航
 
-- Shell TabBar：Repos、Notifications、Search、Settings（Search 为 M9 设计中）
+- Shell TabBar：Repos、Notifications、Search、Settings
 - 详情页经 `ShellContent` + query 参数（`owner`、`repo`、`number`）
 
 ### 平台
