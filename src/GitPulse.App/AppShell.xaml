@@ -20,6 +20,12 @@
             Route="NotificationsPage" />
 
         <ShellContent
+            Title="Search"
+            Icon="dotnet_bot.png"
+            ContentTemplate="{DataTemplate views:SearchPage}"
+            Route="SearchPage" />
+
+        <ShellContent
             Title="Settings"
             ContentTemplate="{DataTemplate views:SettingsPage}"
             Route="SettingsPage" />

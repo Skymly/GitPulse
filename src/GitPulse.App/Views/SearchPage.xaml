@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
+             xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
+             x:Class="GitPulse.App.Views.SearchPage"
+             x:DataType="vm:SearchViewModel"
+             Title="Search">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="16,12">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <SearchBar x:Name="SearchBar"
+                       Grid.Column="0"
+                       Placeholder="Search GitHub..."
+                       SearchButtonPressed="OnSearchSubmitted" />
+            <Button Grid.Column="1"
+                    Text="Search"
+                    Clicked="OnSearchClicked"
+                    Padding="18,8" />
+        </Grid>
+
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,*,*,*"
+              ColumnSpacing="6"
+              Margin="0,8">
+            <Button x:Name="RepositoriesTab"
+                    Grid.Column="0"
+                    Text="Repos"
+                    Clicked="OnRepositoriesClicked"
+                    FontSize="12"
+                    Padding="6,8" />
+            <Button x:Name="IssuesTab"
+                    Grid.Column="1"
+                    Text="Issues"
+                    Clicked="OnIssuesClicked"
+                    FontSize="12"
+                    Padding="6,8" />
+            <Button x:Name="PullRequestsTab"
+                    Grid.Column="2"
+                    Text="PRs"
+                    Clicked="OnPullRequestsClicked"
+                    FontSize="12"
+                    Padding="6,8" />
+            <Button x:Name="CodeTab"
+                    Grid.Column="3"
+                    Text="Code"
+                    Clicked="OnCodeClicked"
+                    FontSize="12"
+                    Padding="6,8" />
+        </Grid>
+
+        <VerticalStackLayout Grid.Row="2" Spacing="6">
+            <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                    BackgroundColor="{StaticResource Red100}"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12">
+                <Label Text="{Binding ErrorMessage.Value}"
+                       TextColor="{StaticResource Red900}"
+                       FontSize="13" />
+            </Border>
+            <Label Text="{Binding TotalCount.Value, StringFormat='{}{0:N0} results'}"
+                   IsVisible="{Binding HasSearched.Value}"
+                   FontSize="12"
+                   TextColor="{StaticResource Gray500}" />
+            <Label Text="No results found."
+                   IsVisible="{Binding IsEmpty.Value}"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,16"
+                   TextColor="{StaticResource Gray500}" />
+        </VerticalStackLayout>
+
+        <CollectionView Grid.Row="3"
+                        ItemsSource="{Binding Repositories}"
+                        IsVisible="{Binding IsRepositoriesSelected.Value}"
+                        SelectionMode="Single"
+                        SelectionChanged="OnRepositorySelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:Repo">
+                    <Border Margin="0,0,0,8"
+                            Padding="14"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="{StaticResource Gray200}">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding FullName}"
+                                   FontSize="16"
+                                   FontAttributes="Bold" />
+                            <Label Text="{Binding Description}"
+                                   FontSize="13"
+                                   MaxLines="2"
+                                   LineBreakMode="TailTruncation"
+                                   TextColor="{StaticResource Gray600}" />
+                            <Label Text="{Binding StargazersCount, StringFormat='★ {0:N0}'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <CollectionView Grid.Row="3"
+                        ItemsSource="{Binding Issues}"
+                        IsVisible="{Binding IsIssuesSelected.Value}"
+                        SelectionMode="Single"
+                        SelectionChanged="OnIssueSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:SearchIssueItem">
+                    <Border Margin="0,0,0,8"
+                            Padding="14"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="{StaticResource Gray200}">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding Title}"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   MaxLines="2" />
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="{Binding Number, StringFormat='#{0}'}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding State}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding User.Login}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <CollectionView Grid.Row="3"
+                        ItemsSource="{Binding PullRequests}"
+                        IsVisible="{Binding IsPullRequestsSelected.Value}"
+                        SelectionMode="Single"
+                        SelectionChanged="OnPullRequestSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:SearchIssueItem">
+                    <Border Margin="0,0,0,8"
+                            Padding="14"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="{StaticResource Gray200}">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding Title}"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   MaxLines="2" />
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="{Binding Number, StringFormat='#{0}'}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding State}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding User.Login}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <CollectionView Grid.Row="3"
+                        ItemsSource="{Binding CodeResults}"
+                        IsVisible="{Binding IsCodeSelected.Value}"
+                        SelectionMode="Single"
+                        SelectionChanged="OnCodeSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:CodeSearchItem">
+                    <Border Margin="0,0,0,8"
+                            Padding="14"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="{StaticResource Gray200}">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding Repository.FullName}"
+                                   FontSize="13"
+                                   FontAttributes="Bold" />
+                            <Label Text="{Binding Path}"
+                                   FontSize="14"
+                                   LineBreakMode="MiddleTruncation" />
+                            <Label Text="{Binding Sha}"
+                                   FontSize="11"
+                                   MaxLines="1"
+                                   LineBreakMode="TailTruncation"
+                                   TextColor="{StaticResource Gray500}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <VerticalStackLayout Grid.Row="4" Spacing="8" Padding="0,8,0,0">
+            <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
+                               IsVisible="{Binding IsLoading.Value}" />
+            <Button Text="Load more"
+                    Command="{Binding LoadMoreCommand}"
+                    IsVisible="{Binding CanLoadMore.Value}"
+                    HorizontalOptions="Center"
+                    Padding="24,8"
+                    FontSize="13" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>
