@@ -124,7 +124,7 @@ public sealed partial class WorkflowRunDetailViewModel : IDisposable
             // Refresh so status/jobs reflect the new attempt.
             await LoadAsync();
         }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        catch (Exception ex) when (IsForbidden(ex))
         {
             ErrorMessage.Value =
                 "Rerun forbidden. Ensure the PAT has Actions write permission.";
@@ -141,6 +141,23 @@ public sealed partial class WorkflowRunDetailViewModel : IDisposable
         {
             IsRerunning.Value = false;
         }
+    }
+
+    private static bool IsForbidden(Exception ex)
+    {
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is HttpRequestException { StatusCode: HttpStatusCode.Forbidden })
+                return true;
+
+            if (current.Message.Contains("403", StringComparison.Ordinal)
+                || current.Message.Contains("Forbidden", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string FormatStatus(string status, string? conclusion)
