@@ -7,6 +7,17 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — M10 kickoff (docs)
+
+- Accepted ADR-009: split declarative `IGitHubActionsApi` from repos/search
+  interfaces. Roadmap moves M9 to archive and marks M10 in progress.
+
+### Added — Live Search integration tests
+
+- Optional `SearchLiveIntegrationTests` (`Category=Integration`) exercise the
+  real GitHub Search API when `GITPULSE_TEST_PAT` is set; default `CiLib`
+  skips them without a secret.
+
 ### Changed — Documentation conventions
 
 - Simplified the internal documentation system to ADRs, Design Docs, and the
