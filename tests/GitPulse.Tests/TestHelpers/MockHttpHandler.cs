@@ -31,6 +31,13 @@ public sealed class MockHttpHandler : HttpMessageHandler
     public MockHttpHandler When(string pathSuffix, string jsonBody, string? linkHeader)
         => When(pathSuffix, _ => new MockResponse(jsonBody, linkHeader));
 
+    /// <summary>Shorthand for a status-only response (optional JSON body).</summary>
+    public MockHttpHandler When(
+        string pathSuffix,
+        HttpStatusCode statusCode,
+        string jsonBody = "")
+        => When(pathSuffix, _ => new MockResponse(jsonBody, LinkHeader: null, StatusCode: statusCode));
+
     protected override Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -39,19 +46,34 @@ public sealed class MockHttpHandler : HttpMessageHandler
         if (path.EndsWith('/') && path.Length > 1)
             path = path[..^1];
 
+        string? matchedSuffix = null;
+        Func<HttpRequestMessage, MockResponse>? matchedResponder = null;
         foreach (var (suffix, responder) in _routes)
         {
-            if (path.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            if (!path.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            // Prefer the longest suffix so /runs/101/rerun does not match /runs/101.
+            if (matchedSuffix is null || suffix.Length > matchedSuffix.Length)
             {
-                var mock = responder(request);
-                var response = new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(mock.Body, Encoding.UTF8, "application/json"),
-                };
-                if (!string.IsNullOrEmpty(mock.LinkHeader))
-                    response.Headers.Add("Link", mock.LinkHeader);
-                return Task.FromResult(response);
+                matchedSuffix = suffix;
+                matchedResponder = responder;
             }
+        }
+
+        if (matchedResponder is not null)
+        {
+            var mock = matchedResponder(request);
+            var response = new HttpResponseMessage(mock.StatusCode)
+            {
+                Content = new StringContent(
+                    mock.Body,
+                    Encoding.UTF8,
+                    string.IsNullOrEmpty(mock.Body) ? "text/plain" : "application/json"),
+            };
+            if (!string.IsNullOrEmpty(mock.LinkHeader))
+                response.Headers.Add("Link", mock.LinkHeader);
+            return Task.FromResult(response);
         }
 
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound)
@@ -62,4 +84,7 @@ public sealed class MockHttpHandler : HttpMessageHandler
 }
 
 /// <summary>Canned response payload for <see cref="MockHttpHandler"/>.</summary>
-public sealed record MockResponse(string Body, string? LinkHeader = null);
+public sealed record MockResponse(
+    string Body,
+    string? LinkHeader = null,
+    HttpStatusCode StatusCode = HttpStatusCode.OK);
