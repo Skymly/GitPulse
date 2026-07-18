@@ -15,6 +15,17 @@ Versions are derived automatically from Git tags by MinVer.
 - Consolidated subsystem API and invariant details into the corresponding
   Design Docs.
 
+### Added — M8 PR diff viewer
+
+- Added a Files Changed view that renders multi-file pull request patches,
+  groups existing review comments by file, and supports inline review
+  comments and replies.
+- Added loading, empty, binary-file, and unavailable-patch states with
+  theme-aware diff rendering and large-patch scrolling.
+- Added declarative pull-file and review-comment API methods, diff and review
+  models, and `PrDiffViewModel` coverage. The library test suite now contains
+  190 tests.
+
 ### Added — M7 Repository detail page + Windows Mica/Acrylic
 
 - `RepoDetailPage` — new page inserted between repo list and issues,
