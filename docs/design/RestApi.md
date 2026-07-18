@@ -105,20 +105,30 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 - Search 页为 Shell 第四个主 Tab；Repo/Issue/PR 结果进入现有详情页，代码结果直接进入 `FileEditorPage`。
 - `SearchBar.TextChanged` 通过手动 R3 `Subject<string>` 桥接；防抖不触发网络请求。
 
+#### API 级自动化（可选，`GITPULSE_TEST_PAT`）
+
+`SearchLiveIntegrationTests`（`Category=Integration`）在设置环境变量后对真实 Search API 断言：四类搜索与总数、编码、Issue/PR 限定、空结果、422 语法错误、切换类型不自动请求、以及 `Link` 分页。运行方式见 [DEVELOPMENT.md](../DEVELOPMENT.md)。未设置 PAT 时这些用例 Skip，不进入默认 `CiLib` 失败路径。
+
 #### Windows 实机验收清单（带 PAT，M9 归档前必须完成）
+
+**可由实网集成测试覆盖（无需重复手工点 UI）：**
 
 - [ ] repository、Issue、PR、code 四类搜索均返回并展示结果总数
 - [ ] 空格、斜杠、`#` 等查询字符正确编码，未被截断或双重编码
 - [ ] Issue 请求包含 `is:issue`，PR 请求包含 `is:pr`
 - [ ] `Link` 存在时可加载下一页，末页后隐藏 Load more
+- [ ] 空结果显示明确状态，切换类型不会自动发送请求
+- [ ] 触发 422 非法查询时显示查询语法提示
+
+**仍须 Windows UI 手工验收：**
+
 - [ ] repository 结果进入 `RepoDetailPage`
 - [ ] Issue 与 PR 从 `repository_url` 提取 owner/repo 并进入对应详情页
 - [ ] code 结果携带 owner/repo/path/sha 直接进入 `FileEditorPage`
-- [ ] 空结果显示明确状态，切换类型不会自动发送请求
-- [ ] 触发或模拟 403 时显示 Search 限流提示
-- [ ] 触发 422 非法查询时显示查询语法提示
+- [ ] 触发或模拟 403 时显示 Search 限流提示（可选；限流难稳定复现）
+- [ ] SearchBar 显式提交（防抖不发请求；Enter / Search 才请求）
 
-自动构建与无头测试不能替代以上两组 Windows 手工验收。
+无头 Mock 测试不能替代 UI 导航项；API 项优先用 `Category=Integration` 实网测试代替重复手工。
 
 ## 设计权衡
 

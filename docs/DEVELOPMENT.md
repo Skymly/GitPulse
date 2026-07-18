@@ -74,8 +74,24 @@ docs/                   — ADR、设计文档与路线图（见 DOCUMENTATION.m
 | ViewModel | `tests/GitPulse.Tests/*ViewModelTests.cs` | 业务逻辑、Mock HTTP |
 | Core | `GitHubQueryHandlerTests`、`LinkHeaderParserTests` 等 | HTTP 辅助、模型 |
 | Services | `GitHubClientFactoryTests`、`NotificationPollerTests` | 工厂、轮询 |
+| Live Search（可选） | `SearchLiveIntegrationTests` | 真实 GitHub Search API |
 
-`CiLib` 在 Release 下运行 **190** 个单元测试（截至 M7/M8 工作区）。
+`CiLib` 在 Release 下运行库单元测试；未设置 PAT 时，带 `Category=Integration` 的实网测试会被 **Skip**，不失败。
+
+### 可选：实网 Search 集成测试
+
+使用**专用测试账号**的 PAT（classic 或 fine-grained）。**不要**把 token 写入仓库、聊天或提交信息。
+
+```powershell
+# 从本机密文文件加载（路径自定；切勿提交该文件）
+$env:GITPULSE_TEST_PAT = (Get-Content 'path\to\pat.txt' -Raw).Trim()
+
+dotnet test tests/GitPulse.Tests/GitPulse.Tests.csproj -c Release --filter Category=Integration
+
+Remove-Item Env:GITPULSE_TEST_PAT
+```
+
+也可在 CI 中配置同名 Secret，经 `workflow_dispatch` 或独立 job 注入后运行上述 filter。实网测试覆盖 API 级 M9 门禁；Windows UI 导航（结果进详情页等）仍需手工验收，见 [design/RestApi.md](design/RestApi.md)。
 
 ## 提交与分支
 
