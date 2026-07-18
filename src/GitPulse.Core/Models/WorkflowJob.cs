@@ -10,6 +10,7 @@ public sealed class WorkflowJobsResult
     [JsonPropertyName("total_count")]
     public int TotalCount { get; init; }
 
+    [JsonPropertyName("jobs")]
     public WorkflowJob[] Jobs { get; init; } = [];
 }
 
