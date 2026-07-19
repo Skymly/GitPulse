@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
+             xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
+             x:Class="GitPulse.App.Views.WorkflowRunsPage"
+             x:DataType="vm:WorkflowRunsViewModel"
+             Title="Actions">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
+            <Button Text="← Repo"
+                    Clicked="OnBackClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    Padding="8,4" />
+            <Label Text="{Binding RepoFullName.Value}"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center" />
+            <Label Text="Actions"
+                   FontSize="14"
+                   TextColor="{StaticResource Gray500}"
+                   VerticalOptions="Center" />
+        </HorizontalStackLayout>
+
+        <Border Grid.Row="1"
+                IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                BackgroundColor="{StaticResource Red100}"
+                StrokeShape="RoundRectangle 8"
+                Padding="12"
+                Margin="16,4,16,0">
+            <Label Text="{Binding ErrorMessage.Value}"
+                   TextColor="{StaticResource Red900}"
+                   FontSize="13" />
+        </Border>
+
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding Runs}"
+                        Margin="16,8,16,0"
+                        SelectionMode="Single"
+                        SelectionChanged="OnRunSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:WorkflowRun">
+                    <Border Margin="0,0,0,8"
+                            Padding="14"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="{StaticResource Gray200}">
+                        <VerticalStackLayout Spacing="4">
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="{Binding RunNumber, StringFormat='#{0}'}"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Primary}" />
+                                <Label Text="{Binding DisplayTitle}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="2" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Spacing="12" Margin="0,2,0,0">
+                                <Label Text="{Binding Status}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding Conclusion}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Green700}" />
+                                <Label Text="{Binding HeadBranch, StringFormat='@ {0}'}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding Event}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Gray500}" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <ActivityIndicator Grid.Row="2"
+                           IsRunning="{Binding IsLoading.Value}"
+                           IsVisible="{Binding IsLoading.Value}"
+                           VerticalOptions="Start"
+                           Margin="0,16,0,0" />
+
+        <Button Grid.Row="3"
+                Text="Load more"
+                Command="{Binding LoadMoreCommand}"
+                IsVisible="{Binding CanLoadMore.Value}"
+                HorizontalOptions="Center"
+                Padding="24,8"
+                Margin="0,8,0,16"
+                FontSize="13" />
+
+    </Grid>
+
+</ContentPage>
