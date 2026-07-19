@@ -68,6 +68,13 @@ public partial class RepoDetailPage : ContentPage
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}");
     }
 
+    private async void OnActionsClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync(
+            $"WorkflowRunsPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
+            + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}");
+    }
+
     // ── Tab switching ──────────────────────────────────────────────
 
     private void OnOverviewTabClicked(object? sender, EventArgs e)

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
+             xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
+             x:Class="GitPulse.App.Views.WorkflowRunDetailPage"
+             x:DataType="vm:WorkflowRunDetailViewModel"
+             Title="Workflow Run">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
+            <Button Text="Back"
+                    Clicked="OnBackClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    Padding="8,4" />
+            <Label Text="{Binding Title.Value}"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1" />
+        </HorizontalStackLayout>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16" Spacing="12">
+
+                <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                        BackgroundColor="{StaticResource Red100}"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="12">
+                    <Label Text="{Binding ErrorMessage.Value}"
+                           TextColor="{StaticResource Red900}"
+                           FontSize="13" />
+                </Border>
+
+                <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
+                                   IsVisible="{Binding IsLoading.Value}"
+                                   HorizontalOptions="Center" />
+
+                <Border StrokeShape="RoundRectangle 8"
+                        Stroke="{StaticResource Gray200}"
+                        Padding="16">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="{Binding StatusSummary.Value}"
+                               FontSize="13"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Primary}" />
+                        <Label Text="{Binding Run.Value.Name, StringFormat='Workflow: {0}'}"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}" />
+                        <Label Text="{Binding Run.Value.HeadBranch, StringFormat='Branch: {0}'}"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}" />
+                        <Label Text="{Binding Run.Value.Event, StringFormat='Event: {0}'}"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}" />
+                        <Label Text="{Binding Run.Value.CreatedAt, StringFormat='Created {0:yyyy-MM-dd HH:mm}'}"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}" />
+
+                        <HorizontalStackLayout Spacing="12" Margin="0,8,0,0">
+                            <Button Text="Re-run"
+                                    Command="{Binding RerunCommand}"
+                                    IsEnabled="{Binding IsRerunning.Value, Converter={StaticResource InvertedBoolConverter}}"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="White"
+                                    Padding="16,6"
+                                    FontSize="13" />
+                            <Button Text="↗ Browser"
+                                    Command="{Binding OpenInBrowserCommand}"
+                                    CommandParameter="{Binding Run.Value.HtmlUrl}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource Primary}"
+                                    Padding="16,6"
+                                    FontSize="13" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="Jobs"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       Margin="0,8,0,0" />
+
+                <CollectionView ItemsSource="{Binding Jobs}"
+                                SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:WorkflowJob">
+                            <Border Margin="0,0,0,8"
+                                    Padding="14"
+                                    StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource Gray200}">
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="{Binding Name}"
+                                           FontSize="14"
+                                           FontAttributes="Bold" />
+                                    <HorizontalStackLayout Spacing="12">
+                                        <Label Text="{Binding Status}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource Gray500}" />
+                                        <Label Text="{Binding Conclusion}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource Green700}" />
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>

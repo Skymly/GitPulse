@@ -73,4 +73,14 @@
         ContentTemplate="{DataTemplate views:FileEditorPage}"
         Route="FileEditorPage" />
 
+    <ShellContent
+        Title="Actions"
+        ContentTemplate="{DataTemplate views:WorkflowRunsPage}"
+        Route="WorkflowRunsPage" />
+
+    <ShellContent
+        Title="Workflow Run"
+        ContentTemplate="{DataTemplate views:WorkflowRunDetailPage}"
+        Route="WorkflowRunDetailPage" />
+
 </Shell>

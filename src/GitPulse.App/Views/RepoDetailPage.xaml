@@ -122,6 +122,12 @@
                                 TextColor="{StaticResource Primary}"
                                 Padding="16,6"
                                 FontSize="13" />
+                        <Button Text="Actions →"
+                                Clicked="OnActionsClicked"
+                                BackgroundColor="Transparent"
+                                TextColor="{StaticResource Primary}"
+                                Padding="16,6"
+                                FontSize="13" />
                         <Button Text="↗ Browser"
                                 Command="{Binding OpenInBrowserCommand}"
                                 CommandParameter="{Binding Repo.Value.HtmlUrl}"

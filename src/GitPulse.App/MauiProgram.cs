@@ -57,6 +57,8 @@ public static class MauiProgram
         builder.Services.AddTransient<SearchViewModel>();
         builder.Services.AddTransient<FileBrowserViewModel>();
         builder.Services.AddTransient<FileEditorViewModel>();
+        builder.Services.AddTransient<WorkflowRunsViewModel>();
+        builder.Services.AddTransient<WorkflowRunDetailViewModel>();
 
         // Pages (transient — resolved via DI when Shell navigates).
         builder.Services.AddTransient<ReposPage>();
@@ -71,6 +73,8 @@ public static class MauiProgram
         builder.Services.AddTransient<SearchPage>();
         builder.Services.AddTransient<FileBrowserPage>();
         builder.Services.AddTransient<FileEditorPage>();
+        builder.Services.AddTransient<WorkflowRunsPage>();
+        builder.Services.AddTransient<WorkflowRunDetailPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();
