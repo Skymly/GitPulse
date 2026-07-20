@@ -9,6 +9,7 @@
 | **ADR** | `docs/adr/` | 架构决策（不可变卡片） |
 | **Design Doc** | `docs/design/` | 每个子系统的 API、模型、不变量、实现与权衡 |
 | **Roadmap** | `docs/ROADMAP.md` | 宏观规划与 backlog 排序 |
+| **Context / glossary** | `docs/CONTEXT.md` | 领域术语（ubiquitous language）；切片级词汇以本文件为准 |
 | **Issue** | GitHub Issues | 需求、Bug、任务追踪 |
 | **PR** | GitHub Pull Requests | 变更审查 |
 | **Release** | GitHub Releases + `CHANGELOG.md` | 版本历史 |
@@ -36,6 +37,7 @@
 ```
 docs/
 ├── DOCUMENTATION.md
+├── CONTEXT.md
 ├── README.md
 ├── DEVELOPMENT.md
 ├── ROADMAP.md
