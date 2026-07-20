@@ -94,6 +94,7 @@ build/                  — Nuke
 |------|------|------|
 | **ADR** | `docs/adr/` | 不应随讨论漂移的架构决策；Accepted 后仅可 Supersede |
 | **Design Doc** | `docs/design/` | 子系统的 API、模型、不变量、实现与权衡 |
+| **Context / glossary** | `docs/CONTEXT.md` | 领域术语（ubiquitous language） |
 | **Roadmap** | `docs/ROADMAP.md` | 宏观规划与 backlog 排序 |
 | **Issue / PR / Release** | GitHub | 任务追踪、审查与版本历史 |
 

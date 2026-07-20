@@ -1,7 +1,7 @@
 # Design Doc: Architecture
 
 > **版本**：Unreleased（目标 v0.1.0）
-> **关联 ADR**：[ADR-001](../adr/ADR-001-layered-solution-architecture.md)、[ADR-004](../adr/ADR-004-pat-auth-platform-credential-store.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)
+> **关联 ADR**：[ADR-001](../adr/ADR-001-layered-solution-architecture.md)、[ADR-004](../adr/ADR-004-pat-auth-platform-credential-store.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)
 
 ## 概述
 
@@ -15,7 +15,7 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 
 | 项目 | TFM | 职责 | 依赖 |
 |------|-----|------|------|
-| GitPulse.Core | net10.0 | 模型、`ICredentialStore` 等抽象、`GitHubQueryHandler` | — |
+| GitPulse.Core | net10.0 | 模型、`ICredentialStore` / `IAppPresence` / `IToastNotifier` 等抽象、`NotificationToastCoordinator`、`GitHubQueryHandler` | — |
 | GitPulse.GitHubApi | net10.0 | `IGitHubReposApi`、`IGitHubSearchApi`、`IGitHubActionsApi` 声明 | Core |
 | GitPulse.Services | net10.0 | `GitHubClientFactory`、`INotificationPoller` | Core, GitHubApi |
 | GitPulse.ViewModels | net10.0 | ViewModel、R3 状态 | Core, GitHubApi |
@@ -45,7 +45,7 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 
 ### DI（`MauiProgram.cs`）
 
-- Singleton：`ICredentialStore`、`IGitHubClientFactory`、`IBrowserLauncher`、`INotificationPoller`
+- Singleton：`ICredentialStore`、`IGitHubClientFactory`、`IBrowserLauncher`、`INotificationPoller`；托盘切片还将注册 `IAppPresence`、`IToastNotifier`、`NotificationToastCoordinator`（ADR-010）
 - Transient：各 ViewModel 与 Page（Shell `GoToAsync` 解析）
 
 ### 导航
@@ -55,8 +55,8 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 
 ### 平台
 
-- Windows：DPAPI、`WindowHelpers` Mica/Acrylic（`App.xaml.cs` `HandlerChanged`）
-- Android：`SecureStorage`
+- Windows：DPAPI、`WindowHelpers` Mica/Acrylic（`App.xaml.cs` `HandlerChanged`）；托盘驻留与 Toast（ADR-010）
+- Android：`SecureStorage`；托盘/Toast 为空操作
 
 ## 设计权衡
 

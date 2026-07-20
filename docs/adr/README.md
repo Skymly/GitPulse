@@ -19,7 +19,8 @@
 | [ADR-007](ADR-007-manual-searchbar-event-bridge.md) | SearchBar 手动 R3 事件桥接 | Accepted | 2026-04-01 | — |
 | [ADR-008](ADR-008-split-github-search-api-interface.md) | 拆分 GitHub Search API 接口 | Accepted | 2026-07-11 | — |
 | [ADR-009](ADR-009-split-github-actions-api-interface.md) | 拆分 GitHub Actions API 接口 | Accepted | 2026-07-18 | — |
+| [ADR-010](ADR-010-windows-tray-presence-and-toast.md) | Windows 托盘驻留与 Toast 的平台抽象 | Accepted | 2026-07-20 | [#19](https://github.com/Skymly/GitPulse/issues/19) |
 
 ## 下一个可用编号
 
-**ADR-010**
+**ADR-011**
