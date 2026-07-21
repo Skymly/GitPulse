@@ -59,6 +59,7 @@ public partial class App : Application
         {
             nativeWindow.TryMicaOrAcrylic();
             _windowsPresence.Attach(nativeWindow);
+            _toastNotifier.EnsureInitialized();
             window.HandlerChanged -= OnWindowHandlerChanged;
         }
     }

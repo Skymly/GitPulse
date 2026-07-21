@@ -86,7 +86,15 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
             if (_window is null)
                 return;
 
-            _window.Show();
+            try
+            {
+                _window.Show(disableEfficiencyMode: true);
+            }
+            catch
+            {
+                _window.Show();
+            }
+
             _window.Activate();
             _isMainWindowVisible = true;
         }
@@ -106,7 +114,15 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
             if (_window is null)
                 return;
 
-            _window.Hide();
+            try
+            {
+                _window.Hide(enableEfficiencyMode: false);
+            }
+            catch
+            {
+                _window.Hide();
+            }
+
             if (_isMainWindowVisible)
             {
                 _isMainWindowVisible = false;
@@ -115,7 +131,16 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
         }
 
         if (enteredTray)
-            EnteredTrayPresence?.Invoke();
+        {
+            try
+            {
+                EnteredTrayPresence?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                CrashLog.Write("EnteredTrayPresence handler failed", ex);
+            }
+        }
     }
 
     /// <summary>
@@ -174,7 +199,14 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
             return;
 
         args.Handled = true;
-        HideToTray();
+        try
+        {
+            HideToTray();
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("OnWindowClosed/HideToTray failed", ex);
+        }
     }
 
     private void EnsureTrayIcon()
@@ -219,7 +251,7 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
             _trayIcon.Icon = new Icon(iconPath);
         }
 
-        _trayIcon.ForceCreate();
+        _trayIcon.ForceCreate(enablesEfficiencyMode: false);
     }
 
     private void DisposeTrayIcon()
