@@ -66,6 +66,7 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 		<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
 		<PackageReference Include="H.NotifyIcon.WinUI" Version="2.4.1" Condition="$(TargetFramework.Contains('windows'))" />
+		<PackageReference Include="CommunityToolkit.WinUI.Notifications" Version="7.1.2" Condition="$(TargetFramework.Contains('windows'))" />
 	</ItemGroup>
 
 	<ItemGroup>
