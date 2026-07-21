@@ -18,6 +18,7 @@ public partial class App : MauiWinUIApplication
     {
         UnhandledException += OnUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+        AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         this.InitializeComponent();
@@ -25,6 +26,19 @@ public partial class App : MauiWinUIApplication
 
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
 
+    private static void OnFirstChanceException(object? sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
+    {
+        // Log only windowing / tray related exceptions to keep noise down.
+        var typeName = e.Exception.GetType().FullName ?? "";
+        var message = e.Exception.Message ?? "";
+        if (typeName.Contains("COM", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("Window", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("AppWindow", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("Dispatcher", StringComparison.OrdinalIgnoreCase))
+        {
+            GitPulse.App.Platforms.Windows.CrashLog.Write("FirstChance", e.Exception);
+        }
+    }
     private static void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
         GitPulse.App.Platforms.Windows.CrashLog.Write("WinUI UnhandledException", e.Exception);

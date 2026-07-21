@@ -2,6 +2,7 @@ using System.Drawing;
 using GitPulse.Core.Abstractions;
 using H.NotifyIcon;
 using H.NotifyIcon.Core;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
 using WinUIControls = Microsoft.UI.Xaml.Controls;
@@ -22,6 +23,7 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
 
     private readonly object _gate = new();
     private Microsoft.UI.Xaml.Window? _window;
+    private DispatcherQueue? _dispatcher;
     private TaskbarIcon? _trayIcon;
     private bool _exitRequested;
     private bool _isMainWindowVisible = true;
@@ -69,35 +71,30 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
                 return;
 
             _window = window;
+            _dispatcher = window.DispatcherQueue;
             _window.Closed += OnWindowClosed;
             EnsureTrayIcon();
         }
+
+        MaybeStartTraySmoke();
     }
 
     /// <summary>
     /// Show and activate the main window; mark presence as visible.
+    /// Marshals to the window dispatcher — tray commands may not run on the UI thread.
     /// </summary>
     public void ShowMainWindow()
     {
-        lock (_gate)
+        if (!TryGetWindow(out var window, out var dispatcher))
+            return;
+
+        if (dispatcher.HasThreadAccess)
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-
-            if (_window is null)
-                return;
-
-            try
-            {
-                _window.Show(disableEfficiencyMode: true);
-            }
-            catch
-            {
-                _window.Show();
-            }
-
-            _window.Activate();
-            _isMainWindowVisible = true;
+            ShowMainWindowCore(window);
+            return;
         }
+
+        _ = dispatcher.TryEnqueue(() => ShowMainWindowCore(window));
     }
 
     /// <summary>
@@ -105,42 +102,16 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
     /// </summary>
     public void HideToTray()
     {
-        var enteredTray = false;
+        if (!TryGetWindow(out var window, out var dispatcher))
+            return;
 
-        lock (_gate)
+        if (dispatcher.HasThreadAccess)
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-
-            if (_window is null)
-                return;
-
-            try
-            {
-                _window.Hide(enableEfficiencyMode: false);
-            }
-            catch
-            {
-                _window.Hide();
-            }
-
-            if (_isMainWindowVisible)
-            {
-                _isMainWindowVisible = false;
-                enteredTray = true;
-            }
+            HideToTrayCore(window);
+            return;
         }
 
-        if (enteredTray)
-        {
-            try
-            {
-                EnteredTrayPresence?.Invoke();
-            }
-            catch (Exception ex)
-            {
-                CrashLog.Write("EnteredTrayPresence handler failed", ex);
-            }
-        }
+        _ = dispatcher.TryEnqueue(() => HideToTrayCore(window));
     }
 
     /// <summary>
@@ -148,7 +119,14 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
     /// </summary>
     public void Exit()
     {
-        Exiting?.Invoke();
+        try
+        {
+            Exiting?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Exiting handler failed", ex);
+        }
 
         lock (_gate)
         {
@@ -160,11 +138,19 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
 
             var window = _window;
             _window = null;
+            _dispatcher = null;
 
             if (window is not null)
             {
                 window.Closed -= OnWindowClosed;
-                window.Close();
+                try
+                {
+                    window.Close();
+                }
+                catch (Exception ex)
+                {
+                    CrashLog.Write("Exit window.Close failed", ex);
+                }
             }
         }
 
@@ -190,6 +176,76 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
                 _window.Closed -= OnWindowClosed;
                 _window = null;
             }
+
+            _dispatcher = null;
+        }
+    }
+
+    private bool TryGetWindow(
+        out Microsoft.UI.Xaml.Window window,
+        out DispatcherQueue dispatcher)
+    {
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            window = _window!;
+            dispatcher = _dispatcher!;
+            return _window is not null && _dispatcher is not null;
+        }
+    }
+
+    private void ShowMainWindowCore(Microsoft.UI.Xaml.Window window)
+    {
+        try
+        {
+            // Use plain Show/Activate — H.NotifyIcon efficiency-mode Show has
+            // crashed in Microsoft.UI.Windowing.dll (0xe0464645) on restore.
+            window.Show();
+            window.Activate();
+
+            lock (_gate)
+                _isMainWindowVisible = true;
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("ShowMainWindowCore failed", ex);
+            throw;
+        }
+    }
+
+    private void HideToTrayCore(Microsoft.UI.Xaml.Window window)
+    {
+        var enteredTray = false;
+
+        try
+        {
+            window.Hide();
+
+            lock (_gate)
+            {
+                if (_isMainWindowVisible)
+                {
+                    _isMainWindowVisible = false;
+                    enteredTray = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("HideToTrayCore failed", ex);
+            throw;
+        }
+
+        if (!enteredTray)
+            return;
+
+        try
+        {
+            EnteredTrayPresence?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("EnteredTrayPresence handler failed", ex);
         }
     }
 
@@ -218,7 +274,17 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
         openCommand.ExecuteRequested += (_, _) => ShowMainWindow();
 
         var notificationsCommand = new XamlUICommand { Label = NotificationsMenuLabel };
-        notificationsCommand.ExecuteRequested += (_, _) => NotificationsRequested?.Invoke();
+        notificationsCommand.ExecuteRequested += (_, _) =>
+        {
+            try
+            {
+                NotificationsRequested?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                CrashLog.Write("NotificationsRequested failed", ex);
+            }
+        };
 
         var exitCommand = new XamlUICommand { Label = ExitMenuLabel };
         exitCommand.ExecuteRequested += (_, _) => Exit();
@@ -258,5 +324,56 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
     {
         _trayIcon?.Dispose();
         _trayIcon = null;
+    }
+
+    /// <summary>
+    /// Agent/manual smoke: set GITPULSE_TRAY_SMOKE=1 to auto hide then show.
+    /// Writes %TEMP%\GitPulse-tray-smoke.txt with SURVIVED or the exception.
+    /// </summary>
+    private void MaybeStartTraySmoke()
+    {
+        if (!string.Equals(
+                Environment.GetEnvironmentVariable("GITPULSE_TRAY_SMOKE"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var resultPath = Path.Combine(Path.GetTempPath(), "GitPulse-tray-smoke.txt");
+        try
+        {
+            File.Delete(resultPath);
+        }
+        catch
+        {
+            // ignore
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(2500).ConfigureAwait(false);
+                HideToTray();
+                await Task.Delay(2000).ConfigureAwait(false);
+                ShowMainWindow();
+                await Task.Delay(2000).ConfigureAwait(false);
+                File.WriteAllText(resultPath, "SURVIVED");
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    File.WriteAllText(resultPath, "FAILED: " + ex);
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                CrashLog.Write("Tray smoke failed", ex);
+            }
+        });
     }
 }
