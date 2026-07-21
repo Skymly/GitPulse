@@ -1,5 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-
 #if WINDOWS
 using GitPulse.App.Platforms.Windows;
 #endif
@@ -8,9 +6,18 @@ namespace GitPulse.App;
 
 public partial class App : Application
 {
+#if WINDOWS
+    private readonly WindowsAppPresence _windowsPresence;
+
+    public App(WindowsAppPresence windowsPresence)
+#else
     public App()
+#endif
     {
         InitializeComponent();
+#if WINDOWS
+        _windowsPresence = windowsPresence;
+#endif
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
@@ -25,7 +32,7 @@ public partial class App : Application
     }
 
 #if WINDOWS
-    private static void OnWindowHandlerChanged(object? sender, EventArgs e)
+    private void OnWindowHandlerChanged(object? sender, EventArgs e)
     {
         if (sender is not Window window)
             return;
@@ -33,6 +40,7 @@ public partial class App : Application
         if (window.Handler?.PlatformView is Microsoft.UI.Xaml.Window nativeWindow)
         {
             nativeWindow.TryMicaOrAcrylic();
+            _windowsPresence.Attach(nativeWindow);
             window.HandlerChanged -= OnWindowHandlerChanged;
         }
     }

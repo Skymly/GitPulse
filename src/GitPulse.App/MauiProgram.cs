@@ -31,11 +31,14 @@ public static class MauiProgram
             .UseR3()
             .UseMarkdownView();
 
-        // Platform-specific credential store.
+        // Platform-specific credential store and presence.
 #if WINDOWS
         builder.Services.AddSingleton<ICredentialStore, WindowsCredentialStore>();
+        builder.Services.AddSingleton<WindowsAppPresence>();
+        builder.Services.AddSingleton<IAppPresence>(sp => sp.GetRequiredService<WindowsAppPresence>());
 #elif ANDROID
         builder.Services.AddSingleton<ICredentialStore, AndroidCredentialStore>();
+        builder.Services.AddSingleton<IAppPresence, AndroidAppPresence>();
 #endif
 
         // Application services.
