@@ -7,6 +7,19 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — M10 Windows Tray Presence and notification Toasts
+
+- On Windows, closing the main window hides to Tray Presence instead of
+  exiting. Tray menu includes Open GitPulse, Notifications, and Exit.
+- While hidden, the Notification Poller keeps running; it stops on Exit.
+  New Notifications produce at most one summary OS Toast per poll cycle
+  (visible window: in-app only). Toast or tray Notifications restores the
+  main window and opens the Notifications tab.
+- Core abstractions `IAppPresence` / `IToastNotifier` and
+  `NotificationToastCoordinator`; Windows App SDK toasts; Android no-ops
+  (ADR-010). Cancel `AppWindow.Closing` before hide so restore keeps MAUI
+  content.
+
 ### Added — M10 kickoff (docs)
 
 - Accepted ADR-009: split declarative `IGitHubActionsApi` from repos/search

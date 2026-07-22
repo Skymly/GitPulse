@@ -45,17 +45,18 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 
 ### DI（`MauiProgram.cs`）
 
-- Singleton：`ICredentialStore`、`IGitHubClientFactory`、`IBrowserLauncher`、`INotificationPoller`；托盘切片还将注册 `IAppPresence`、`IToastNotifier`、`NotificationToastCoordinator`（ADR-010）
+- Singleton：`ICredentialStore`、`IGitHubClientFactory`、`IBrowserLauncher`、`INotificationPoller`、`IAppPresence`、`IToastNotifier`、`NotificationToastCoordinator`、`NotificationToastHost`（ADR-010）
 - Transient：各 ViewModel 与 Page（Shell `GoToAsync` 解析）
 
 ### 导航
 
 - Shell TabBar：Repos、Notifications、Search、Settings
 - 详情页经 `ShellContent` + query 参数（`owner`、`repo`、`number`）
+- 托盘 / Toast 激活：显示主窗并 `GoToAsync("//NotificationsPage")`
 
 ### 平台
 
-- Windows：DPAPI、`WindowHelpers` Mica/Acrylic（`App.xaml.cs` `HandlerChanged`）；托盘驻留与 Toast（ADR-010）
+- Windows：DPAPI、`WindowHelpers` Mica/Acrylic；Tray Presence（`AppWindow.Closing` 取消关闭后隐藏）与 `AppNotificationManager` Toast（ADR-010）
 - Android：`SecureStorage`；托盘/Toast 为空操作
 
 ## 设计权衡
