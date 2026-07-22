@@ -45,7 +45,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M7 | readme, branches, releases |
 | M8 | pull files, pull review comments |
 | M9 | `/search/repositories`, `/search/issues`, `/search/code` |
-| M10（进行中） | `/actions/runs`, run jobs, rerun, job logs |
+| M10 ✅ | `/actions/runs`, run jobs, rerun, job logs |
 
 ## M9 Search
 
@@ -132,7 +132,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 
 无头 Mock 不能替代实网 API；导航项已与已注册 Shell 路由交叉核对。可选：作者本机再做一次点击冒烟。
 
-### M10 Actions（进行中）
+### M10 Actions ✅
 
 见 [ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)。首批端点：
 
@@ -144,7 +144,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | 重跑 run | `POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun` |
 | job 日志 | `GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs` |
 
-列表返回 `ApiResponse<T>`；日志下载需处理重定向。托盘 / Toast 为后续 App/platform 切片。
+列表返回 `ApiResponse<T>`；日志下载需处理重定向。Windows 托盘 / Toast 见 [ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md) 与 [Events.md](Events.md)（App/platform，非本 API 文档范围）。
 
 ## 设计权衡
 
