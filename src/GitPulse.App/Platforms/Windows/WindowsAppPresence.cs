@@ -1,10 +1,14 @@
 using System.Drawing;
+using System.Runtime.InteropServices;
 using GitPulse.Core.Abstractions;
 using H.NotifyIcon;
 using H.NotifyIcon.Core;
+using Microsoft.UI;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
+using WinRT.Interop;
 using WinUIControls = Microsoft.UI.Xaml.Controls;
 
 namespace GitPulse.App.Platforms.Windows;
@@ -15,6 +19,12 @@ namespace GitPulse.App.Platforms.Windows;
 /// Exit quits the process. Reports visibility via <see cref="IAppPresence"/>
 /// for toast coordination (ADR-010).
 /// </summary>
+/// <remarks>
+/// Must cancel <see cref="AppWindow.Closing"/> — not only handle
+/// <see cref="Microsoft.UI.Xaml.Window.Closed"/>. Cancelling too late disposes
+/// MAUI page content, so restore shows a blank solid-color window and can
+/// later fault in Microsoft.UI.Windowing.dll.
+/// </remarks>
 public sealed class WindowsAppPresence : IAppPresence, IDisposable
 {
     private const string OpenMenuLabel = "Open GitPulse";
@@ -23,6 +33,7 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
 
     private readonly object _gate = new();
     private Microsoft.UI.Xaml.Window? _window;
+    private AppWindow? _appWindow;
     private DispatcherQueue? _dispatcher;
     private TaskbarIcon? _trayIcon;
     private bool _exitRequested;
@@ -72,7 +83,12 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
 
             _window = window;
             _dispatcher = window.DispatcherQueue;
-            _window.Closed += OnWindowClosed;
+
+            var hwnd = WindowNative.GetWindowHandle(window);
+            var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
+            _appWindow = AppWindow.GetFromWindowId(windowId);
+            _appWindow.Closing += OnAppWindowClosing;
+
             EnsureTrayIcon();
         }
 
@@ -85,16 +101,16 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
     /// </summary>
     public void ShowMainWindow()
     {
-        if (!TryGetWindow(out var window, out var dispatcher))
+        if (!TryGetWindow(out var window, out var appWindow, out var dispatcher))
             return;
 
         if (dispatcher.HasThreadAccess)
         {
-            ShowMainWindowCore(window);
+            ShowMainWindowCore(window, appWindow);
             return;
         }
 
-        _ = dispatcher.TryEnqueue(() => ShowMainWindowCore(window));
+        _ = dispatcher.TryEnqueue(() => ShowMainWindowCore(window, appWindow));
     }
 
     /// <summary>
@@ -102,16 +118,16 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
     /// </summary>
     public void HideToTray()
     {
-        if (!TryGetWindow(out var window, out var dispatcher))
+        if (!TryGetWindow(out var window, out var appWindow, out var dispatcher))
             return;
 
         if (dispatcher.HasThreadAccess)
         {
-            HideToTrayCore(window);
+            HideToTrayCore(window, appWindow);
             return;
         }
 
-        _ = dispatcher.TryEnqueue(() => HideToTrayCore(window));
+        _ = dispatcher.TryEnqueue(() => HideToTrayCore(window, appWindow));
     }
 
     /// <summary>
@@ -128,6 +144,9 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
             CrashLog.Write("Exiting handler failed", ex);
         }
 
+        AppWindow? appWindow;
+        Microsoft.UI.Xaml.Window? window;
+
         lock (_gate)
         {
             if (_disposed)
@@ -136,26 +155,27 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
             _exitRequested = true;
             DisposeTrayIcon();
 
-            var window = _window;
+            appWindow = _appWindow;
+            window = _window;
             _window = null;
+            _appWindow = null;
             _dispatcher = null;
 
-            if (window is not null)
-            {
-                window.Closed -= OnWindowClosed;
-                try
-                {
-                    window.Close();
-                }
-                catch (Exception ex)
-                {
-                    CrashLog.Write("Exit window.Close failed", ex);
-                }
-            }
+            if (appWindow is not null)
+                appWindow.Closing -= OnAppWindowClosing;
         }
 
-        // Always tear down the MAUI host. Close alone can leave a headless
-        // process; Environment.Exit covers H.NotifyIcon (#66) edge cases.
+        try
+        {
+            // Allow Closing to proceed, then tear down.
+            appWindow?.Hide();
+            window?.Close();
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Exit close failed", ex);
+        }
+
         Microsoft.Maui.Controls.Application.Current?.Quit();
         Environment.Exit(0);
     }
@@ -171,36 +191,38 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
             _exitRequested = true;
             DisposeTrayIcon();
 
-            if (_window is not null)
+            if (_appWindow is not null)
             {
-                _window.Closed -= OnWindowClosed;
-                _window = null;
+                _appWindow.Closing -= OnAppWindowClosing;
+                _appWindow = null;
             }
 
+            _window = null;
             _dispatcher = null;
         }
     }
 
     private bool TryGetWindow(
         out Microsoft.UI.Xaml.Window window,
+        out AppWindow appWindow,
         out DispatcherQueue dispatcher)
     {
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             window = _window!;
+            appWindow = _appWindow!;
             dispatcher = _dispatcher!;
-            return _window is not null && _dispatcher is not null;
+            return _window is not null && _appWindow is not null && _dispatcher is not null;
         }
     }
 
-    private void ShowMainWindowCore(Microsoft.UI.Xaml.Window window)
+    private void ShowMainWindowCore(Microsoft.UI.Xaml.Window window, AppWindow appWindow)
     {
         try
         {
-            // Use plain Show/Activate — H.NotifyIcon efficiency-mode Show has
-            // crashed in Microsoft.UI.Windowing.dll (0xe0464645) on restore.
-            window.Show();
+            appWindow.IsShownInSwitchers = true;
+            appWindow.Show();
             window.Activate();
 
             lock (_gate)
@@ -213,13 +235,15 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
         }
     }
 
-    private void HideToTrayCore(Microsoft.UI.Xaml.Window window)
+    private void HideToTrayCore(Microsoft.UI.Xaml.Window window, AppWindow appWindow)
     {
+        _ = window;
         var enteredTray = false;
 
         try
         {
-            window.Hide();
+            appWindow.Hide();
+            appWindow.IsShownInSwitchers = false;
 
             lock (_gate)
             {
@@ -249,19 +273,20 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
         }
     }
 
-    private void OnWindowClosed(object sender, WindowEventArgs args)
+    private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
         if (_exitRequested)
             return;
 
-        args.Handled = true;
+        // Cancel before WinUI/MAUI disposes page content.
+        args.Cancel = true;
         try
         {
             HideToTray();
         }
         catch (Exception ex)
         {
-            CrashLog.Write("OnWindowClosed/HideToTray failed", ex);
+            CrashLog.Write("OnAppWindowClosing/HideToTray failed", ex);
         }
     }
 
@@ -355,11 +380,60 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
             try
             {
                 await Task.Delay(2500).ConfigureAwait(false);
-                HideToTray();
+
+                // Simulate clicking the title-bar X (AppWindow.Closing path),
+                // not a direct Hide — that was the blank-content bug.
+                var hwnd = IntPtr.Zero;
+                if (_dispatcher is not null)
+                {
+                    var tcsHwnd = new TaskCompletionSource<IntPtr>();
+                    _ = _dispatcher.TryEnqueue(() =>
+                    {
+                        try
+                        {
+                            tcsHwnd.TrySetResult(
+                                _window is null
+                                    ? IntPtr.Zero
+                                    : WindowNative.GetWindowHandle(_window));
+                        }
+                        catch (Exception ex)
+                        {
+                            tcsHwnd.TrySetException(ex);
+                        }
+                    });
+                    hwnd = await tcsHwnd.Task.ConfigureAwait(false);
+                }
+
+                if (hwnd != IntPtr.Zero)
+                    _ = PostMessage(hwnd, WmClose, IntPtr.Zero, IntPtr.Zero);
+
                 await Task.Delay(2000).ConfigureAwait(false);
                 ShowMainWindow();
-                await Task.Delay(2000).ConfigureAwait(false);
-                File.WriteAllText(resultPath, "SURVIVED");
+                await Task.Delay(3000).ConfigureAwait(false);
+
+                // Content still present? Blank restore was the user-facing bug.
+                var hasContent = false;
+                if (_dispatcher is not null)
+                {
+                    var tcs = new TaskCompletionSource<bool>();
+                    _ = _dispatcher.TryEnqueue(() =>
+                    {
+                        try
+                        {
+                            hasContent = _window?.Content is not null;
+                            tcs.TrySetResult(hasContent);
+                        }
+                        catch (Exception ex)
+                        {
+                            tcs.TrySetException(ex);
+                        }
+                    });
+                    hasContent = await tcs.Task.ConfigureAwait(false);
+                }
+
+                File.WriteAllText(
+                    resultPath,
+                    hasContent ? "SURVIVED_WITH_CONTENT" : "SURVIVED_BLANK_CONTENT");
             }
             catch (Exception ex)
             {
@@ -376,4 +450,9 @@ public sealed class WindowsAppPresence : IAppPresence, IDisposable
             }
         });
     }
+
+    private const uint WmClose = 0x0010;
+
+    [DllImport("user32.dll")]
+    private static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 }
