@@ -1,3 +1,5 @@
+using GitPulse.App.Services;
+
 #if WINDOWS
 using GitPulse.App.Platforms.Windows;
 #endif
@@ -6,17 +8,33 @@ namespace GitPulse.App;
 
 public partial class App : Application
 {
+    private readonly NotificationToastHost _toastHost;
+
 #if WINDOWS
     private readonly WindowsAppPresence _windowsPresence;
+    private readonly WindowsToastNotifier _toastNotifier;
+    private readonly NotificationsNavigator _navigator;
 
-    public App(WindowsAppPresence windowsPresence)
+    public App(
+        NotificationToastHost toastHost,
+        WindowsAppPresence windowsPresence,
+        WindowsToastNotifier toastNotifier,
+        NotificationsNavigator navigator)
 #else
-    public App()
+    public App(NotificationToastHost toastHost)
 #endif
     {
         InitializeComponent();
+        _toastHost = toastHost;
 #if WINDOWS
         _windowsPresence = windowsPresence;
+        _toastNotifier = toastNotifier;
+        _navigator = navigator;
+
+        _windowsPresence.EnteredTrayPresence += _toastHost.OnEnteredTrayPresence;
+        _windowsPresence.NotificationsRequested += _navigator.OpenNotifications;
+        _windowsPresence.Exiting += _toastHost.Dispose;
+        _toastNotifier.Activated += _navigator.OpenNotifications;
 #endif
     }
 
@@ -41,6 +59,7 @@ public partial class App : Application
         {
             nativeWindow.TryMicaOrAcrylic();
             _windowsPresence.Attach(nativeWindow);
+            _toastNotifier.EnsureInitialized();
             window.HandlerChanged -= OnWindowHandlerChanged;
         }
     }

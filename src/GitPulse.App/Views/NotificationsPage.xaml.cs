@@ -5,9 +5,10 @@ namespace GitPulse.App.Views;
 
 /// <summary>
 /// Notifications page — the M4 Events domain showcase.
-/// The page starts the notification poller on appear and stops it on
-/// disappear. The poller fires <c>NotificationsUpdated</c> on each timer
-/// tick, and the ViewModel bridges that to R3 reactive state.
+/// The Notification Poller is owned by <c>NotificationToastHost</c> for the
+/// process lifetime (ADR-010: continue while in Tray Presence; stop on Exit).
+/// This page ensures polling is started on appear and bridges updates via the
+/// ViewModel; it does not stop the poller on disappear.
 /// </summary>
 public partial class NotificationsPage : ContentPage
 {
@@ -23,17 +24,16 @@ public partial class NotificationsPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        // Start polling when the page is visible.
+        // Idempotent: host already starts the poller; this covers early navigation.
         _viewModel.StartPollingCommand.Execute(null);
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Stop polling when the page is not visible (conserves API rate limit).
-        _viewModel.StopPollingCommand.Execute(null);
-        // ViewModels are transient; dispose to release event subscriptions.
-        _viewModel.Dispose();
+        // Do not stop the poller (ADR-010 Tray Presence) and do not dispose the
+        // ViewModel: Shell tab pages are reused; toast/tray navigation expects a
+        // live BindingContext when returning to Notifications.
     }
 
     private async void OnNotificationSelected(object? sender, SelectionChangedEventArgs e)
