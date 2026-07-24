@@ -7,6 +7,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — M11 Android compile gate
+
+- Nuke `CiAndroid` / `CompileAndroid` targets compile `net10.0-android`
+  (apk packaging only; no signed AAB — M12). `CiAll` depends on
+  `CompileAndroid`. Documented in DEVELOPMENT.md (ADR-011 / #32).
+
 ### Added — M10 Windows Tray Presence and notification Toasts
 
 - On Windows, closing the main window hides to Tray Presence instead of
