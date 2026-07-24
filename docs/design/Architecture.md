@@ -1,7 +1,7 @@
 # Design Doc: Architecture
 
 > **版本**：Unreleased（目标 v0.1.0）
-> **关联 ADR**：[ADR-001](../adr/ADR-001-layered-solution-architecture.md)、[ADR-004](../adr/ADR-004-pat-auth-platform-credential-store.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)
+> **关联 ADR**：[ADR-001](../adr/ADR-001-layered-solution-architecture.md)、[ADR-004](../adr/ADR-004-pat-auth-platform-credential-store.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)、[ADR-011](../adr/ADR-011-android-m11-daily-usable-phone.md)
 
 ## 概述
 
@@ -57,7 +57,7 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 ### 平台
 
 - Windows：DPAPI、`WindowHelpers` Mica/Acrylic；Tray Presence（`AppWindow.Closing` 取消关闭后隐藏）与 `AppNotificationManager` Toast（ADR-010）
-- Android：`SecureStorage`；托盘/Toast 为空操作
+- Android（M11 / ADR-011）：`SecureStorage`；托盘/Toast / `IAppPresence` 为空操作；**无**出应用系统通知（v0.1.0 前）。竖屏手机日用可用：同一套 XAML 就地修补；CI 增加 `net10.0-android` 编译门禁；签名/AAB 属 M12。
 
 ## 设计权衡
 
@@ -67,11 +67,13 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 ## 已知局限
 
 - App 项目未纳入 `CiLib`（需 MAUI workload）；CI 分 `Ci` / `CiLib` 两条路径。
+- M11 起应有 Android 编译门禁（[#32](https://github.com/Skymly/GitPulse/issues/32)）；功能仍靠本机冒烟，无模拟器 UI 自动化门禁。
 
 ## 不在范围内
 
 - 微服务拆分、后端 BFF
 - 离线优先 / 本地 Git 存储
+- Android 系统通知 / 出应用提醒（ADR-011；v0.1.0 之后再议）
 
 ## 兼容基线
 
