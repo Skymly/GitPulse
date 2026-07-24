@@ -8,7 +8,7 @@
 |----|------|
 | **类型** | 个人项目（Skymly workspace） |
 | **远程** | https://github.com/Skymly/GitPulse |
-| **阶段** | **M10 已合并于 `main`**；下一里程碑 M11（见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
+| **阶段** | **M10 已合并于 `main`**；**M11 进行中**（ADR-011，见 [docs/ROADMAP.md](docs/ROADMAP.md)、[#30](https://github.com/Skymly/GitPulse/issues/30)） |
 | **目的** | [Observables](https://github.com/Skymly/Observables) 的真实世界展示应用（声明式 RestAPI + R3）。非玩具 demo，作者日常使用的 GitHub 客户端。 |
 
 ## 技术栈
@@ -149,4 +149,4 @@ Agent 行为准则——与「与用户沟通」并行生效：
 
 - v0.1.0 发版时机与功能裁剪范围（当前路线至 M12，见 [docs/ROADMAP.md](docs/ROADMAP.md)）。
 - GitHub App OAuth 是否在 v0.1.0 之后纳入（当前 ADR-004 为 PAT only）。
-- Android 全面适配（M11）与 Windows 原生增强（托盘、Toast）的优先级微调。
+- Android 出应用通知是否在 v0.1.0 之后纳入（M11 / ADR-011 明确不做）。

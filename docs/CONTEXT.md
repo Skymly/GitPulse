@@ -9,8 +9,8 @@ The application remaining available via a Windows system-tray icon after the mai
 _Avoid_: background service, daemon, minimize-only
 
 **Toast**:
-A Windows system notification surface used to surface new GitHub notifications outside the in-app Notifications tab. Toasts are shown only while the main window is hidden (tray presence); while the window is visible, updates stay in-app. Activating a toast shows the main window and navigates to the Notifications tab. At most one summary toast is shown per poll cycle when multiple new notifications arrive.
-_Avoid_: alert, popup, snackbar, in-app banner
+A Windows system notification surface used to surface new GitHub notifications outside the in-app Notifications tab. Toasts are shown only while the main window is hidden (tray presence); while the window is visible, updates stay in-app. Activating a toast shows the main window and navigates to the Notifications tab. At most one summary toast is shown per poll cycle when multiple new notifications arrive. Android has no Toast (or other out-of-app notification surface) through v0.1.0.
+_Avoid_: alert, popup, snackbar, in-app banner, Android notification
 
 **GitHub Notification**:
 A notification item from GitHub’s Notifications API, already polled by the existing notification poller.

@@ -20,7 +20,8 @@
 | [ADR-008](ADR-008-split-github-search-api-interface.md) | 拆分 GitHub Search API 接口 | Accepted | 2026-07-11 | — |
 | [ADR-009](ADR-009-split-github-actions-api-interface.md) | 拆分 GitHub Actions API 接口 | Accepted | 2026-07-18 | — |
 | [ADR-010](ADR-010-windows-tray-presence-and-toast.md) | Windows 托盘驻留与 Toast 的平台抽象 | Accepted | 2026-07-20 | [#19](https://github.com/Skymly/GitPulse/issues/19) |
+| [ADR-011](ADR-011-android-m11-daily-usable-phone.md) | M11 Android 日用可用（手机优先）范围 | Accepted | 2026-07-24 | [#30](https://github.com/Skymly/GitPulse/issues/30) |
 
 ## 下一个可用编号
 
-**ADR-011**
+**ADR-012**

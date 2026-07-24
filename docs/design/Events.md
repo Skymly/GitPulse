@@ -1,7 +1,7 @@
 # Design Doc: Events
 
 > **版本**：Unreleased
-> **关联 ADR**：[ADR-007](../adr/ADR-007-manual-searchbar-event-bridge.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)
+> **关联 ADR**：[ADR-007](../adr/ADR-007-manual-searchbar-event-bridge.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)、[ADR-011](../adr/ADR-011-android-m11-daily-usable-phone.md)
 
 ## 概述
 
@@ -64,7 +64,7 @@ Search 的独立限额（普通搜索 30 次/分钟，代码搜索 10 次/分钟
 - `NotificationPoller`：`Observable.Interval` + `IGitHubReposApi.ListNotifications`
 - `NotificationsViewModel` 订阅 poller 输出（页面 appear 时幂等 `Start`）
 - `NotificationToastHost`（App）：进程级订阅 poller → `NotificationToastCoordinator`；进入 Tray Presence 时 `ResetBaseline`
-- Windows：`AppWindow.Closing` 取消关闭并隐藏到托盘；汇总 Toast 经 `AppNotificationManager`；Android 为空操作
+- Windows：`AppWindow.Closing` 取消关闭并隐藏到托盘；汇总 Toast 经 `AppNotificationManager`；Android 为空操作（M11 / ADR-011：v0.1.0 前不做 Android 出应用通知）
 
 ## 设计权衡
 
