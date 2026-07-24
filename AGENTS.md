@@ -60,7 +60,8 @@ build/                  — Nuke
 
 ```powershell
 ./build.ps1 --target CiLib --configuration Release   # 库测试（跨平台）
-./build.ps1 --target CiAll --configuration Release  # 含 App + format
+./build.ps1 --target CiAndroid --configuration Release  # Android App 编译门禁
+./build.ps1 --target CiAll --configuration Release  # 含 App（Windows+Android）+ format
 ```
 
 详见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。

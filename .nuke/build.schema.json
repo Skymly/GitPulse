@@ -26,9 +26,11 @@
       "enum": [
         "Ci",
         "CiAll",
+        "CiAndroid",
         "CiLib",
         "Clean",
         "Compile",
+        "CompileAndroid",
         "Format",
         "FormatFix",
         "Publish",
@@ -111,6 +113,10 @@
   "allOf": [
     {
       "properties": {
+        "AndroidFramework": {
+          "type": "string",
+          "description": "MAUI Android target framework moniker"
+        },
         "Configuration": {
           "type": "string",
           "description": "Build configuration (Debug/Release)"

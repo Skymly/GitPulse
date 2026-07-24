@@ -28,6 +28,7 @@ Closes #
 ## Test plan
 
 - [ ] `./build.ps1 --target CiLib --configuration Release`
+- [ ] `./build.ps1 --target CiAndroid --configuration Release` (if App / Android-related)
 - [ ] `./build.ps1 --target CiAll --configuration Release` (if App or formatting changed)
 
 ## Breaking changes

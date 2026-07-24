@@ -26,12 +26,17 @@ cd GitPulse
 # 完整库级 CI（跨平台，不编译 App）
 ./build.ps1 --target CiLib --configuration Release
 
-# 完整 CI（含 MAUI App 编译 + 全量测试）
+# Android App 编译门禁（仅 net10.0-android；需 MAUI workload；apk 试编、无签名/AAB 分发）
+./build.ps1 --target CiAndroid --configuration Release
+
+# 完整 CI（Format + 库测试 + Windows/Android App 编译）
 ./build.ps1 --target CiAll --configuration Release
 
 # Windows 自包含发布
 ./build.ps1 --target Publish --configuration Release --runtime win-x64
 ```
+
+`CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。签名、AAB、分发管道属 M12，不在本门禁内。
 
 **传统 dotnet：**
 
@@ -39,6 +44,9 @@ cd GitPulse
 dotnet build GitPulse.slnx -c Release
 dotnet test tests/GitPulse.Tests/GitPulse.Tests.csproj -c Release
 dotnet run --project src/GitPulse.App/GitPulse.App.csproj -c Debug -f net10.0-windows10.0.19041.0
+
+# Android 编译（与 CiAndroid 等价意图）
+dotnet build src/GitPulse.App/GitPulse.App.csproj -c Release -f net10.0-android
 ```
 
 ## 仓库布局

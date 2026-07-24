@@ -37,6 +37,12 @@ sealed class Build : NukeBuild
     [Parameter("MAUI Windows target framework moniker for publish")]
     readonly string WindowsFramework = "net10.0-windows10.0.19041.0";
 
+    /// <summary>
+    ///   Target framework for MAUI Android compile gate (ADR-011 / M11).
+    /// </summary>
+    [Parameter("MAUI Android target framework moniker")]
+    readonly string AndroidFramework = "net10.0-android";
+
     AbsolutePath Root => RootDirectory;
     AbsolutePath SolutionFile => Root / "GitPulse.slnx";
     AbsolutePath AppProject => Root / "src" / "GitPulse.App" / "GitPulse.App.csproj";
@@ -74,8 +80,30 @@ sealed class Build : NukeBuild
             DotNetRestore(s => s.SetProjectFile(SolutionFile));
         });
 
+    /// <summary>
+    ///   Compiles the MAUI App for Android only (no Windows TFM, no tests).
+    ///   Used as the M11 Android compile gate (ADR-011); also invoked from Compile.
+    ///   Skips APK/AAB packaging — distribution is M12.
+    /// </summary>
+    Target CompileAndroid => _ => _
+        .DependsOn(Restore)
+        .Executes(() =>
+        {
+            // No RID: Mono runtime comes from the MAUI workload. Do not pass a
+            // RID here — it triggers NU1102 Mono runtime pack resolution issues.
+            // Prefer apk-only packaging for the compile gate (Release defaults to
+            // aab;apk). Full signed AAB distribution remains M12.
+            DotNetBuild(s => s
+                .SetProjectFile(AppProject)
+                .SetConfiguration(Configuration)
+                .SetFramework(AndroidFramework)
+                .SetProperty("AndroidPackageFormats", "apk")
+                .SetProperty("AndroidBuildApplicationPackage", "false"));
+        });
+
     Target Compile => _ => _
         .DependsOn(Restore)
+        .DependsOn(CompileAndroid)
         .Executes(() =>
         {
             // Build library projects + tests via the test project (which
@@ -97,13 +125,6 @@ sealed class Build : NukeBuild
                 .SetProjectFile(AppProject)
                 .SetConfiguration(Configuration)
                 .SetFramework(WindowsFramework));
-
-            // Build the App project's Android target (no RID needed; Mono
-            // runtime comes from the MAUI workload).
-            DotNetBuild(s => s
-                .SetProjectFile(AppProject)
-                .SetConfiguration(Configuration)
-                .SetFramework("net10.0-android"));
         });
 
     Target UnitTest => _ => _
@@ -242,7 +263,19 @@ sealed class Build : NukeBuild
         });
 
     /// <summary>
+    ///   Android App compile gate (M11 / ADR-011): Clean → Restore → CompileAndroid.
+    ///   Compile-only — no APK/AAB publish (that is M12). Requires MAUI workload.
+    /// </summary>
+    Target CiAndroid => _ => _
+        .DependsOn(CompileAndroid)
+        .Executes(() =>
+        {
+            Console.WriteLine($"Android compile gate ({AndroidFramework}) completed successfully.");
+        });
+
+    /// <summary>
     ///   Full local/CI verification: Format + Ci.
+    ///   Ci → Compile already includes CompileAndroid (Android compile gate).
     /// </summary>
     Target CiAll => _ => _
         .DependsOn(Format)

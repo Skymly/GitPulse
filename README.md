@@ -103,9 +103,10 @@ docs/                   — ADRs, subsystem design docs, and roadmap
 
 | Nuke target | Description |
 |-------------|-------------|
-| **Ci** | `Clean` → `Restore` → `Compile` → `UnitTest` |
+| **Ci** | `Clean` → `Restore` → `Compile` → `UnitTest` (`Compile` includes Android) |
 | **CiLib** | Cross-platform library tests only (no App project) |
-| **CiAll** | `Format` + `Ci` (full local/CI verification) |
+| **CiAndroid** | Android App compile gate only (`net10.0-android`; no APK/AAB) |
+| **CiAll** | `Format` + `Ci` (full local/CI verification, incl. Android compile) |
 | **Test** | Alias for `UnitTest` |
 | **Format** | `dotnet format --verify-no-changes` |
 | **FormatFix** | `dotnet format` (applies formatting) |
@@ -115,6 +116,7 @@ docs/                   — ADRs, subsystem design docs, and roadmap
 
 ```powershell
 ./build.ps1 --target CiAll --configuration Release
+./build.ps1 --target CiAndroid --configuration Release
 ./build.ps1 --target Publish --configuration Release --runtime win-x64
 ```
 
