@@ -10,45 +10,60 @@
 
     <Grid RowDefinitions="Auto,Auto,*">
 
-        <!-- Back button + repo full name -->
-        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
-            <Button Text="← Back"
+        <!-- Back + repo full name: Grid so long names truncate instead of clipping Back. -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="16,12,16,4">
+            <Button Grid.Column="0"
+                    Text="← Back"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4" />
-            <Label Text="{Binding RepoFullName.Value}"
+                    Padding="8,4"
+                    VerticalOptions="Center" />
+            <Label Grid.Column="1"
+                   Text="{Binding RepoFullName.Value}"
                    FontSize="18"
                    FontAttributes="Bold"
                    VerticalOptions="Center"
                    LineBreakMode="TailTruncation"
                    MaxLines="1" />
-        </HorizontalStackLayout>
+        </Grid>
 
-        <!-- Tab bar: Overview / Branches / Releases -->
-        <HorizontalStackLayout Grid.Row="1" Spacing="8" Padding="16,0,16,8">
+        <!-- Equal-width tabs stay tappable on narrow portrait widths. -->
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,*,*"
+              ColumnSpacing="8"
+              Padding="16,0,16,8">
             <Button x:Name="OverviewTab"
+                    Grid.Column="0"
                     Text="Overview"
                     Clicked="OnOverviewTabClicked"
                     BackgroundColor="{StaticResource Primary}"
                     TextColor="White"
-                    Padding="16,6"
-                    FontSize="13" />
+                    Padding="8,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
             <Button x:Name="BranchesTab"
+                    Grid.Column="1"
                     Text="Branches"
                     Clicked="OnBranchesTabClicked"
                     BackgroundColor="{StaticResource Gray200}"
                     TextColor="Black"
-                    Padding="16,6"
-                    FontSize="13" />
+                    Padding="8,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
             <Button x:Name="ReleasesTab"
+                    Grid.Column="2"
                     Text="Releases"
                     Clicked="OnReleasesTabClicked"
                     BackgroundColor="{StaticResource Gray200}"
                     TextColor="Black"
-                    Padding="16,6"
-                    FontSize="13" />
-        </HorizontalStackLayout>
+                    Padding="8,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
+        </Grid>
 
         <!-- Tab content area -->
         <Grid Grid.Row="2">
@@ -63,20 +78,25 @@
                              Padding="16"
                              IsVisible="{Binding Repo.Value, Converter={StaticResource NotNullConverter}}">
                         <VerticalStackLayout Spacing="8">
-                            <HorizontalStackLayout Spacing="8">
-                                <Label Text="{Binding Repo.Value.Name}"
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <Label Grid.Column="0"
+                                       Text="{Binding Repo.Value.Name}"
                                        FontSize="20"
-                                       FontAttributes="Bold" />
-                                <Label Text="private"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="2" />
+                                <Label Grid.Column="1"
+                                       Text="private"
                                        FontSize="11"
                                        TextColor="{StaticResource Gray500}"
                                        IsVisible="{Binding Repo.Value.Private}"
                                        VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                            </Grid>
 
                             <Label Text="{Binding Repo.Value.Description}"
                                    FontSize="14"
                                    TextColor="{StaticResource Gray600}"
+                                   LineBreakMode="WordWrap"
                                    IsVisible="{Binding Repo.Value.Description, Converter={StaticResource StringToBoolConverter}}" />
 
                             <HorizontalStackLayout Spacing="16" Margin="0,4,0,0">
@@ -91,51 +111,57 @@
                                        TextColor="{StaticResource Gray500}" />
                             </HorizontalStackLayout>
 
-                            <HorizontalStackLayout Spacing="16" Margin="0,2,0,0">
+                            <VerticalStackLayout Spacing="2" Margin="0,2,0,0">
                                 <Label Text="{Binding Repo.Value.DefaultBranch, StringFormat='Default: {0}'}"
                                        FontSize="12"
-                                       TextColor="{StaticResource Gray500}" />
+                                       TextColor="{StaticResource Gray500}"
+                                       LineBreakMode="TailTruncation" />
                                 <Label Text="{Binding Repo.Value.UpdatedAt, StringFormat='Updated {0:yyyy-MM-dd}'}"
                                        FontSize="12"
                                        TextColor="{StaticResource Gray500}" />
-                            </HorizontalStackLayout>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Navigation buttons -->
-                    <HorizontalStackLayout Spacing="12">
+                    <!-- Stack entry points so narrow phones keep full-width, tappable navigation. -->
+                    <VerticalStackLayout Spacing="8">
                         <Button Text="Issues →"
                                 Clicked="OnIssuesClicked"
                                 BackgroundColor="{StaticResource Primary}"
                                 TextColor="White"
-                                Padding="16,6"
-                                FontSize="13" />
+                                Padding="16,12"
+                                FontSize="13"
+                                HorizontalOptions="Fill" />
                         <Button Text="PRs →"
                                 Clicked="OnPullRequestsClicked"
                                 BackgroundColor="Transparent"
                                 TextColor="{StaticResource Primary}"
-                                Padding="16,6"
-                                FontSize="13" />
+                                Padding="16,12"
+                                FontSize="13"
+                                HorizontalOptions="Fill" />
                         <Button Text="Files →"
                                 Clicked="OnFilesClicked"
                                 BackgroundColor="Transparent"
                                 TextColor="{StaticResource Primary}"
-                                Padding="16,6"
-                                FontSize="13" />
+                                Padding="16,12"
+                                FontSize="13"
+                                HorizontalOptions="Fill" />
                         <Button Text="Actions →"
                                 Clicked="OnActionsClicked"
                                 BackgroundColor="Transparent"
                                 TextColor="{StaticResource Primary}"
-                                Padding="16,6"
-                                FontSize="13" />
+                                Padding="16,12"
+                                FontSize="13"
+                                HorizontalOptions="Fill" />
                         <Button Text="↗ Browser"
                                 Command="{Binding OpenInBrowserCommand}"
                                 CommandParameter="{Binding Repo.Value.HtmlUrl}"
                                 BackgroundColor="Transparent"
                                 TextColor="{StaticResource Primary}"
-                                Padding="16,6"
-                                FontSize="13" />
-                    </HorizontalStackLayout>
+                                Padding="16,12"
+                                FontSize="13"
+                                HorizontalOptions="Fill" />
+                    </VerticalStackLayout>
 
                     <!-- README section -->
                     <Label Text="README"
@@ -160,7 +186,8 @@
                         <Label Text="No README found for this repository."
                                FontSize="14"
                                TextColor="{StaticResource Gray500}"
-                               HorizontalOptions="Center" />
+                               HorizontalOptions="Center"
+                               LineBreakMode="WordWrap" />
                     </Border>
 
                     <!-- Error banner -->
@@ -170,7 +197,8 @@
                             Padding="12">
                         <Label Text="{Binding ErrorMessage.Value}"
                                TextColor="{StaticResource Red900}"
-                               FontSize="13" />
+                               FontSize="13"
+                               LineBreakMode="WordWrap" />
                     </Border>
 
                     <!-- Loading indicator -->
@@ -190,18 +218,23 @@
                                 <Border StrokeShape="RoundRectangle 8"
                                          Stroke="{StaticResource Gray200}"
                                          Padding="12"
-                                         Margin="0,0,0,8">
+                                         Margin="0,0,0,8"
+                                         MinimumHeightRequest="48">
                                     <VerticalStackLayout Spacing="4">
-                                        <HorizontalStackLayout Spacing="8">
-                                            <Label Text="{Binding Name}"
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Name}"
                                                    FontSize="14"
-                                                   FontAttributes="Bold" />
-                                            <Label Text="protected"
+                                                   FontAttributes="Bold"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1" />
+                                            <Label Grid.Column="1"
+                                                   Text="protected"
                                                    FontSize="11"
                                                    TextColor="{StaticResource Gray500}"
                                                    IsVisible="{Binding Protected}"
                                                    VerticalOptions="Center" />
-                                        </HorizontalStackLayout>
+                                        </Grid>
                                         <Label Text="{Binding Commit.Sha, Converter={StaticResource StringTruncateConverter}, ConverterParameter=8}"
                                                FontSize="11"
                                                FontFamily="OpenSansRegular"
@@ -225,25 +258,32 @@
                                 <Border StrokeShape="RoundRectangle 8"
                                          Stroke="{StaticResource Gray200}"
                                          Padding="14"
-                                         Margin="0,0,0,10">
+                                         Margin="0,0,0,10"
+                                         MinimumHeightRequest="48">
                                     <VerticalStackLayout Spacing="6">
-                                        <HorizontalStackLayout Spacing="8">
-                                            <Label Text="{Binding TagName}"
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding TagName}"
                                                    FontSize="15"
-                                                   FontAttributes="Bold" />
-                                            <Label Text="draft"
-                                                   FontSize="11"
-                                                   TextColor="{StaticResource Gray500}"
-                                                   IsVisible="{Binding Draft}"
-                                                   VerticalOptions="Center" />
-                                            <Label Text="pre-release"
-                                                   FontSize="11"
-                                                   TextColor="{StaticResource Purple700}"
-                                                   IsVisible="{Binding Prerelease}"
-                                                   VerticalOptions="Center" />
-                                        </HorizontalStackLayout>
+                                                   FontAttributes="Bold"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1" />
+                                            <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                                                <Label Text="draft"
+                                                       FontSize="11"
+                                                       TextColor="{StaticResource Gray500}"
+                                                       IsVisible="{Binding Draft}"
+                                                       VerticalOptions="Center" />
+                                                <Label Text="pre-release"
+                                                       FontSize="11"
+                                                       TextColor="{StaticResource Purple700}"
+                                                       IsVisible="{Binding Prerelease}"
+                                                       VerticalOptions="Center" />
+                                            </HorizontalStackLayout>
+                                        </Grid>
                                         <Label Text="{Binding Name}"
                                                FontSize="13"
+                                               LineBreakMode="WordWrap"
                                                IsVisible="{Binding Name, Converter={StaticResource StringToBoolConverter}}" />
                                         <idk:MarkdownView MarkdownText="{Binding Body}"
                                                           UseAppTheme="True"
@@ -252,14 +292,15 @@
                                                           H3FontSize="14"
                                                           TextFontSize="13"
                                                           IsVisible="{Binding Body, Converter={StaticResource StringToBoolConverter}}" />
-                                        <HorizontalStackLayout Spacing="8">
+                                        <VerticalStackLayout Spacing="2">
                                             <Label Text="{Binding Author.Login, StringFormat='by {0}'}"
                                                    FontSize="12"
-                                                   TextColor="{StaticResource Gray500}" />
+                                                   TextColor="{StaticResource Gray500}"
+                                                   LineBreakMode="TailTruncation" />
                                             <Label Text="{Binding PublishedAt, StringFormat='{0:yyyy-MM-dd}'}"
                                                    FontSize="12"
                                                    TextColor="{StaticResource Gray500}" />
-                                        </HorizontalStackLayout>
+                                        </VerticalStackLayout>
                                     </VerticalStackLayout>
                                 </Border>
                             </DataTemplate>
