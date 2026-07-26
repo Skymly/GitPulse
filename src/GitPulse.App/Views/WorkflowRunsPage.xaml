@@ -119,14 +119,15 @@
                            VerticalOptions="Start"
                            Margin="0,16,0,0" />
 
-        <VerticalStackLayout Grid.Row="3" Padding="16" Spacing="8">
-            <Button Text="Load more"
-                    Command="{Binding LoadMoreCommand}"
-                    IsVisible="{Binding CanLoadMore.Value}"
-                    HorizontalOptions="Fill"
-                    Padding="24,12"
-                    FontSize="13" />
-        </VerticalStackLayout>
+        <!-- Invisible Load more collapses the Auto row (no empty padded footer). -->
+        <Button Grid.Row="3"
+                Text="Load more"
+                Command="{Binding LoadMoreCommand}"
+                IsVisible="{Binding CanLoadMore.Value}"
+                HorizontalOptions="Fill"
+                Padding="24,12"
+                Margin="16"
+                FontSize="13" />
 
     </Grid>
 
