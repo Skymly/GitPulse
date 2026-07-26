@@ -9,19 +9,26 @@
 
     <Grid RowDefinitions="Auto,*">
 
-        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
-            <Button Text="Back"
+        <!-- Back + title: Grid so long titles truncate instead of clipping Back. -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="16,12,16,4">
+            <Button Grid.Column="0"
+                    Text="Back"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4" />
-            <Label Text="{Binding Title.Value}"
+                    Padding="8,4"
+                    VerticalOptions="Center" />
+            <Label Grid.Column="1"
+                   Text="{Binding Title.Value}"
                    FontSize="18"
                    FontAttributes="Bold"
                    VerticalOptions="Center"
                    LineBreakMode="TailTruncation"
                    MaxLines="1" />
-        </HorizontalStackLayout>
+        </Grid>
 
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="16" Spacing="12">
@@ -32,7 +39,8 @@
                         Padding="12">
                     <Label Text="{Binding ErrorMessage.Value}"
                            TextColor="{StaticResource Red900}"
-                           FontSize="13" />
+                           FontSize="13"
+                           LineBreakMode="WordWrap" />
                 </Border>
 
                 <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
@@ -46,36 +54,47 @@
                         <Label Text="{Binding StatusSummary.Value}"
                                FontSize="13"
                                FontAttributes="Bold"
-                               TextColor="{StaticResource Primary}" />
+                               TextColor="{StaticResource Primary}"
+                               LineBreakMode="WordWrap" />
                         <Label Text="{Binding Run.Value.Name, StringFormat='Workflow: {0}'}"
                                FontSize="12"
-                               TextColor="{StaticResource Gray500}" />
+                               TextColor="{StaticResource Gray500}"
+                               LineBreakMode="TailTruncation"
+                               MaxLines="2" />
                         <Label Text="{Binding Run.Value.HeadBranch, StringFormat='Branch: {0}'}"
                                FontSize="12"
-                               TextColor="{StaticResource Gray500}" />
+                               TextColor="{StaticResource Gray500}"
+                               LineBreakMode="TailTruncation"
+                               MaxLines="1" />
                         <Label Text="{Binding Run.Value.Event, StringFormat='Event: {0}'}"
                                FontSize="12"
-                               TextColor="{StaticResource Gray500}" />
+                               TextColor="{StaticResource Gray500}"
+                               LineBreakMode="TailTruncation"
+                               MaxLines="1" />
                         <Label Text="{Binding Run.Value.CreatedAt, StringFormat='Created {0:yyyy-MM-dd HH:mm}'}"
                                FontSize="12"
                                TextColor="{StaticResource Gray500}" />
 
-                        <HorizontalStackLayout Spacing="12" Margin="0,8,0,0">
+                        <!-- Full-width actions stay tappable on narrow portrait widths.
+                             Rerun is spot-check only (cramped OK). -->
+                        <VerticalStackLayout Spacing="8" Margin="0,8,0,0">
                             <Button Text="Re-run"
                                     Command="{Binding RerunCommand}"
                                     IsEnabled="{Binding IsRerunning.Value, Converter={StaticResource InvertedBoolConverter}}"
                                     BackgroundColor="{StaticResource Primary}"
                                     TextColor="White"
-                                    Padding="16,6"
-                                    FontSize="13" />
+                                    Padding="16,12"
+                                    FontSize="13"
+                                    HorizontalOptions="Fill" />
                             <Button Text="↗ Browser"
                                     Command="{Binding OpenInBrowserCommand}"
                                     CommandParameter="{Binding Run.Value.HtmlUrl}"
                                     BackgroundColor="Transparent"
                                     TextColor="{StaticResource Primary}"
-                                    Padding="16,6"
-                                    FontSize="13" />
-                        </HorizontalStackLayout>
+                                    Padding="16,12"
+                                    FontSize="13"
+                                    HorizontalOptions="Fill" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
@@ -84,31 +103,40 @@
                        FontAttributes="Bold"
                        Margin="0,8,0,0" />
 
-                <CollectionView ItemsSource="{Binding Jobs}"
-                                SelectionMode="None">
-                    <CollectionView.ItemTemplate>
+                <!-- BindableLayout avoids nested CollectionView-in-ScrollView sizing issues on phone. -->
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Jobs}"
+                                     Spacing="8">
+                    <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:WorkflowJob">
-                            <Border Margin="0,0,0,8"
-                                    Padding="14"
+                            <Border Padding="14,16"
+                                    MinimumHeightRequest="56"
                                     StrokeShape="RoundRectangle 8"
                                     Stroke="{StaticResource Gray200}">
                                 <VerticalStackLayout Spacing="4">
                                     <Label Text="{Binding Name}"
                                            FontSize="14"
-                                           FontAttributes="Bold" />
-                                    <HorizontalStackLayout Spacing="12">
-                                        <Label Text="{Binding Status}"
+                                           FontAttributes="Bold"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="2" />
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding Status}"
                                                FontSize="11"
-                                               TextColor="{StaticResource Gray500}" />
-                                        <Label Text="{Binding Conclusion}"
+                                               TextColor="{StaticResource Gray500}"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding Conclusion}"
                                                FontSize="11"
-                                               TextColor="{StaticResource Green700}" />
-                                    </HorizontalStackLayout>
+                                               TextColor="{StaticResource Green700}"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1"
+                                               VerticalOptions="Center" />
+                                    </Grid>
                                 </VerticalStackLayout>
                             </Border>
                         </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
 
             </VerticalStackLayout>
         </ScrollView>
