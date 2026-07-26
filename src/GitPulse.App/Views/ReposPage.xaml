@@ -26,7 +26,8 @@
                 Margin="16,0">
             <Label Text="{Binding ErrorMessage.Value}"
                    TextColor="{StaticResource Red900}"
-                   FontSize="13" />
+                   FontSize="13"
+                   LineBreakMode="WordWrap" />
         </Border>
 
         <!-- Repository list -->
@@ -37,21 +38,28 @@
                         SelectionChanged="OnRepoSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Repo">
+                    <!-- Minimum height keeps portrait tap targets usable. -->
                     <Border Margin="0,0,0,8"
-                            Padding="14"
+                            Padding="14,16"
+                            MinimumHeightRequest="56"
                             StrokeShape="RoundRectangle 8"
                             Stroke="{StaticResource Gray200}">
                         <VerticalStackLayout Spacing="4">
-                            <HorizontalStackLayout Spacing="8">
-                                <Label Text="{Binding Name}"
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <Label Grid.Column="0"
+                                       Text="{Binding Name}"
                                        FontSize="16"
-                                       FontAttributes="Bold" />
-                                <Label Text="private"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="private"
                                        FontSize="11"
                                        TextColor="{StaticResource Gray500}"
                                        IsVisible="{Binding Private}"
                                        VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                            </Grid>
                             <Label Text="{Binding Description}"
                                    FontSize="13"
                                    TextColor="{StaticResource Gray600}"
@@ -82,12 +90,12 @@
             <Button Text="Load Repositories"
                     Command="{Binding LoadCommand}"
                     IsVisible="{Binding IsLoading.Value, Converter={StaticResource InvertedBoolConverter}}"
-                    HorizontalOptions="Center" />
+                    HorizontalOptions="Fill" />
             <Button Text="Load more"
                     Command="{Binding LoadMoreCommand}"
                     IsVisible="{Binding CanLoadMore.Value}"
-                    HorizontalOptions="Center"
-                    Padding="24,8"
+                    HorizontalOptions="Fill"
+                    Padding="24,12"
                     FontSize="13" />
         </VerticalStackLayout>
 
