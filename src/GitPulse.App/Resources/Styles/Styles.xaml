@@ -427,6 +427,16 @@
                 <On Platform="WinUI" Value="Transparent" />
             </OnPlatform>
         </Setter>
+        <!-- .NET 10 Android defaults ContentPage to SafeAreaEdges.None
+             (edge-to-edge). With WindowSoftInputMode AdjustResize, All is
+             required so page content (and Send/Create) stay above the IME.
+             WinUI keeps Default so Mica layout is unchanged. -->
+        <Setter Property="SafeAreaEdges">
+            <OnPlatform x:TypeArguments="SafeAreaEdges">
+                <On Platform="Android" Value="All" />
+                <On Platform="WinUI" Value="Default" />
+            </OnPlatform>
+        </Setter>
     </Style>
 
     <Style TargetType="NavigationPage">
