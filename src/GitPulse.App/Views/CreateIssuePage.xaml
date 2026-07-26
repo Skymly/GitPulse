@@ -8,19 +8,28 @@
 
     <Grid RowDefinitions="Auto,*">
 
-        <!-- Back button -->
-        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
-            <Button Text="← Back"
+        <!-- Back + title: Grid keeps Back visible on narrow widths. -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="16,12,16,4">
+            <Button Grid.Column="0"
+                    Text="← Back"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4" />
-            <Label Text="New Issue"
+                    Padding="8,4"
+                    VerticalOptions="Center" />
+            <Label Grid.Column="1"
+                   Text="New Issue"
                    FontSize="18"
                    FontAttributes="Bold"
-                   VerticalOptions="Center" />
-        </HorizontalStackLayout>
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1" />
+        </Grid>
 
+        <!-- ScrollView + AdjustResize: Create stays reachable with IME open. -->
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="16" Spacing="12">
 
@@ -31,7 +40,8 @@
                            FontAttributes="Bold" />
                     <Entry Text="{Binding TitleInput.Value}"
                            Placeholder="Issue title"
-                           FontSize="14" />
+                           FontSize="14"
+                           HorizontalOptions="Fill" />
                 </VerticalStackLayout>
 
                 <!-- Body -->
@@ -43,17 +53,20 @@
                             Placeholder="Describe the issue..."
                             AutoSize="TextChanges"
                             FontSize="14"
-                            MinimumHeightRequest="120" />
+                            MinimumHeightRequest="120"
+                            HorizontalOptions="Fill" />
                 </VerticalStackLayout>
 
                 <!-- Labels -->
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Labels (comma-separated, optional)"
                            FontSize="14"
-                           FontAttributes="Bold" />
+                           FontAttributes="Bold"
+                           LineBreakMode="WordWrap" />
                     <Entry Text="{Binding LabelsInput.Value}"
                            Placeholder="bug, enhancement, ..."
-                           FontSize="14" />
+                           FontSize="14"
+                           HorizontalOptions="Fill" />
                 </VerticalStackLayout>
 
                 <!-- Error banner -->
@@ -63,15 +76,16 @@
                         Padding="12">
                     <Label Text="{Binding ErrorMessage.Value}"
                            TextColor="{StaticResource Red900}"
-                           FontSize="13" />
+                           FontSize="13"
+                           LineBreakMode="WordWrap" />
                 </Border>
 
-                <!-- Create button -->
+                <!-- Full-width Create stays tappable after window resize for soft keyboard. -->
                 <Button Text="Create Issue"
                         Command="{Binding CreateCommand}"
                         IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
-                        HorizontalOptions="Start"
-                        Padding="24,8"
+                        HorizontalOptions="Fill"
+                        Padding="24,12"
                         FontSize="14" />
 
                 <ActivityIndicator IsRunning="{Binding IsSaving.Value}"

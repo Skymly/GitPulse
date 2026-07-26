@@ -7,61 +7,84 @@
              x:DataType="vm:IssuesViewModel"
              Title="Issues">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
 
-        <!-- Header: repo name + back button + PRs entry -->
-        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
-            <Button Text="← Repo"
+        <!-- Back + repo name: Grid so long names truncate instead of clipping Back. -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="16,12,16,4">
+            <Button Grid.Column="0"
+                    Text="← Repo"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4" />
-            <Label Text="{Binding RepoFullName.Value}"
+                    Padding="8,4"
+                    VerticalOptions="Center" />
+            <Label Grid.Column="1"
+                   Text="{Binding RepoFullName.Value}"
                    FontSize="18"
                    FontAttributes="Bold"
-                   VerticalOptions="Center" />
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1" />
+        </Grid>
+
+        <!-- Stack entry points so narrow phones keep full-width, tappable navigation. -->
+        <VerticalStackLayout Grid.Row="1" Spacing="8" Padding="16,0,16,8">
             <Button Text="PRs →"
                     Clicked="OnPrsClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4"
-                    VerticalOptions="Center" />
+                    Padding="16,12"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
             <Button Text="Files →"
                     Clicked="OnFilesClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4"
-                    VerticalOptions="Center" />
+                    Padding="16,12"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
             <Button Text="+ New Issue"
                     Clicked="OnNewIssueClicked"
                     BackgroundColor="{StaticResource Primary}"
                     TextColor="White"
-                    Padding="12,4"
+                    Padding="16,12"
                     FontSize="13"
-                    VerticalOptions="Center" />
-        </HorizontalStackLayout>
+                    HorizontalOptions="Fill" />
+        </VerticalStackLayout>
 
-        <!-- State filter tabs -->
-        <HorizontalStackLayout Grid.Row="1" Spacing="8" Padding="16,0">
+        <!-- Equal-width filter tabs stay tappable on narrow portrait widths. -->
+        <Grid Grid.Row="2"
+              ColumnDefinitions="*,*,*"
+              ColumnSpacing="8"
+              Padding="16,0,16,8">
             <Button Text="Open"
                     Clicked="OnFilterOpen"
                     x:Name="OpenTab"
-                    Padding="16,4"
-                    FontSize="13" />
+                    Grid.Column="0"
+                    Padding="8,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
             <Button Text="Closed"
                     Clicked="OnFilterClosed"
                     x:Name="ClosedTab"
-                    Padding="16,4"
-                    FontSize="13" />
+                    Grid.Column="1"
+                    Padding="8,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
             <Button Text="All"
                     Clicked="OnFilterAll"
                     x:Name="AllTab"
-                    Padding="16,4"
-                    FontSize="13" />
-        </HorizontalStackLayout>
+                    Grid.Column="2"
+                    Padding="8,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
+        </Grid>
 
         <!-- Error banner -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="3"
                 IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
                 BackgroundColor="{StaticResource Red100}"
                 StrokeShape="RoundRectangle 8"
@@ -69,73 +92,89 @@
                 Margin="16,4,16,0">
             <Label Text="{Binding ErrorMessage.Value}"
                    TextColor="{StaticResource Red900}"
-                   FontSize="13" />
+                   FontSize="13"
+                   LineBreakMode="WordWrap" />
         </Border>
 
         <!-- Issues list -->
-        <CollectionView Grid.Row="3"
+        <CollectionView Grid.Row="4"
                         ItemsSource="{Binding Issues}"
                         Margin="16,8,16,0"
                         SelectionMode="Single"
                         SelectionChanged="OnIssueSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Issue">
+                    <!-- Minimum height keeps portrait tap targets usable. -->
                     <Border Margin="0,0,0,8"
-                            Padding="14"
+                            Padding="14,16"
+                            MinimumHeightRequest="56"
                             StrokeShape="RoundRectangle 8"
                             Stroke="{StaticResource Gray200}">
                         <VerticalStackLayout Spacing="4">
-                            <HorizontalStackLayout Spacing="8">
-                                <Label Text="#"
+                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                                <Label Grid.Column="0"
+                                       Text="#"
                                        FontSize="14"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="{Binding Number}"
+                                       TextColor="{StaticResource Gray500}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding Number}"
                                        FontSize="14"
                                        FontAttributes="Bold"
-                                       TextColor="{StaticResource Primary}" />
-                                <Label Text="{Binding Title}"
+                                       TextColor="{StaticResource Primary}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding Title}"
                                        FontSize="15"
                                        FontAttributes="Bold"
                                        LineBreakMode="TailTruncation"
-                                       MaxLines="2" />
-                            </HorizontalStackLayout>
-                            <HorizontalStackLayout Spacing="12" Margin="0,2,0,0">
-                                <Label Text="{Binding State}"
+                                       MaxLines="2"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12" Margin="0,2,0,0">
+                                <Label Grid.Column="0"
+                                       Text="{Binding State}"
                                        FontSize="11"
                                        TextColor="{StaticResource Green700}"
-                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}" />
-                                <Label Text="{Binding State}"
+                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="0"
+                                       Text="{Binding State}"
                                        FontSize="11"
                                        TextColor="{StaticResource Purple700}"
-                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}" />
-                                <Label Text="💬 {Binding CommentsCount}"
+                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="💬 {Binding CommentsCount}"
                                        FontSize="11"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="{Binding User.Login, StringFormat='by {0}'}"
+                                       TextColor="{StaticResource Gray500}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding User.Login, StringFormat='by {0}'}"
                                        FontSize="11"
-                                       TextColor="{StaticResource Gray500}" />
-                            </HorizontalStackLayout>
+                                       TextColor="{StaticResource Gray500}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="End" />
+                            </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <ActivityIndicator Grid.Row="3"
-                           IsRunning="{Binding IsLoading.Value}"
-                           IsVisible="{Binding IsLoading.Value}"
-                           VerticalOptions="Start"
-                           Margin="0,16,0,0" />
-
-        <!-- Load more button -->
-        <Button Grid.Row="4"
-                Text="Load more"
-                Command="{Binding LoadMoreCommand}"
-                IsVisible="{Binding CanLoadMore.Value}"
-                HorizontalOptions="Center"
-                Padding="24,8"
-                Margin="0,8,0,16"
-                FontSize="13" />
+        <!-- Loading + load more -->
+        <VerticalStackLayout Grid.Row="5" Padding="16" Spacing="8">
+            <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
+                               IsVisible="{Binding IsLoading.Value}" />
+            <Button Text="Load more"
+                    Command="{Binding LoadMoreCommand}"
+                    IsVisible="{Binding CanLoadMore.Value}"
+                    HorizontalOptions="Fill"
+                    Padding="24,12"
+                    FontSize="13" />
+        </VerticalStackLayout>
 
     </Grid>
 

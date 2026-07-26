@@ -10,20 +10,26 @@
 
     <Grid RowDefinitions="Auto,*">
 
-        <!-- Back button + title -->
-        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
-            <Button Text="Back"
+        <!-- Back + title: Grid so long titles truncate instead of clipping Back. -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="16,12,16,4">
+            <Button Grid.Column="0"
+                    Text="Back"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4" />
-            <Label Text="{Binding Title.Value}"
+                    Padding="8,4"
+                    VerticalOptions="Center" />
+            <Label Grid.Column="1"
+                   Text="{Binding Title.Value}"
                    FontSize="18"
                    FontAttributes="Bold"
                    VerticalOptions="Center"
                    LineBreakMode="TailTruncation"
                    MaxLines="1" />
-        </HorizontalStackLayout>
+        </Grid>
 
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="16" Spacing="12">
@@ -33,18 +39,26 @@
                          Stroke="{StaticResource Gray200}"
                          Padding="16">
                     <VerticalStackLayout Spacing="8">
-                        <HorizontalStackLayout Spacing="8">
+                        <VerticalStackLayout Spacing="2">
                             <Label Text="{Binding Issue.Value.State}"
                                    FontSize="12"
                                    FontAttributes="Bold"
-                                   TextColor="{StaticResource Green700}" />
+                                   TextColor="{StaticResource Green700}"
+                                   IsVisible="{Binding Issue.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}" />
+                            <Label Text="{Binding Issue.Value.State}"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Purple700}"
+                                   IsVisible="{Binding Issue.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}" />
                             <Label Text="{Binding Issue.Value.User.Login, StringFormat='by {0}'}"
                                    FontSize="12"
-                                   TextColor="{StaticResource Gray500}" />
+                                   TextColor="{StaticResource Gray500}"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
                             <Label Text="{Binding Issue.Value.CreatedAt, StringFormat='{0:yyyy-MM-dd}'}"
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}" />
-                        </HorizontalStackLayout>
+                        </VerticalStackLayout>
 
                         <idk:MarkdownView MarkdownText="{Binding Issue.Value.Body}"
                                           UseAppTheme="True"
@@ -53,42 +67,46 @@
                                           H3FontSize="16"
                                           TextFontSize="14" />
 
-                        <HorizontalStackLayout Spacing="16" Margin="0,4,0,0">
-                            <Label Text="{Binding Issue.Value.CommentsCount, StringFormat='Comments: {0}'}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource Gray500}" />
-                            <Button Text="{Binding Issue.Value.State, StringFormat='Close {0}'}"
+                        <Label Text="{Binding Issue.Value.CommentsCount, StringFormat='Comments: {0}'}"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               Margin="0,4,0,0" />
+
+                        <!-- Full-width state actions stay tappable on narrow portrait widths. -->
+                        <VerticalStackLayout Spacing="8">
+                            <Button Text="Close issue"
                                     Command="{Binding ToggleStateCommand}"
                                     IsVisible="{Binding Issue.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}"
                                     BackgroundColor="{StaticResource Purple700}"
                                     TextColor="White"
-                                    Padding="16,4"
-                                    FontSize="12" />
+                                    Padding="16,12"
+                                    FontSize="13"
+                                    HorizontalOptions="Fill" />
                             <Button Text="Reopen"
                                     Command="{Binding ToggleStateCommand}"
                                     IsVisible="{Binding Issue.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}"
                                     BackgroundColor="{StaticResource Green700}"
                                     TextColor="White"
-                                    Padding="16,4"
-                                    FontSize="12" />
-                        </HorizontalStackLayout>
+                                    Padding="16,12"
+                                    FontSize="13"
+                                    HorizontalOptions="Fill" />
+                        </VerticalStackLayout>
 
-                        <!-- Labels editor -->
+                        <!-- Labels editor: stack so Entry and Save remain usable with IME. -->
                         <VerticalStackLayout Spacing="4" Margin="0,4,0,0">
                             <Label Text="Labels"
                                    FontSize="12"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Gray500}" />
-                            <HorizontalStackLayout Spacing="8">
-                                <Entry Text="{Binding LabelInput.Value}"
-                                       Placeholder="bug, enhancement, ..."
-                                       FontSize="13"
-                                       HorizontalOptions="Fill" />
-                                <Button Text="Save"
-                                        Command="{Binding SaveLabelsCommand}"
-                                        Padding="16,4"
-                                        FontSize="12" />
-                            </HorizontalStackLayout>
+                            <Entry Text="{Binding LabelInput.Value}"
+                                   Placeholder="bug, enhancement, ..."
+                                   FontSize="13"
+                                   HorizontalOptions="Fill" />
+                            <Button Text="Save labels"
+                                    Command="{Binding SaveLabelsCommand}"
+                                    Padding="16,12"
+                                    FontSize="13"
+                                    HorizontalOptions="Fill" />
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
@@ -108,16 +126,21 @@
                                     StrokeShape="RoundRectangle 8"
                                     Stroke="{StaticResource Gray200}">
                                 <VerticalStackLayout Spacing="6">
-                                    <HorizontalStackLayout Spacing="8">
-                                        <Label Text="{Binding User.Login}"
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding User.Login}"
                                                FontSize="13"
                                                FontAttributes="Bold"
-                                               TextColor="{StaticResource Primary}" />
-                                        <Label Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                                               TextColor="{StaticResource Primary}"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
                                                FontSize="11"
                                                TextColor="{StaticResource Gray500}"
                                                VerticalOptions="Center" />
-                                    </HorizontalStackLayout>
+                                    </Grid>
                                     <idk:MarkdownView MarkdownText="{Binding Body}"
                                                       UseAppTheme="True"
                                                       H1FontSize="16"
@@ -130,7 +153,7 @@
                     </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>
 
-                <!-- Comment input -->
+                <!-- Comment input: full-width Comment stays reachable after AdjustResize + scroll. -->
                 <VerticalStackLayout Spacing="8" Margin="0,8,0,0">
                     <Label Text="Add a comment"
                            FontSize="14"
@@ -139,12 +162,13 @@
                             Placeholder="Write a comment... (Markdown supported)"
                             AutoSize="TextChanges"
                             FontSize="14"
-                            MinimumHeightRequest="80" />
+                            MinimumHeightRequest="80"
+                            HorizontalOptions="Fill" />
                     <Button Text="Comment"
                             Command="{Binding AddCommentCommand}"
                             IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
-                            HorizontalOptions="Start"
-                            Padding="24,8"
+                            HorizontalOptions="Fill"
+                            Padding="24,12"
                             FontSize="14" />
                     <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
                                        IsVisible="{Binding IsSaving.Value}" />
@@ -157,7 +181,8 @@
                         Padding="12">
                     <Label Text="{Binding ErrorMessage.Value}"
                            TextColor="{StaticResource Red900}"
-                           FontSize="13" />
+                           FontSize="13"
+                           LineBreakMode="WordWrap" />
                 </Border>
 
                 <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
