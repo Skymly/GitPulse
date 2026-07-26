@@ -9,21 +9,33 @@
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
-            <Button Text="← Repo"
+        <!-- Back + repo name: Grid so long names truncate instead of clipping Back. -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="16,12,16,4">
+            <Button Grid.Column="0"
+                    Text="← Repo"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4" />
-            <Label Text="{Binding RepoFullName.Value}"
-                   FontSize="18"
-                   FontAttributes="Bold"
-                   VerticalOptions="Center" />
-            <Label Text="Actions"
-                   FontSize="14"
-                   TextColor="{StaticResource Gray500}"
-                   VerticalOptions="Center" />
-        </HorizontalStackLayout>
+                    Padding="8,4"
+                    VerticalOptions="Center" />
+            <VerticalStackLayout Grid.Column="1"
+                                 Spacing="0"
+                                 VerticalOptions="Center">
+                <Label Text="{Binding RepoFullName.Value}"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1" />
+                <Label Text="Actions"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1" />
+            </VerticalStackLayout>
+        </Grid>
 
         <Border Grid.Row="1"
                 IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
@@ -33,7 +45,8 @@
                 Margin="16,4,16,0">
             <Label Text="{Binding ErrorMessage.Value}"
                    TextColor="{StaticResource Red900}"
-                   FontSize="13" />
+                   FontSize="13"
+                   LineBreakMode="WordWrap" />
         </Border>
 
         <CollectionView Grid.Row="2"
@@ -43,36 +56,57 @@
                         SelectionChanged="OnRunSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:WorkflowRun">
+                    <!-- Minimum height keeps portrait tap targets usable. -->
                     <Border Margin="0,0,0,8"
-                            Padding="14"
+                            Padding="14,16"
+                            MinimumHeightRequest="56"
                             StrokeShape="RoundRectangle 8"
                             Stroke="{StaticResource Gray200}">
                         <VerticalStackLayout Spacing="4">
-                            <HorizontalStackLayout Spacing="8">
-                                <Label Text="{Binding RunNumber, StringFormat='#{0}'}"
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                <Label Grid.Column="0"
+                                       Text="{Binding RunNumber, StringFormat='#{0}'}"
                                        FontSize="14"
                                        FontAttributes="Bold"
-                                       TextColor="{StaticResource Primary}" />
-                                <Label Text="{Binding DisplayTitle}"
+                                       TextColor="{StaticResource Primary}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding DisplayTitle}"
                                        FontSize="15"
                                        FontAttributes="Bold"
                                        LineBreakMode="TailTruncation"
-                                       MaxLines="2" />
-                            </HorizontalStackLayout>
-                            <HorizontalStackLayout Spacing="12" Margin="0,2,0,0">
-                                <Label Text="{Binding Status}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="{Binding Conclusion}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Green700}" />
+                                       MaxLines="2"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                            <VerticalStackLayout Spacing="2" Margin="0,2,0,0">
+                                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding Status}"
+                                           FontSize="11"
+                                           TextColor="{StaticResource Gray500}"
+                                           VerticalOptions="Center" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding Conclusion}"
+                                           FontSize="11"
+                                           TextColor="{StaticResource Green700}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1"
+                                           VerticalOptions="Center" />
+                                    <Label Grid.Column="2"
+                                           Text="{Binding Event}"
+                                           FontSize="11"
+                                           TextColor="{StaticResource Gray500}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1"
+                                           VerticalOptions="Center"
+                                           HorizontalOptions="End" />
+                                </Grid>
                                 <Label Text="{Binding HeadBranch, StringFormat='@ {0}'}"
                                        FontSize="11"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="{Binding Event}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Gray500}" />
-                            </HorizontalStackLayout>
+                                       TextColor="{StaticResource Gray500}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1" />
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>
                 </DataTemplate>
@@ -85,13 +119,14 @@
                            VerticalOptions="Start"
                            Margin="0,16,0,0" />
 
+        <!-- Invisible Load more collapses the Auto row (no empty padded footer). -->
         <Button Grid.Row="3"
                 Text="Load more"
                 Command="{Binding LoadMoreCommand}"
                 IsVisible="{Binding CanLoadMore.Value}"
-                HorizontalOptions="Center"
-                Padding="24,8"
-                Margin="0,8,0,16"
+                HorizontalOptions="Fill"
+                Padding="24,12"
+                Margin="16"
                 FontSize="13" />
 
     </Grid>
