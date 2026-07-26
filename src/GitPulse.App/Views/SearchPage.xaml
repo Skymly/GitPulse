@@ -8,17 +8,21 @@
              Title="Search">
 
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="16,12">
+        <!-- Search field + button share the row; long queries truncate in the bar. -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <SearchBar x:Name="SearchBar"
                        Grid.Column="0"
                        Placeholder="Search GitHub..."
-                       SearchButtonPressed="OnSearchSubmitted" />
+                       SearchButtonPressed="OnSearchSubmitted"
+                       HorizontalOptions="Fill" />
             <Button Grid.Column="1"
                     Text="Search"
                     Clicked="OnSearchClicked"
-                    Padding="18,8" />
+                    Padding="16,10"
+                    VerticalOptions="Center" />
         </Grid>
 
+        <!-- Equal-width type tabs stay tappable on narrow portrait widths. -->
         <Grid Grid.Row="1"
               ColumnDefinitions="*,*,*,*"
               ColumnSpacing="6"
@@ -28,25 +32,29 @@
                     Text="Repos"
                     Clicked="OnRepositoriesClicked"
                     FontSize="12"
-                    Padding="6,8" />
+                    Padding="4,10"
+                    HorizontalOptions="Fill" />
             <Button x:Name="IssuesTab"
                     Grid.Column="1"
                     Text="Issues"
                     Clicked="OnIssuesClicked"
                     FontSize="12"
-                    Padding="6,8" />
+                    Padding="4,10"
+                    HorizontalOptions="Fill" />
             <Button x:Name="PullRequestsTab"
                     Grid.Column="2"
                     Text="PRs"
                     Clicked="OnPullRequestsClicked"
                     FontSize="12"
-                    Padding="6,8" />
+                    Padding="4,10"
+                    HorizontalOptions="Fill" />
             <Button x:Name="CodeTab"
                     Grid.Column="3"
                     Text="Code"
                     Clicked="OnCodeClicked"
                     FontSize="12"
-                    Padding="6,8" />
+                    Padding="4,10"
+                    HorizontalOptions="Fill" />
         </Grid>
 
         <VerticalStackLayout Grid.Row="2" Spacing="6">
@@ -56,7 +64,8 @@
                     Padding="12">
                 <Label Text="{Binding ErrorMessage.Value}"
                        TextColor="{StaticResource Red900}"
-                       FontSize="13" />
+                       FontSize="13"
+                       LineBreakMode="WordWrap" />
             </Border>
             <Label Text="{Binding TotalCount.Value, StringFormat='{}{0:N0} results'}"
                    IsVisible="{Binding HasSearched.Value}"
@@ -77,13 +86,16 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Repo">
                     <Border Margin="0,0,0,8"
-                            Padding="14"
+                            Padding="14,16"
+                            MinimumHeightRequest="56"
                             StrokeShape="RoundRectangle 8"
                             Stroke="{StaticResource Gray200}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding FullName}"
                                    FontSize="16"
-                                   FontAttributes="Bold" />
+                                   FontAttributes="Bold"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
                             <Label Text="{Binding Description}"
                                    FontSize="13"
                                    MaxLines="2"
@@ -106,25 +118,36 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:SearchIssueItem">
                     <Border Margin="0,0,0,8"
-                            Padding="14"
+                            Padding="14,16"
+                            MinimumHeightRequest="56"
                             StrokeShape="RoundRectangle 8"
                             Stroke="{StaticResource Gray200}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding Title}"
                                    FontSize="15"
                                    FontAttributes="Bold"
-                                   MaxLines="2" />
-                            <HorizontalStackLayout Spacing="8">
-                                <Label Text="{Binding Number, StringFormat='#{0}'}"
+                                   MaxLines="2"
+                                   LineBreakMode="TailTruncation" />
+                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                                <Label Grid.Column="0"
+                                       Text="{Binding Number, StringFormat='#{0}'}"
                                        FontSize="12"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="{Binding State}"
+                                       TextColor="{StaticResource Gray500}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding State}"
                                        FontSize="12"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="{Binding User.Login}"
+                                       TextColor="{StaticResource Gray500}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding User.Login}"
                                        FontSize="12"
-                                       TextColor="{StaticResource Gray500}" />
-                            </HorizontalStackLayout>
+                                       TextColor="{StaticResource Gray500}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="End" />
+                            </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </DataTemplate>
@@ -139,25 +162,36 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:SearchIssueItem">
                     <Border Margin="0,0,0,8"
-                            Padding="14"
+                            Padding="14,16"
+                            MinimumHeightRequest="56"
                             StrokeShape="RoundRectangle 8"
                             Stroke="{StaticResource Gray200}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding Title}"
                                    FontSize="15"
                                    FontAttributes="Bold"
-                                   MaxLines="2" />
-                            <HorizontalStackLayout Spacing="8">
-                                <Label Text="{Binding Number, StringFormat='#{0}'}"
+                                   MaxLines="2"
+                                   LineBreakMode="TailTruncation" />
+                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                                <Label Grid.Column="0"
+                                       Text="{Binding Number, StringFormat='#{0}'}"
                                        FontSize="12"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="{Binding State}"
+                                       TextColor="{StaticResource Gray500}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding State}"
                                        FontSize="12"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="{Binding User.Login}"
+                                       TextColor="{StaticResource Gray500}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding User.Login}"
                                        FontSize="12"
-                                       TextColor="{StaticResource Gray500}" />
-                            </HorizontalStackLayout>
+                                       TextColor="{StaticResource Gray500}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="End" />
+                            </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </DataTemplate>
@@ -172,16 +206,20 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:CodeSearchItem">
                     <Border Margin="0,0,0,8"
-                            Padding="14"
+                            Padding="14,16"
+                            MinimumHeightRequest="56"
                             StrokeShape="RoundRectangle 8"
                             Stroke="{StaticResource Gray200}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding Repository.FullName}"
                                    FontSize="13"
-                                   FontAttributes="Bold" />
+                                   FontAttributes="Bold"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
                             <Label Text="{Binding Path}"
                                    FontSize="14"
-                                   LineBreakMode="MiddleTruncation" />
+                                   LineBreakMode="MiddleTruncation"
+                                   MaxLines="1" />
                             <Label Text="{Binding Sha}"
                                    FontSize="11"
                                    MaxLines="1"
@@ -199,8 +237,8 @@
             <Button Text="Load more"
                     Command="{Binding LoadMoreCommand}"
                     IsVisible="{Binding CanLoadMore.Value}"
-                    HorizontalOptions="Center"
-                    Padding="24,8"
+                    HorizontalOptions="Fill"
+                    Padding="24,12"
                     FontSize="13" />
         </VerticalStackLayout>
     </Grid>
