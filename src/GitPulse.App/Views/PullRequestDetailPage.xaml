@@ -12,38 +12,51 @@
 
     <Grid RowDefinitions="Auto,Auto,*">
 
-        <!-- Back button + title -->
-        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
-            <Button Text="Back"
+        <!-- Back + title: Grid so long titles truncate instead of clipping Back. -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="16,12,16,4">
+            <Button Grid.Column="0"
+                    Text="Back"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4" />
-            <Label Text="{Binding Title.Value}"
+                    Padding="8,4"
+                    VerticalOptions="Center" />
+            <Label Grid.Column="1"
+                   Text="{Binding Title.Value}"
                    FontSize="18"
                    FontAttributes="Bold"
                    VerticalOptions="Center"
                    LineBreakMode="TailTruncation"
                    MaxLines="1" />
-        </HorizontalStackLayout>
+        </Grid>
 
-        <!-- Tab bar: Conversation / Files -->
-        <HorizontalStackLayout Grid.Row="1" Spacing="8" Padding="16,0,16,8">
+        <!-- Equal-width tabs stay tappable on narrow portrait widths. -->
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,*"
+              ColumnSpacing="8"
+              Padding="16,0,16,8">
             <Button x:Name="ConversationTab"
                     Text="Conversation"
                     Clicked="OnConversationTabClicked"
+                    Grid.Column="0"
                     BackgroundColor="{StaticResource Primary}"
                     TextColor="White"
-                    Padding="16,6"
-                    FontSize="13" />
+                    Padding="8,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
             <Button x:Name="FilesTab"
                     Text="Files"
                     Clicked="OnFilesTabClicked"
+                    Grid.Column="1"
                     BackgroundColor="{StaticResource Gray200}"
                     TextColor="Black"
-                    Padding="16,6"
-                    FontSize="13" />
-        </HorizontalStackLayout>
+                    Padding="8,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
+        </Grid>
 
         <!-- ── Conversation tab ────────────────────────────────────── -->
         <ScrollView x:Name="ConversationSection" Grid.Row="2">
@@ -54,7 +67,7 @@
                          Stroke="{StaticResource Gray200}"
                          Padding="16">
                     <VerticalStackLayout Spacing="8">
-                        <HorizontalStackLayout Spacing="8">
+                        <VerticalStackLayout Spacing="2">
                             <Label Text="{Binding PullRequest.Value.State}"
                                    FontSize="12"
                                    FontAttributes="Bold"
@@ -77,26 +90,38 @@
                                    IsVisible="{Binding PullRequest.Value.Merged}" />
                             <Label Text="{Binding PullRequest.Value.User.Login, StringFormat='by {0}'}"
                                    FontSize="12"
-                                   TextColor="{StaticResource Gray500}" />
+                                   TextColor="{StaticResource Gray500}"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
                             <Label Text="{Binding PullRequest.Value.CreatedAt, StringFormat='{0:yyyy-MM-dd}'}"
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}" />
-                        </HorizontalStackLayout>
+                        </VerticalStackLayout>
 
                         <!-- Branch ref line: head → base -->
-                        <HorizontalStackLayout Spacing="8">
-                            <Label Text="{Binding PullRequest.Value.HeadRef}"
+                        <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">
+                            <Label Grid.Column="0"
+                                   Text="{Binding PullRequest.Value.HeadRef}"
                                    FontSize="13"
                                    FontAttributes="Bold"
-                                   TextColor="{StaticResource Gray600}" />
-                            <Label Text="→"
+                                   TextColor="{StaticResource Gray600}"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1"
+                                   VerticalOptions="Center" />
+                            <Label Grid.Column="1"
+                                   Text="→"
                                    FontSize="13"
-                                   TextColor="{StaticResource Gray500}" />
-                            <Label Text="{Binding PullRequest.Value.BaseRef}"
+                                   TextColor="{StaticResource Gray500}"
+                                   VerticalOptions="Center" />
+                            <Label Grid.Column="2"
+                                   Text="{Binding PullRequest.Value.BaseRef}"
                                    FontSize="13"
                                    FontAttributes="Bold"
-                                   TextColor="{StaticResource Gray600}" />
-                        </HorizontalStackLayout>
+                                   TextColor="{StaticResource Gray600}"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1"
+                                   VerticalOptions="Center" />
+                        </Grid>
 
                         <idk:MarkdownView MarkdownText="{Binding PullRequest.Value.Body}"
                                           UseAppTheme="True"
@@ -107,48 +132,51 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Open in browser + state toggle -->
-                <HorizontalStackLayout Spacing="12">
+                <!-- Full-width actions stay tappable on narrow portrait widths. -->
+                <VerticalStackLayout Spacing="8">
                     <Button Text="Open in browser ↗"
                             Command="{Binding OpenInBrowserCommand}"
                             CommandParameter="{Binding PullRequest.Value.HtmlUrl}"
-                            Padding="16,6"
-                            FontSize="13" />
+                            Padding="16,12"
+                            FontSize="13"
+                            HorizontalOptions="Fill" />
                     <Button Text="Close"
                             Command="{Binding ToggleStateCommand}"
                             IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}"
                             BackgroundColor="{StaticResource Purple700}"
                             TextColor="White"
-                            Padding="16,6"
-                            FontSize="13" />
+                            Padding="16,12"
+                            FontSize="13"
+                            HorizontalOptions="Fill" />
                     <Button Text="Reopen"
                             Command="{Binding ToggleStateCommand}"
                             IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}"
                             BackgroundColor="{StaticResource Green700}"
                             TextColor="White"
-                            Padding="16,6"
-                            FontSize="13" />
-                </HorizontalStackLayout>
+                            Padding="16,12"
+                            FontSize="13"
+                            HorizontalOptions="Fill" />
+                </VerticalStackLayout>
 
-                <!-- M6: PR merge section -->
+                <!-- M6: PR merge section (spot-check only on phone; must not overflow/crash). -->
                 <Border StrokeShape="RoundRectangle 8"
                          Stroke="{StaticResource Gray200}"
                          Padding="16"
                          IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
                     <VerticalStackLayout Spacing="10">
-                        <!-- Merge status label -->
-                        <HorizontalStackLayout Spacing="8">
+                        <VerticalStackLayout Spacing="2">
                             <Label Text="Merge status:"
                                    FontSize="13"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Gray600}" />
                             <Label Text="{Binding MergeStatus.Value}"
                                    FontSize="13"
-                                   TextColor="{StaticResource Primary}" />
-                        </HorizontalStackLayout>
+                                   TextColor="{StaticResource Primary}"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
 
-                        <!-- PR stats: commits, additions, deletions, changed files -->
-                        <HorizontalStackLayout Spacing="16">
+                        <!-- PR stats: wrap-friendly stack on narrow widths -->
+                        <VerticalStackLayout Spacing="2">
                             <Label Text="{Binding PullRequest.Value.Commits, StringFormat='{0} commits'}"
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}" />
@@ -161,14 +189,15 @@
                             <Label Text="{Binding PullRequest.Value.ChangedFiles, StringFormat='{0} files'}"
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}" />
-                        </HorizontalStackLayout>
+                        </VerticalStackLayout>
 
-                        <!-- Merge method picker + merge button (visible when mergeable) -->
-                        <HorizontalStackLayout Spacing="12"
-                                               IsVisible="{Binding CanMerge.Value}">
+                        <!-- Merge method + button stacked so narrow phones don't clip. -->
+                        <VerticalStackLayout Spacing="8"
+                                             IsVisible="{Binding CanMerge.Value}">
                             <Picker Title="Method"
                                     SelectedItem="{Binding MergeMethod.Value}"
-                                    FontSize="13">
+                                    FontSize="13"
+                                    HorizontalOptions="Fill">
                                 <Picker.ItemsSource>
                                     <x:Array Type="{x:Type x:String}">
                                         <x:String>merge</x:String>
@@ -181,13 +210,13 @@
                                     Command="{Binding MergeCommand}"
                                     BackgroundColor="{StaticResource Green700}"
                                     TextColor="White"
-                                    Padding="24,8"
-                                    FontSize="14" />
+                                    Padding="24,12"
+                                    FontSize="14"
+                                    HorizontalOptions="Fill" />
                             <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
                                                IsVisible="{Binding IsSaving.Value}" />
-                        </HorizontalStackLayout>
+                        </VerticalStackLayout>
 
-                        <!-- Merged result (visible after merge) -->
                         <Label Text="✓ Merged successfully"
                                FontSize="14"
                                FontAttributes="Bold"
@@ -211,16 +240,21 @@
                                     StrokeShape="RoundRectangle 8"
                                     Stroke="{StaticResource Gray200}">
                                 <VerticalStackLayout Spacing="6">
-                                    <HorizontalStackLayout Spacing="8">
-                                        <Label Text="{Binding User.Login}"
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding User.Login}"
                                                FontSize="13"
                                                FontAttributes="Bold"
-                                               TextColor="{StaticResource Primary}" />
-                                        <Label Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                                               TextColor="{StaticResource Primary}"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
                                                FontSize="11"
                                                TextColor="{StaticResource Gray500}"
                                                VerticalOptions="Center" />
-                                    </HorizontalStackLayout>
+                                    </Grid>
                                     <idk:MarkdownView MarkdownText="{Binding Body}"
                                                       UseAppTheme="True"
                                                       H1FontSize="16"
@@ -233,7 +267,7 @@
                     </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>
 
-                <!-- Comment input -->
+                <!-- Comment input: full-width Comment stays reachable after AdjustResize + scroll. -->
                 <VerticalStackLayout Spacing="8" Margin="0,8,0,0">
                     <Label Text="Add a comment"
                            FontSize="14"
@@ -242,12 +276,13 @@
                             Placeholder="Write a comment... (Markdown supported)"
                             AutoSize="TextChanges"
                             FontSize="14"
-                            MinimumHeightRequest="80" />
+                            MinimumHeightRequest="80"
+                            HorizontalOptions="Fill" />
                     <Button Text="Comment"
                             Command="{Binding AddCommentCommand}"
                             IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
-                            HorizontalOptions="Start"
-                            Padding="24,8"
+                            HorizontalOptions="Fill"
+                            Padding="24,12"
                             FontSize="14" />
                     <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
                                        IsVisible="{Binding IsSaving.Value}" />
@@ -260,7 +295,8 @@
                         Padding="12">
                     <Label Text="{Binding ErrorMessage.Value}"
                            TextColor="{StaticResource Red900}"
-                           FontSize="13" />
+                           FontSize="13"
+                           LineBreakMode="WordWrap" />
                 </Border>
 
                 <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
@@ -269,7 +305,7 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- ── Files tab (M8: PR diff viewer) ─────────────────────── -->
+        <!-- ── Files tab (M8: PR diff viewer; spot-check only — must not crash) ── -->
         <ScrollView x:Name="FilesSection" Grid.Row="2" IsVisible="False">
             <VerticalStackLayout Padding="16" Spacing="12">
 
@@ -299,14 +335,16 @@
                                                LineBreakMode="MiddleTruncation"
                                                MaxLines="1"
                                                VerticalOptions="Center" />
-                                        <HorizontalStackLayout Grid.Row="0" Grid.Column="2" Spacing="8" VerticalOptions="Center">
+                                        <VerticalStackLayout Grid.Row="0" Grid.Column="2" Spacing="0" VerticalOptions="Center">
                                             <Label Text="{Binding Additions, StringFormat='+{0}'}"
                                                    FontSize="12"
-                                                   TextColor="{StaticResource Green700}" />
+                                                   TextColor="{StaticResource Green700}"
+                                                   HorizontalOptions="End" />
                                             <Label Text="{Binding Deletions, StringFormat='-{0}'}"
                                                    FontSize="12"
-                                                   TextColor="{StaticResource Red900}" />
-                                        </HorizontalStackLayout>
+                                                   TextColor="{StaticResource Red900}"
+                                                   HorizontalOptions="End" />
+                                        </VerticalStackLayout>
                                         <Label Grid.Row="1" Grid.Column="1"
                                                Text="{Binding Status}"
                                                FontSize="11"
@@ -320,21 +358,19 @@
                                                        Filename="{Binding Filename}"
                                                        HeightRequest="400" />
 
-                                    <!-- Review comments on this file -->
                                     <Label Text="Review Comments"
                                            FontSize="13"
                                            FontAttributes="Bold"
                                            Margin="0,8,0,4" />
 
-                                    <!-- Comment button -->
-                                    <Button Text="💬 Comment on this file"
+                                    <Button Text="Comment on this file"
                                             Clicked="OnCommentClicked"
                                             CommandParameter="{Binding Filename}"
                                             BackgroundColor="Transparent"
                                             TextColor="{StaticResource Primary}"
-                                            Padding="12,4"
+                                            Padding="12,10"
                                             FontSize="12"
-                                            HorizontalOptions="Start" />
+                                            HorizontalOptions="Fill" />
                                 </VerticalStackLayout>
                             </VerticalStackLayout>
                         </DataTemplate>
@@ -354,12 +390,13 @@
                                 Placeholder="Write a comment... (Markdown supported)"
                                 AutoSize="TextChanges"
                                 FontSize="14"
-                                MinimumHeightRequest="80" />
+                                MinimumHeightRequest="80"
+                                HorizontalOptions="Fill" />
                         <Button Text="Post"
                                 Command="{Binding DiffViewModel.PostCommentCommand, Source={x:Reference _pageRoot}}"
                                 IsEnabled="{Binding DiffViewModel.IsSaving.Value, Source={x:Reference _pageRoot}, Converter={StaticResource InvertedBoolConverter}}"
-                                HorizontalOptions="Start"
-                                Padding="24,8"
+                                HorizontalOptions="Fill"
+                                Padding="24,12"
                                 FontSize="14" />
                         <ActivityIndicator IsRunning="{Binding DiffViewModel.IsSaving.Value, Source={x:Reference _pageRoot}}"
                                            IsVisible="{Binding DiffViewModel.IsSaving.Value, Source={x:Reference _pageRoot}}" />
@@ -373,7 +410,8 @@
                         Padding="12">
                     <Label Text="{Binding DiffViewModel.ErrorMessage.Value, Source={x:Reference _pageRoot}}"
                            TextColor="{StaticResource Red900}"
-                           FontSize="13" />
+                           FontSize="13"
+                           LineBreakMode="WordWrap" />
                 </Border>
 
                 <ActivityIndicator IsRunning="{Binding DiffViewModel.IsLoading.Value, Source={x:Reference _pageRoot}}"
