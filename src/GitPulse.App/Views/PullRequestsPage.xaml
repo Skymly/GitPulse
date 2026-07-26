@@ -9,37 +9,54 @@
 
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
 
-        <!-- Header: repo name + back button -->
-        <HorizontalStackLayout Grid.Row="0" Spacing="12" Padding="16,12,16,4">
-            <Button Text="← Back"
+        <!-- Back + repo name: Grid so long names truncate instead of clipping Back. -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="16,12,16,4">
+            <Button Grid.Column="0"
+                    Text="← Back"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4" />
-            <Label Text="{Binding RepoFullName.Value}"
+                    Padding="8,4"
+                    VerticalOptions="Center" />
+            <Label Grid.Column="1"
+                   Text="{Binding RepoFullName.Value}"
                    FontSize="18"
                    FontAttributes="Bold"
-                   VerticalOptions="Center" />
-        </HorizontalStackLayout>
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1" />
+        </Grid>
 
-        <!-- State filter tabs -->
-        <HorizontalStackLayout Grid.Row="1" Spacing="8" Padding="16,0">
+        <!-- Equal-width filter tabs stay tappable on narrow portrait widths. -->
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,*,*"
+              ColumnSpacing="8"
+              Padding="16,0,16,8">
             <Button Text="Open"
                     Clicked="OnFilterOpen"
                     x:Name="OpenTab"
-                    Padding="16,4"
-                    FontSize="13" />
+                    Grid.Column="0"
+                    Padding="8,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
             <Button Text="Closed"
                     Clicked="OnFilterClosed"
                     x:Name="ClosedTab"
-                    Padding="16,4"
-                    FontSize="13" />
+                    Grid.Column="1"
+                    Padding="8,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
             <Button Text="All"
                     Clicked="OnFilterAll"
                     x:Name="AllTab"
-                    Padding="16,4"
-                    FontSize="13" />
-        </HorizontalStackLayout>
+                    Grid.Column="2"
+                    Padding="8,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
+        </Grid>
 
         <!-- Error banner -->
         <Border Grid.Row="2"
@@ -50,7 +67,8 @@
                 Margin="16,4,16,0">
             <Label Text="{Binding ErrorMessage.Value}"
                    TextColor="{StaticResource Red900}"
-                   FontSize="13" />
+                   FontSize="13"
+                   LineBreakMode="WordWrap" />
         </Border>
 
         <!-- Pull requests list -->
@@ -61,81 +79,108 @@
                         SelectionChanged="OnPrSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:PullRequest">
+                    <!-- Minimum height keeps portrait tap targets usable. -->
                     <Border Margin="0,0,0,8"
-                            Padding="14"
+                            Padding="14,16"
+                            MinimumHeightRequest="56"
                             StrokeShape="RoundRectangle 8"
                             Stroke="{StaticResource Gray200}">
                         <VerticalStackLayout Spacing="4">
-                            <HorizontalStackLayout Spacing="8">
-                                <Label Text="#"
+                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                                <Label Grid.Column="0"
+                                       Text="#"
                                        FontSize="14"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="{Binding Number}"
+                                       TextColor="{StaticResource Gray500}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding Number}"
                                        FontSize="14"
                                        FontAttributes="Bold"
-                                       TextColor="{StaticResource Primary}" />
-                                <Label Text="{Binding Title}"
+                                       TextColor="{StaticResource Primary}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding Title}"
                                        FontSize="15"
                                        FontAttributes="Bold"
                                        LineBreakMode="TailTruncation"
-                                       MaxLines="2" />
-                            </HorizontalStackLayout>
-                            <HorizontalStackLayout Spacing="12" Margin="0,2,0,0">
-                                <Label Text="{Binding State}"
+                                       MaxLines="2"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                            <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="8" Margin="0,2,0,0">
+                                <Label Grid.Column="0"
+                                       Text="{Binding State}"
                                        FontSize="11"
                                        TextColor="{StaticResource Green700}"
-                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}" />
-                                <Label Text="{Binding State}"
+                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="0"
+                                       Text="{Binding State}"
                                        FontSize="11"
                                        TextColor="{StaticResource Purple700}"
-                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}" />
-                                <Label Text="draft"
+                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="draft"
                                        FontSize="11"
                                        FontAttributes="Italic"
                                        TextColor="{StaticResource Orange900}"
-                                       IsVisible="{Binding Draft}" />
-                                <Label Text="merged"
+                                       IsVisible="{Binding Draft}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="merged"
                                        FontSize="11"
                                        FontAttributes="Bold"
                                        TextColor="{StaticResource Purple700}"
-                                       IsVisible="{Binding Merged}" />
-                                <Label Text="{Binding User.Login, StringFormat='by {0}'}"
+                                       IsVisible="{Binding Merged}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="3"
+                                       Text="{Binding User.Login, StringFormat='by {0}'}"
                                        FontSize="11"
-                                       TextColor="{StaticResource Gray500}" />
-                            </HorizontalStackLayout>
-                            <HorizontalStackLayout Spacing="8" Margin="0,2,0,0">
-                                <Label Text="{Binding HeadRef, StringFormat='{0}'}"
+                                       TextColor="{StaticResource Gray500}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="End" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8" Margin="0,2,0,0">
+                                <Label Grid.Column="0"
+                                       Text="{Binding HeadRef}"
                                        FontSize="11"
-                                       TextColor="{StaticResource Gray600}" />
-                                <Label Text="→"
+                                       TextColor="{StaticResource Gray600}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="→"
                                        FontSize="11"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="{Binding BaseRef}"
+                                       TextColor="{StaticResource Gray500}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding BaseRef}"
                                        FontSize="11"
                                        FontAttributes="Bold"
-                                       TextColor="{StaticResource Gray600}" />
-                            </HorizontalStackLayout>
+                                       TextColor="{StaticResource Gray600}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       VerticalOptions="Center" />
+                            </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <ActivityIndicator Grid.Row="3"
-                           IsRunning="{Binding IsLoading.Value}"
-                           IsVisible="{Binding IsLoading.Value}"
-                           VerticalOptions="Start"
-                           Margin="0,16,0,0" />
-
-        <!-- Load more button -->
-        <Button Grid.Row="4"
-                Text="Load more"
-                Command="{Binding LoadMoreCommand}"
-                IsVisible="{Binding CanLoadMore.Value}"
-                HorizontalOptions="Center"
-                Padding="24,8"
-                Margin="0,8,0,16"
-                FontSize="13" />
+        <!-- Loading + load more -->
+        <VerticalStackLayout Grid.Row="4" Padding="16" Spacing="8">
+            <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
+                               IsVisible="{Binding IsLoading.Value}" />
+            <Button Text="Load more"
+                    Command="{Binding LoadMoreCommand}"
+                    IsVisible="{Binding CanLoadMore.Value}"
+                    HorizontalOptions="Fill"
+                    Padding="24,12"
+                    FontSize="13" />
+        </VerticalStackLayout>
 
     </Grid>
 
