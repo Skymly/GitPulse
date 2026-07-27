@@ -7,11 +7,21 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
-### Added — M11 Android compile gate
+### Added — M11 Android daily-usable phone
 
-- Nuke `CiAndroid` / `CompileAndroid` targets compile `net10.0-android`
-  (apk packaging only; no signed AAB — M12). `CiAll` depends on
-  `CompileAndroid`. Documented in DEVELOPMENT.md (ADR-011 / #32).
+- Portrait-phone in-place XAML for first-class flows: Settings PAT, Repos,
+  Issues (comment/state/Create), PRs (comment/state), Notifications, Search,
+  and Actions runs (read-only). Diff / files / merge-rerun remain spot-check
+  only (ADR-011 / #30–#43).
+- Soft keyboard: `WindowSoftInputModeAdjust=Resize` plus Android
+  `ContentPage.SafeAreaEdges=All` so Comment / Create stay reachable under
+  .NET 10 edge-to-edge defaults (#36, #51).
+- Nuke `CiAndroid` / `CompileAndroid` compile `net10.0-android` (apk only;
+  no signed AAB — M12). `CiAll` depends on `CompileAndroid` (#32).
+
+### Changed — Roadmap advances to M12
+
+- Archive M11 on the roadmap; mark M12 (Release v0.1.0) in progress.
 
 ### Added — M10 Windows Tray Presence and notification Toasts
 

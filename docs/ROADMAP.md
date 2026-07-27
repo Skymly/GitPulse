@@ -16,19 +16,15 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 | 状态 |
 |--------|------|----------------|------|
-| **M11** | Android 日用可用（竖屏手机；ADR-011） | platform abstraction | 🔄 进行中（[#30](https://github.com/Skymly/GitPulse/issues/30)） |
+| **M12** | Release v0.1.0（完整发布流水线） | full pipeline | 🔄 进行中 |
 
-**M11 DoD（摘要）**：同一套 XAML 就地修补；一等公民 = 浏览 + 评论/改状态/简单 CRUD（含新建 Issue）+ 软键盘不阻断发送；CI 仅 Android **编译**门禁；签名/AAB → M12。
-
-**M11 非目标**：Android 系统通知 / 出应用提醒；Phone 双视图（默认）；平板/横屏精修；模拟器 UI 自动化门禁。
+**M12 DoD（摘要）**：签名 / AAB、发布流水线与 v0.1.0 发版裁剪；细节在 kickoff 时钉死。
 
 ---
 
 ## 排期
 
-| 里程碑 | 内容 | Observables 域 |
-|--------|------|----------------|
-| **M12** | Release v0.1.0（完整发布流水线） | full pipeline |
+（暂无 — M12 为当前里程碑）
 
 ---
 
@@ -63,3 +59,4 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 | **M8** ✅ | PR Diff 查看器（Files Changed、行内 review comment） | RestAPI |
 | **M9** ✅ | Search（仓库 / Issue / PR / 代码）+ 可选实网 Integration 测试 | RestAPI |
 | **M10** ✅ | GitHub Actions（workflow runs、状态、重跑、日志）+ Windows 系统托盘与 Toast（ADR-010） | RestAPI + Events + platform |
+| **M11** ✅ | Android 日用可用（竖屏手机就地 XAML；软键盘不阻断发送；`CiAndroid`；ADR-011 / [#30](https://github.com/Skymly/GitPulse/issues/30)） | platform abstraction |
