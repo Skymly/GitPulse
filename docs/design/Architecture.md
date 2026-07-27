@@ -57,7 +57,8 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 ### 平台
 
 - Windows：DPAPI、`WindowHelpers` Mica/Acrylic；Tray Presence（`AppWindow.Closing` 取消关闭后隐藏）与 `AppNotificationManager` Toast（ADR-010）
-- Android（M11 ✅ / ADR-011）：`SecureStorage`；托盘/Toast / `IAppPresence` 为空操作；**无**出应用系统通知（v0.1.0 前）。竖屏手机日用可用：同一套 XAML 就地修补；`CiAndroid` / `CiAll` 编译 `net10.0-android`；签名/AAB 属 M12。
+- Android（M11 ✅ / ADR-011）：`SecureStorage`；托盘/Toast / `IAppPresence` 为空操作；**无**出应用系统通知（v0.1.0 前）。竖屏手机日用可用：同一套 XAML 就地修补；`CiAndroid` / `CiAll` 编译 `net10.0-android`。v0.1.0 分发见 ADR-012（GitHub Releases：签名 APK；非商店 AAB）。
+- 发布（M12 / ADR-012）：仅 GitHub Releases；Windows = publish 目录 zip（未 Authenticode）；Android = CI 签名 APK。
 
 ## 设计权衡
 

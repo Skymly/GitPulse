@@ -16,9 +16,11 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 | 状态 |
 |--------|------|----------------|------|
-| **M12** | Release v0.1.0（完整发布流水线） | full pipeline | 🔄 进行中 |
+| **M12** | Release v0.1.0（完整发布流水线） | full pipeline | 🔄 进行中（ADR-012） |
 
-**M12 DoD（摘要）**：签名 / AAB、发布流水线与 v0.1.0 发版裁剪；细节在 kickoff 时钉死。
+**M12 DoD（摘要）**：发版工程；仅 GitHub Releases；Win publish 目录 zip + CI 签名 Android APK；流水线与 cut `v0.1.0` 分两刀；cut 前短冒烟 + CHANGELOG 收口。细节见 [ADR-012](adr/ADR-012-v0.1.0-github-release-artifacts.md)。
+
+**M12 非目标**：商店上架；Windows Authenticode；AAB；OAuth；Android 出应用通知；iOS / MacCatalyst；新功能 / UX 精修。
 
 ---
 

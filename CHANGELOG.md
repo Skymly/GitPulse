@@ -7,6 +7,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — M12 kickoff (docs)
+
+- Accepted ADR-012: v0.1.0 ships via GitHub Releases only (Windows publish
+  zip + CI-signed Android APK; no stores / AAB / Authenticode). Roadmap DoD
+  and glossary terms Release Artifact / GitHub Release updated.
+
 ### Added — M11 Android daily-usable phone
 
 - Portrait-phone in-place XAML for first-class flows: Settings PAT, Repos,

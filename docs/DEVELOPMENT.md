@@ -36,7 +36,7 @@ cd GitPulse
 ./build.ps1 --target Publish --configuration Release --runtime win-x64
 ```
 
-`CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。签名、AAB、分发管道属 M12，不在本门禁内。
+`CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。**签名 APK、Win publish zip 挂 GitHub Release** 属 M12（ADR-012），不在本编译门禁内。
 
 **传统 dotnet：**
 
