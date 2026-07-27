@@ -148,6 +148,6 @@ Agent 行为准则——与「与用户沟通」并行生效：
 
 ## 待用户决策项（非阻塞）
 
-- v0.1.0 发版时机与功能裁剪范围（当前路线至 M12，见 [docs/ROADMAP.md](docs/ROADMAP.md)）。
 - GitHub App OAuth 是否在 v0.1.0 之后纳入（当前 ADR-004 为 PAT only）。
-- Android 出应用通知是否在 v0.1.0 之后纳入（M11 / ADR-011 明确不做）。
+- Android 出应用通知是否在 v0.1.0 之后纳入（ADR-011 / ADR-012：v0.1.0 不做）。
+- 商店上架 / Windows Authenticode / AAB 是否在 v0.1.0 之后纳入（ADR-012：v0.1.0 仅 GitHub Releases）。

@@ -27,3 +27,11 @@ _Avoid_: unread (a notification can be unread without being new to this session)
 **Notification Poller**:
 The service that periodically fetches GitHub Notifications. While tray presence is active, polling continues; it stops only when the process exits.
 _Avoid_: background sync (vague), push (GitPulse does not use push)
+
+**Release Artifact**:
+An installable build product attached to a GitHub Release for end users: the Windows publish-folder zip, or the signed Android APK. Not a store listing package.
+_Avoid_: AAB (Play upload package), MSIX store package, unsigned CI compile output
+
+**GitHub Release**:
+The sole v0.1.0 distribution channel: a tagged GitHub Releases entry that carries Release Artifacts. Not a store submission.
+_Avoid_: Microsoft Store, Google Play, sideload-only untagged build
