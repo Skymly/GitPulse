@@ -7,6 +7,13 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — M12 release runbook (docs)
+
+- DEVELOPMENT documents the ADR-012 ship path: Android signing Secrets
+  contract (`ANDROID_KEYSTORE_BASE64` / passwords / alias), tag → Release
+  Artifact flow (Windows publish zip + signed APK), and cut short-smoke
+  checklist. ADR-012 related issue points at #54.
+
 ### Added — M12 kickoff (docs)
 
 - Accepted ADR-012: v0.1.0 ships via GitHub Releases only (Windows publish
