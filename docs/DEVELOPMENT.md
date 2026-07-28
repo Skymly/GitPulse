@@ -35,6 +35,10 @@ cd GitPulse
 # Windows 自包含发布（目录 + Release Artifact zip：artifacts/GitPulse-win-x64.zip）
 ./build.ps1 --target Publish --configuration Release --runtime win-x64
 ./build.ps1 --target PublishVerify --configuration Release --runtime win-x64
+
+# Android 签名 APK 发布（Release Artifact：artifacts/GitPulse-android.apk）
+# 需先设置四个 ANDROID_* 环境变量（见下文「Android 签名 Secrets 契约」），缺一即失败
+./build.ps1 --target PublishAndroidVerify --configuration Release
 ```
 
 `CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。**签名 APK、Win publish zip 挂 GitHub Release** 属 M12（ADR-012）；契约与 cut 冒烟见下文 [发版手册（M12 / ADR-012）](#release-m12)。
@@ -122,8 +126,8 @@ v0.1.0 经 **GitHub Release** 分发（术语见 [CONTEXT.md](CONTEXT.md)）。�
 | 项 | 约定 |
 |----|------|
 | 渠道 | 仅 GitHub Releases；`v*` tag 触发 `release` job。不上商店。 |
-| Windows **Release Artifact** | self-contained publish **目录 zip**（非整包单挂 `GitPulse.exe`）。未 Authenticode。 |
-| Android **Release Artifact** | CI **签名 APK**。不做 AAB。 |
+| Windows **Release Artifact** | self-contained publish **目录 zip**（`artifacts/GitPulse-{RID}.zip`；非整包单挂 `GitPulse.exe`）。未 Authenticode。 |
+| Android **Release Artifact** | CI **签名 APK**（`artifacts/GitPulse-android.apk`）。不做 AAB。 |
 | 版本 | MinVer + `v` tag 前缀；首发 tag 预期 `v0.1.0`。 |
 | Release 说明 | `CHANGELOG.md` 对应版本节为权威；`generate_release_notes` 仅可作补充。 |
 
@@ -140,7 +144,7 @@ v0.1.0 经 **GitHub Release** 分发（术语见 [CONTEXT.md](CONTEXT.md)）。�
 | `ANDROID_KEY_ALIAS` | 密钥别名 | `AndroidSigningKeyAlias` |
 | `ANDROID_KEY_PASSWORD` | 密钥密码 | `AndroidSigningKeyPass` |
 
-仓库 Settings → Secrets and variables → Actions 中配置上述名称。流水线应用本契约见 [#57](https://github.com/Skymly/GitPulse/issues/57)。Windows 发布保持未签名。
+仓库 Settings → Secrets and variables → Actions 中配置上述名称。流水线实现见 [#57](https://github.com/Skymly/GitPulse/issues/57)：`release` job 将四个 Secret 映射为同名环境变量传入 Nuke `Release`；`PublishAndroid` 把 keystore 解码到仓库外的临时文件（用后删除），密码经环境变量属性进入 MSBuild、**不上命令行**。本地跑 `Release` / `PublishAndroid*` 需自行设置同名环境变量（取自离线备份），缺一即按契约失败（fail closed）。Windows 发布保持未签名。
 
 ### Tag → GitHub Release 流程
 
@@ -153,6 +157,7 @@ v0.1.0 经 **GitHub Release** 分发（术语见 [CONTEXT.md](CONTEXT.md)）。�
 本地对照（不替代 CI 签名与挂包）：
 
 ```powershell
+# 需先设置四个 ANDROID_* 环境变量（PublishAndroid 缺一即失败）；仅验 Windows 可用 --target PublishVerify
 ./build.ps1 --target Release --configuration Release
 ```
 

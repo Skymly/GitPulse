@@ -34,6 +34,8 @@
         "Format",
         "FormatFix",
         "Publish",
+        "PublishAndroid",
+        "PublishAndroidVerify",
         "PublishVerify",
         "Release",
         "Restore",
@@ -116,6 +118,26 @@
         "AndroidFramework": {
           "type": "string",
           "description": "MAUI Android target framework moniker"
+        },
+        "AndroidKeyAlias": {
+          "type": "string",
+          "description": "Android key alias (secret; env ANDROID_KEY_ALIAS)",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "AndroidKeyPassword": {
+          "type": "string",
+          "description": "Android key password (secret; env ANDROID_KEY_PASSWORD)",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "AndroidKeystoreBase64": {
+          "type": "string",
+          "description": "Base64-encoded Android keystore (secret; env ANDROID_KEYSTORE_BASE64)",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "AndroidKeystorePassword": {
+          "type": "string",
+          "description": "Android keystore password (secret; env ANDROID_KEYSTORE_PASSWORD)",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
         "Configuration": {
           "type": "string",

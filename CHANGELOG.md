@@ -7,6 +7,18 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — M12 CI-signed Android APK (#57)
+
+- Nuke `PublishAndroid` builds the Android Release Artifact from the four
+  `ANDROID_*` secrets (keystore decoded to a temp file outside the repo and
+  deleted after use; passwords reach MSBuild as environment-variable
+  properties, never on the command line) and copies the signed package to
+  `artifacts/GitPulse-android.apk`. No AAB. `PublishAndroidVerify` fails the
+  release when the APK is missing, is not a valid APK zip, or carries no APK
+  Signature Scheme v2+ block. The `v*` release job attaches the signed APK
+  alongside the Windows publish zip; missing secrets or artifacts fail the
+  job instead of shipping a half-empty Release.
+
 ### Added — M12 Windows publish-folder zip (#56)
 
 - Nuke `Publish` zips the full self-contained Windows publish folder to
