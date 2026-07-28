@@ -66,7 +66,8 @@ jobs:
   # Full CI on Windows: format check + full solution build (incl. MAUI App) + tests.
   # Android compile gate: CiAll → Ci → Compile → CompileAndroid (net10.0-android; ADR-011 / #32).
   # For Android-only locally: ./build.ps1 --target CiAndroid --configuration Release
-  # Signing / Release Artifacts remain M12 — this job only compiles.
+  # This job only compiles; Release Artifacts (Win zip / signed APK) are produced
+  # by the release job on v* tags (M12 / ADR-012).
   # Runbook / Secrets 契约: docs/DEVELOPMENT.md (ADR-012).
   ci-windows:
     runs-on: windows-latest
@@ -116,8 +117,10 @@ jobs:
           path: TestResults/**/coverage.cobertura.xml
           if-no-files-found: warn
 
-  # Release job (v* tags): Win publish-folder zip Release Artifact (ADR-012 / #56).
-  # Android CI-signed APK attachment lands in #57.
+  # Release job (v* tags): Win publish-folder zip + CI-signed Android APK
+  # Release Artifacts (ADR-012 / #56 / #57). The Nuke Release target fails when
+  # any ANDROID_* secret or artifact is missing, so a tag can never ship a
+  # half-empty Release. No AAB.
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [ci-lib, ci-windows]
@@ -147,6 +150,13 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Run release pipeline via Nuke (Release)
+        env:
+          # Android signing Secrets contract: docs/DEVELOPMENT.md (ADR-012 / #57).
+          # Unset secrets become empty values and fail the Nuke Release target.
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: dotnet run --project build/_build.csproj -- --root . --target Release --configuration Release
 
       - name: Upload Windows publish zip artifact
@@ -156,10 +166,19 @@ jobs:
           path: artifacts/GitPulse-win-x64.zip
           if-no-files-found: error
 
+      - name: Upload signed Android APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GitPulse-android
+          path: artifacts/GitPulse-android.apk
+          if-no-files-found: error
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/GitPulse-win-x64.zip
+          files: |
+            artifacts/GitPulse-win-x64.zip
+            artifacts/GitPulse-android.apk
           draft: false
           generate_release_notes: true
           fail_on_unmatched_files: true

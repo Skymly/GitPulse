@@ -44,17 +44,53 @@ sealed class Build : NukeBuild
     [Parameter("MAUI Android target framework moniker")]
     readonly string AndroidFramework = "net10.0-android";
 
+    /// <summary>
+    ///   Base64-encoded Android keystore (secret). Decoded to a temp file by
+    ///   PublishAndroid and deleted after use; never committed (ADR-012
+    ///   secrets contract, docs/DEVELOPMENT.md).
+    /// </summary>
+    [Parameter("Base64-encoded Android keystore (secret; env ANDROID_KEYSTORE_BASE64)")]
+    [Secret]
+    readonly string? AndroidKeystoreBase64 = Environment.GetEnvironmentVariable("ANDROID_KEYSTORE_BASE64");
+
+    /// <summary>
+    ///   Android keystore password (secret).
+    /// </summary>
+    [Parameter("Android keystore password (secret; env ANDROID_KEYSTORE_PASSWORD)")]
+    [Secret]
+    readonly string? AndroidKeystorePassword = Environment.GetEnvironmentVariable("ANDROID_KEYSTORE_PASSWORD");
+
+    /// <summary>
+    ///   Android key alias (secret).
+    /// </summary>
+    [Parameter("Android key alias (secret; env ANDROID_KEY_ALIAS)")]
+    [Secret]
+    readonly string? AndroidKeyAlias = Environment.GetEnvironmentVariable("ANDROID_KEY_ALIAS");
+
+    /// <summary>
+    ///   Android key password (secret).
+    /// </summary>
+    [Parameter("Android key password (secret; env ANDROID_KEY_PASSWORD)")]
+    [Secret]
+    readonly string? AndroidKeyPassword = Environment.GetEnvironmentVariable("ANDROID_KEY_PASSWORD");
+
     AbsolutePath Root => RootDirectory;
     AbsolutePath SolutionFile => Root / "GitPulse.slnx";
     AbsolutePath AppProject => Root / "src" / "GitPulse.App" / "GitPulse.App.csproj";
     AbsolutePath TestResultsDirectory => Root / "TestResults";
     AbsolutePath ArtifactsDirectory => Root / "artifacts";
     AbsolutePath PublishDirectory => ArtifactsDirectory / "publish" / Runtime;
+    AbsolutePath AndroidPublishDirectory => ArtifactsDirectory / "publish" / "android";
 
     /// <summary>
     ///   Windows Release Artifact: zip of the full self-contained publish folder (ADR-012).
     /// </summary>
     AbsolutePath PublishZipFile => ArtifactsDirectory / $"GitPulse-{Runtime}.zip";
+
+    /// <summary>
+    ///   Android Release Artifact: CI-signed APK (ADR-012).
+    /// </summary>
+    AbsolutePath SignedApkFile => ArtifactsDirectory / "GitPulse-android.apk";
 
     static readonly string[] TestProjectRelativePaths =
     [
@@ -89,7 +125,7 @@ sealed class Build : NukeBuild
     /// <summary>
     ///   Compiles the MAUI App for Android only (no Windows TFM, no tests).
     ///   Used as the M11 Android compile gate (ADR-011); also invoked from Compile.
-    ///   Skips APK/AAB packaging — distribution is M12.
+    ///   Skips APK packaging — the signed APK Release Artifact is PublishAndroid (ADR-012 / M12).
     /// </summary>
     Target CompileAndroid => _ => _
         .DependsOn(Restore)
@@ -98,7 +134,7 @@ sealed class Build : NukeBuild
             // No RID: Mono runtime comes from the MAUI workload. Do not pass a
             // RID here — it triggers NU1102 Mono runtime pack resolution issues.
             // Prefer apk-only packaging for the compile gate (Release defaults to
-            // aab;apk). Full signed AAB distribution remains M12.
+            // aab;apk). Signed APK distribution is PublishAndroid (ADR-012).
             DotNetBuild(s => s
                 .SetProjectFile(AppProject)
                 .SetConfiguration(Configuration)
@@ -210,23 +246,13 @@ sealed class Build : NukeBuild
         {
             PublishDirectory.CreateOrCleanDirectory();
 
-            DotNetPublish(s =>
-            {
-                s = s
-                    .SetProject(AppProject)
-                    .SetConfiguration(Configuration)
-                    .SetFramework(WindowsFramework)
-                    .SetRuntime(Runtime)
-                    .SetSelfContained(true)
-                    .SetOutput(PublishDirectory);
-
-                if (!string.IsNullOrWhiteSpace(Version))
-                {
-                    s = s.SetProperty("Version", Version);
-                }
-
-                return s;
-            });
+            DotNetPublish(s => ApplyVersionOverride(s
+                .SetProject(AppProject)
+                .SetConfiguration(Configuration)
+                .SetFramework(WindowsFramework)
+                .SetRuntime(Runtime)
+                .SetSelfContained(true)
+                .SetOutput(PublishDirectory)));
 
             if (PublishZipFile.FileExists())
             {
@@ -294,6 +320,199 @@ sealed class Build : NukeBuild
         });
 
     /// <summary>
+    ///   Publishes the MAUI Android app as the CI-signed APK Release Artifact
+    ///   (ADR-012 / #57). All four ANDROID_* secrets must be present (contract:
+    ///   docs/DEVELOPMENT.md); the target fails fast when any is missing so a
+    ///   tag push can never attach an unsigned APK or ship a half-empty Release.
+    ///   No AAB. Output: artifacts/GitPulse-android.apk
+    /// </summary>
+    Target PublishAndroid => _ => _
+        .DependsOn(Restore)
+        .Executes(() =>
+        {
+            string keystoreBase64 = RequireAndroidSecret(AndroidKeystoreBase64, "ANDROID_KEYSTORE_BASE64");
+            string storePassword = RequireAndroidSecret(AndroidKeystorePassword, "ANDROID_KEYSTORE_PASSWORD");
+            string keyAlias = RequireAndroidSecret(AndroidKeyAlias, "ANDROID_KEY_ALIAS");
+            string keyPassword = RequireAndroidSecret(AndroidKeyPassword, "ANDROID_KEY_PASSWORD");
+
+            // The keystore lives outside the repo tree and is deleted in the
+            // finally block. Passwords reach MSBuild as environment-variable
+            // properties (picked up implicitly), so no secret ever appears on
+            // the dotnet command line echoed to build logs.
+            string keystoreFile = Path.Combine(Path.GetTempPath(), $"gitpulse-{Guid.NewGuid():N}.keystore");
+            try
+            {
+                File.WriteAllBytes(keystoreFile, DecodeKeystore(keystoreBase64));
+
+                Environment.SetEnvironmentVariable("AndroidSigningStorePass", storePassword);
+                Environment.SetEnvironmentVariable("AndroidSigningKeyAlias", keyAlias);
+                Environment.SetEnvironmentVariable("AndroidSigningKeyPass", keyPassword);
+
+                AndroidPublishDirectory.CreateOrCleanDirectory();
+
+                // No RID (same NU1102 constraint as CompileAndroid); the MAUI
+                // workload supplies the Android runtime packs.
+                DotNetPublish(s => ApplyVersionOverride(s
+                    .SetProject(AppProject)
+                    .SetConfiguration(Configuration)
+                    .SetFramework(AndroidFramework)
+                    .SetProperty("AndroidPackageFormats", "apk")
+                    .SetProperty("AndroidSignPackage", "true")
+                    .SetProperty("AndroidSigningKeyStore", keystoreFile)
+                    .SetOutput(AndroidPublishDirectory)));
+
+                // The Android build emits '<ApplicationId>-Signed.apk' only when
+                // signing succeeded; an unsigned package lacks the suffix.
+                var signedApks = AndroidPublishDirectory.GlobFiles("*-Signed.apk");
+                if (signedApks.Count != 1)
+                {
+                    throw new InvalidOperationException(
+                        $"Expected exactly one '*-Signed.apk' in {AndroidPublishDirectory}, found " +
+                        $"{signedApks.Count}. Missing output means the signing configuration failed " +
+                        "and the release must not continue (ADR-012).");
+                }
+
+                signedApks.First().Copy(SignedApkFile, ExistsPolicy.FileOverwrite);
+                Console.WriteLine($"Signed APK created: {SignedApkFile}");
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("AndroidSigningStorePass", null);
+                Environment.SetEnvironmentVariable("AndroidSigningKeyAlias", null);
+                Environment.SetEnvironmentVariable("AndroidSigningKeyPass", null);
+
+                if (File.Exists(keystoreFile))
+                {
+                    File.Delete(keystoreFile);
+                }
+            }
+        });
+
+    /// <summary>
+    ///   Verifies the CI-signed Android APK Release Artifact (ADR-012 / #57):
+    ///   exists, is a valid APK zip containing classes*.dex, and carries an
+    ///   APK Signature Scheme v2+ block. Fails the release when the signed
+    ///   APK is missing or not actually signed.
+    /// </summary>
+    Target PublishAndroidVerify => _ => _
+        .DependsOn(PublishAndroid)
+        .Executes(() =>
+        {
+            Assert.FileExists(SignedApkFile,
+                $"Android Release Artifact not found. Expected {SignedApkFile}");
+
+            using (ZipArchive archive = ZipFile.OpenRead(SignedApkFile))
+            {
+                bool hasDex = archive.Entries.Any(static e =>
+                    e.FullName.StartsWith("classes", StringComparison.Ordinal)
+                    && e.FullName.EndsWith(".dex", StringComparison.Ordinal));
+                Assert.True(hasDex,
+                    $"Android Release Artifact has wrong shape. Expected classes*.dex inside {SignedApkFile}");
+            }
+
+            Assert.True(HasApkSignatureBlock(SignedApkFile),
+                $"Android Release Artifact is not signed (no APK Signature Scheme v2+ block): {SignedApkFile}");
+
+            var sizeMb = new FileInfo(SignedApkFile).Length / (1024.0 * 1024.0);
+            Console.WriteLine($"Signed APK verified: {SignedApkFile.Name} ({sizeMb:F1} MB)");
+        });
+
+    DotNetPublishSettings ApplyVersionOverride(DotNetPublishSettings settings)
+        => string.IsNullOrWhiteSpace(Version)
+            ? settings
+            : settings.SetProperty("Version", Version);
+
+    static string RequireAndroidSecret(string? value, string environmentVariable)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        throw new InvalidOperationException(
+            $"Android signing secret '{environmentVariable}' is missing or empty. Configure the four " +
+            "ANDROID_* GitHub Secrets per the contract in docs/DEVELOPMENT.md (ADR-012); locally, set " +
+            "the same environment variables from the offline keystore backup. The release fails closed: " +
+            "an unsigned APK must never ship.");
+    }
+
+    static byte[] DecodeKeystore(string base64)
+    {
+        try
+        {
+            return Convert.FromBase64String(base64);
+        }
+        catch (FormatException exception)
+        {
+            throw new InvalidOperationException(
+                "ANDROID_KEYSTORE_BASE64 is not valid Base64. Re-encode the keystore (e.g. " +
+                "[Convert]::ToBase64String([IO.File]::ReadAllBytes('gitpulse.keystore'))) and update " +
+                "the GitHub Secret.", exception);
+        }
+    }
+
+    /// <summary>
+    ///   Detects an APK Signature Scheme v2+ block: a 16-byte "APK Sig Block 42"
+    ///   magic immediately before the zip Central Directory. JAR (v1) signatures
+    ///   alone do not satisfy the CI-signed contract.
+    /// </summary>
+    static bool HasApkSignatureBlock(AbsolutePath apkFile)
+    {
+        // End Of Central Directory record layout (fixed part, then comment).
+        const int EocdFixedSize = 22;
+        const int EocdMaxCommentSize = 65535;
+        const int EocdCentralDirectoryOffsetPosition = 16;
+        const int EocdCommentLengthPosition = 20;
+
+        // APK Signing Block footer: 8-byte size + 16-byte magic.
+        const int SigningBlockFooterSize = 24;
+        const int SigningBlockMagicPosition = 8;
+
+        ReadOnlySpan<byte> eocdSignature = [0x50, 0x4B, 0x05, 0x06];
+
+        using FileStream stream = File.OpenRead(apkFile);
+        if (stream.Length < EocdFixedSize)
+        {
+            return false;
+        }
+
+        // The EOCD record sits within the last 22 + 65535 bytes (fixed record
+        // plus optional comment).
+        int tailLength = (int)Math.Min(stream.Length, EocdFixedSize + EocdMaxCommentSize);
+        byte[] tail = new byte[tailLength];
+        stream.Seek(-tailLength, SeekOrigin.End);
+        stream.ReadExactly(tail);
+
+        int eocdIndex = -1;
+        for (int i = tail.Length - EocdFixedSize; i >= 0; i--)
+        {
+            if (tail.AsSpan(i, eocdSignature.Length).SequenceEqual(eocdSignature)
+                && i + EocdFixedSize + BitConverter.ToUInt16(tail, i + EocdCommentLengthPosition) == tail.Length)
+            {
+                eocdIndex = i;
+                break;
+            }
+        }
+
+        if (eocdIndex < 0)
+        {
+            return false;
+        }
+
+        long centralDirectoryOffset = BitConverter.ToUInt32(tail, eocdIndex + EocdCentralDirectoryOffsetPosition);
+        if (centralDirectoryOffset < SigningBlockFooterSize)
+        {
+            return false;
+        }
+
+        Span<byte> signingBlockFooter = stackalloc byte[SigningBlockFooterSize];
+        stream.Seek(centralDirectoryOffset - SigningBlockFooterSize, SeekOrigin.Begin);
+        stream.ReadExactly(signingBlockFooter);
+
+        return signingBlockFooter[SigningBlockMagicPosition..].SequenceEqual("APK Sig Block 42"u8);
+    }
+
+    /// <summary>
     ///   CI entry point: Clean → Restore → Compile → UnitTest.
     /// </summary>
     Target Ci => _ => _
@@ -338,12 +557,15 @@ sealed class Build : NukeBuild
         });
 
     /// <summary>
-    ///   Full release pipeline: CiAll → Publish → PublishVerify.
-    ///   Run on tag pushes (v*) or manually with --target Release.
+    ///   Full release pipeline: CiAll → PublishVerify (Windows zip) →
+    ///   PublishAndroidVerify (CI-signed APK). Run on tag pushes (v*) or
+    ///   manually with --target Release; requires the four ANDROID_* secrets
+    ///   (docs/DEVELOPMENT.md), otherwise PublishAndroid fails by design.
     /// </summary>
     Target Release => _ => _
         .DependsOn(CiAll)
         .DependsOn(PublishVerify)
+        .DependsOn(PublishAndroidVerify)
         .Executes(() =>
         {
             Console.WriteLine("Release pipeline completed successfully.");
