@@ -7,6 +7,14 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added — M12 Windows publish-folder zip (#56)
+
+- Nuke `Publish` zips the full self-contained Windows publish folder to
+  `artifacts/GitPulse-{Runtime}.zip`. `PublishVerify` fails if the zip is
+  missing, lacks `GitPulse.exe`/`GitPulse.dll`, or does not contain every
+  file from the publish folder. The `v*` release job attaches that zip
+  (not a lone exe) as the Windows Release Artifact.
+
 ### Added — M12 release runbook (docs)
 
 - DEVELOPMENT documents the ADR-012 ship path: Android signing Secrets
