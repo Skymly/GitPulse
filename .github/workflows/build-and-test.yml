@@ -116,9 +116,8 @@ jobs:
           path: TestResults/**/coverage.cobertura.xml
           if-no-files-found: warn
 
-  # Release job (v* tags): today still Win publish + lone exe attach.
-  # M12 target (ADR-012 / docs/DEVELOPMENT.md; pipeline #56/#57):
-  # Win publish-folder zip + CI-signed APK Release Artifacts.
+  # Release job (v* tags): Win publish-folder zip Release Artifact (ADR-012 / #56).
+  # Android CI-signed APK attachment lands in #57.
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [ci-lib, ci-windows]
@@ -150,17 +149,17 @@ jobs:
       - name: Run release pipeline via Nuke (Release)
         run: dotnet run --project build/_build.csproj -- --root . --target Release --configuration Release
 
-      - name: Upload publish artifact
+      - name: Upload Windows publish zip artifact
         uses: actions/upload-artifact@v4
         with:
           name: GitPulse-win-x64
-          path: artifacts/publish/win-x64/
+          path: artifacts/GitPulse-win-x64.zip
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/publish/win-x64/GitPulse.exe
+          files: artifacts/GitPulse-win-x64.zip
           draft: false
           generate_release_notes: true
           fail_on_unmatched_files: true

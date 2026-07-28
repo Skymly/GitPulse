@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 
 using Nuke.Common;
@@ -49,6 +50,11 @@ sealed class Build : NukeBuild
     AbsolutePath TestResultsDirectory => Root / "TestResults";
     AbsolutePath ArtifactsDirectory => Root / "artifacts";
     AbsolutePath PublishDirectory => ArtifactsDirectory / "publish" / Runtime;
+
+    /// <summary>
+    ///   Windows Release Artifact: zip of the full self-contained publish folder (ADR-012).
+    /// </summary>
+    AbsolutePath PublishZipFile => ArtifactsDirectory / $"GitPulse-{Runtime}.zip";
 
     static readonly string[] TestProjectRelativePaths =
     [
@@ -194,9 +200,9 @@ sealed class Build : NukeBuild
         });
 
     /// <summary>
-    ///   Publishes the MAUI Windows app (unpackaged, self-contained).
-    ///   Output: artifacts/publish/{Runtime}/
-    ///   MAUI Android publish (.apk/.aab) will be added in a later milestone.
+    ///   Publishes the MAUI Windows app (unpackaged, self-contained) and zips
+    ///   the full publish folder as the Windows Release Artifact (ADR-012 / #56).
+    ///   Output: artifacts/publish/{Runtime}/ and artifacts/GitPulse-{Runtime}.zip
     /// </summary>
     Target Publish => _ => _
         .DependsOn(Clean)
@@ -221,10 +227,19 @@ sealed class Build : NukeBuild
 
                 return s;
             });
+
+            if (PublishZipFile.FileExists())
+            {
+                PublishZipFile.DeleteFile();
+            }
+
+            PublishDirectory.ZipTo(PublishZipFile);
+            Console.WriteLine($"Publish zip created: {PublishZipFile}");
         });
 
     /// <summary>
-    ///   Verifies the published Windows executable exists.
+    ///   Verifies the published Windows entry point and publish-folder zip
+    ///   Release Artifact (ADR-012 / #56).
     /// </summary>
     Target PublishVerify => _ => _
         .DependsOn(Publish)
@@ -239,6 +254,43 @@ sealed class Build : NukeBuild
 
             var sizeMb = new FileInfo(entryPoint).Length / (1024.0 * 1024.0);
             Console.WriteLine($"Publish verified: {entryPoint.Name} ({sizeMb:F1} MB) at {PublishDirectory}");
+
+            Assert.FileExists(PublishZipFile,
+                $"Windows Release Artifact zip not found. Expected {PublishZipFile}");
+
+            string[] publishFiles = Directory.GetFiles(PublishDirectory, "*", SearchOption.AllDirectories);
+            Assert.True(publishFiles.Length > 0,
+                $"Publish directory is empty; cannot form a publish-folder zip. Path: {PublishDirectory}");
+
+            using ZipArchive archive = ZipFile.OpenRead(PublishZipFile);
+            ZipArchiveEntry[] fileEntries = archive.Entries
+                .Where(static e => !string.IsNullOrEmpty(e.Name))
+                .ToArray();
+
+            bool hasEntryPoint = fileEntries.Any(static e =>
+            {
+                string name = Path.GetFileName(e.FullName.Replace('\\', '/'));
+                return name.Equals("GitPulse.exe", StringComparison.OrdinalIgnoreCase)
+                    || name.Equals("GitPulse.dll", StringComparison.OrdinalIgnoreCase);
+            });
+
+            Assert.True(hasEntryPoint,
+                $"Windows Release Artifact zip has wrong shape. Expected GitPulse.exe or GitPulse.dll inside {PublishZipFile}");
+
+            Assert.True(fileEntries.Length >= publishFiles.Length,
+                $"Windows Release Artifact zip has wrong shape. Expected at least {publishFiles.Length} files from {PublishDirectory}, found {fileEntries.Length} in {PublishZipFile}");
+
+            foreach (string publishFile in publishFiles)
+            {
+                string relative = Path.GetRelativePath(PublishDirectory, publishFile).Replace('\\', '/');
+                bool present = fileEntries.Any(e =>
+                    e.FullName.Replace('\\', '/').Equals(relative, StringComparison.OrdinalIgnoreCase));
+                Assert.True(present,
+                    $"Windows Release Artifact zip has wrong shape. Missing publish file '{relative}' in {PublishZipFile}");
+            }
+
+            var zipMb = new FileInfo(PublishZipFile).Length / (1024.0 * 1024.0);
+            Console.WriteLine($"Publish zip verified: {PublishZipFile.Name} ({zipMb:F1} MB, {fileEntries.Length} files)");
         });
 
     /// <summary>

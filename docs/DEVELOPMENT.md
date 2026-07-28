@@ -32,8 +32,9 @@ cd GitPulse
 # 完整 CI（Format + 库测试 + Windows/Android App 编译）
 ./build.ps1 --target CiAll --configuration Release
 
-# Windows 自包含发布
+# Windows 自包含发布（目录 + Release Artifact zip：artifacts/GitPulse-win-x64.zip）
 ./build.ps1 --target Publish --configuration Release --runtime win-x64
+./build.ps1 --target PublishVerify --configuration Release --runtime win-x64
 ```
 
 `CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。**签名 APK、Win publish zip 挂 GitHub Release** 属 M12（ADR-012）；契约与 cut 冒烟见下文 [发版手册（M12 / ADR-012）](#release-m12)。
