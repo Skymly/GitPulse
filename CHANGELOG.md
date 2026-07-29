@@ -7,6 +7,14 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Fixed
+
+- Restore missing `Green100` / `Green900` resources so Settings (and the stored-token banner) inflate without a XAML crash.
+- Keep Settings and Repos ViewModels alive across tab switches so returning to those tabs stays usable.
+
+### Added
+
+- Windows FlaUI UI smoke project (`tests/GitPulse.UITests`; not in CiLib). Requires `GITPULSE_UI_TEST_HOST` App support from the companion App PR.
 ### Added — M12 CI-signed Android APK (#57)
 
 - Nuke `PublishAndroid` builds the Android Release Artifact from the four
