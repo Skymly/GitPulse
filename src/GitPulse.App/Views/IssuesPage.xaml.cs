@@ -45,7 +45,7 @@ public partial class IssuesPage : ContentPage
 
     private async void OpenIssueDetail(Issue issue)
     {
-        await Shell.Current.GoToAsync(
+        await AppNavigation.GoToAsync(
             $"IssueDetailPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}"
             + $"&number={issue.Number}");
@@ -53,26 +53,26 @@ public partial class IssuesPage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _ = Shell.Current.GoToAsync("..");
+        _ = AppNavigation.GoToAsync("..");
     }
 
     private async void OnPrsClicked(object? sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync(
+        await AppNavigation.GoToAsync(
             $"PullRequestsPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}");
     }
 
     private async void OnFilesClicked(object? sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync(
+        await AppNavigation.GoToAsync(
             $"FileBrowserPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}");
     }
 
     private async void OnNewIssueClicked(object? sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync(
+        await AppNavigation.GoToAsync(
             $"CreateIssuePage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}");
     }

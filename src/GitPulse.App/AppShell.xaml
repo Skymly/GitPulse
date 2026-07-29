@@ -11,24 +11,28 @@
             Title="Repos"
             Icon="dotnet_bot.png"
             ContentTemplate="{DataTemplate views:ReposPage}"
-            Route="ReposPage" />
+            Route="ReposPage"
+            AutomationId="TabRepos" />
 
         <ShellContent
             Title="Notifications"
             Icon="dotnet_bot.png"
             ContentTemplate="{DataTemplate views:NotificationsPage}"
-            Route="NotificationsPage" />
+            Route="NotificationsPage"
+            AutomationId="TabNotifications" />
 
         <ShellContent
             Title="Search"
             Icon="dotnet_bot.png"
             ContentTemplate="{DataTemplate views:SearchPage}"
-            Route="SearchPage" />
+            Route="SearchPage"
+            AutomationId="TabSearch" />
 
         <ShellContent
             Title="Settings"
             ContentTemplate="{DataTemplate views:SettingsPage}"
-            Route="SettingsPage" />
+            Route="SettingsPage"
+            AutomationId="TabSettings" />
     </TabBar>
 
     <!-- Detail pages (navigated to via GoToAsync, not in TabBar) -->

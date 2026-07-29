@@ -50,7 +50,7 @@ public partial class FileEditorPage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _ = Shell.Current.GoToAsync("..");
+        _ = AppNavigation.GoToAsync("..");
     }
 
     protected override void OnDisappearing()

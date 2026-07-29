@@ -4,7 +4,8 @@
              xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
              x:Class="GitPulse.App.Views.SettingsPage"
              x:DataType="vm:SettingsViewModel"
-             Title="Settings">
+             Title="Settings"
+             AutomationId="SettingsPageRoot">
 
     <ScrollView>
         <VerticalStackLayout Padding="16" Spacing="16" MaximumWidthRequest="600"
@@ -26,32 +27,37 @@
                    FontSize="16"
                    HorizontalOptions="Fill"
                    Text="{Binding TokenInput.Value}"
-                   IsEnabled="{Binding IsBusy.Value, Converter={StaticResource InvertedBoolConverter}}" />
+                   IsEnabled="{Binding IsBusy.Value, Converter={StaticResource InvertedBoolConverter}}"
+                   AutomationId="SettingsTokenEntry" />
 
             <!-- Stack actions vertically so narrow portrait phones keep full-width, tappable buttons. -->
             <VerticalStackLayout Spacing="12">
                 <Button Text="Save Token"
                         Command="{Binding SaveTokenCommand}"
                         HorizontalOptions="Fill"
-                        IsEnabled="{Binding IsBusy.Value, Converter={StaticResource InvertedBoolConverter}}" />
+                        IsEnabled="{Binding IsBusy.Value, Converter={StaticResource InvertedBoolConverter}}"
+                        AutomationId="SettingsSaveTokenButton" />
                 <Button Text="Clear Token"
                         Command="{Binding ClearTokenCommand}"
                         HorizontalOptions="Fill"
                         IsEnabled="{Binding HasToken.Value}"
                         BackgroundColor="{StaticResource Gray200}"
-                        TextColor="Black" />
+                        TextColor="Black"
+                        AutomationId="SettingsClearTokenButton" />
             </VerticalStackLayout>
 
             <Label Text="{Binding StatusMessage.Value}"
                    FontSize="14"
                    LineBreakMode="WordWrap"
-                   IsVisible="{Binding StatusMessage.Value, Converter={StaticResource StringToBoolConverter}}" />
+                   IsVisible="{Binding StatusMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                   AutomationId="SettingsStatusMessage" />
 
             <Border IsVisible="{Binding HasToken.Value}"
                     BackgroundColor="{StaticResource Green100}"
                     StrokeShape="RoundRectangle 8"
                     Padding="16"
-                    HorizontalOptions="Fill">
+                    HorizontalOptions="Fill"
+                    AutomationId="SettingsTokenStoredBanner">
                 <Label Text="A token is currently stored."
                        TextColor="{StaticResource Green900}"
                        FontSize="14"

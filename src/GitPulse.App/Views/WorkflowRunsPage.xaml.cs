@@ -42,7 +42,7 @@ public partial class WorkflowRunsPage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _ = Shell.Current.GoToAsync("..");
+        _ = AppNavigation.GoToAsync("..");
     }
 
     private void OnRunSelected(object? sender, SelectionChangedEventArgs e)
@@ -51,7 +51,7 @@ public partial class WorkflowRunsPage : ContentPage
             return;
 
         ((CollectionView)sender!).SelectedItem = null;
-        _ = Shell.Current.GoToAsync(
+        _ = AppNavigation.GoToAsync(
             $"WorkflowRunDetailPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}"
             + $"&runId={run.Id}");

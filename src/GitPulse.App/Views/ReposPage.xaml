@@ -5,7 +5,8 @@
              xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
              x:Class="GitPulse.App.Views.ReposPage"
              x:DataType="vm:ReposViewModel"
-             Title="Repositories">
+             Title="Repositories"
+             AutomationId="ReposPageRoot">
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
@@ -15,7 +16,8 @@
                    Grid.Row="0"
                    Placeholder="Filter repositories..."
                    Text="{Binding SearchText.Value}"
-                   Margin="16,12,16,8" />
+                   Margin="16,12,16,8"
+                   AutomationId="ReposSearchBar" />
 
         <!-- Error banner -->
         <Border Grid.Row="1"
@@ -43,7 +45,8 @@
                             Padding="14,16"
                             MinimumHeightRequest="56"
                             StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
+                            Stroke="{StaticResource Gray200}"
+                            AutomationId="ReposFirstItem">
                         <VerticalStackLayout Spacing="4">
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <Label Grid.Column="0"

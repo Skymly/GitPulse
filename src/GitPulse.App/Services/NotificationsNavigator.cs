@@ -1,3 +1,4 @@
+using GitPulse.App;
 namespace GitPulse.App.Services;
 
 /// <summary>
@@ -20,16 +21,13 @@ public sealed class NotificationsNavigator
         {
             _showMainWindow();
 
-            if (Shell.Current is null)
-                return;
-
             try
             {
-                await Shell.Current.GoToAsync("//NotificationsPage");
+                await AppNavigation.GoToAsync("//NotificationsPage");
             }
             catch
             {
-                // Shell may not be ready during early startup; ignore.
+                // Shell / host may not be ready during early startup; ignore.
             }
         });
     }

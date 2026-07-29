@@ -6,7 +6,8 @@
              xmlns:idk="clr-namespace:Indiko.Maui.Controls.Markdown;assembly=Indiko.Maui.Controls.Markdown"
              x:Class="GitPulse.App.Views.RepoDetailPage"
              x:DataType="vm:RepoDetailViewModel"
-             Title="Repository">
+             Title="Repository"
+             AutomationId="RepoDetailPageRoot">
 
     <Grid RowDefinitions="Auto,Auto,*">
 
@@ -131,14 +132,16 @@
                                 TextColor="White"
                                 Padding="16,12"
                                 FontSize="13"
-                                HorizontalOptions="Fill" />
+                                HorizontalOptions="Fill"
+                                AutomationId="RepoDetailIssuesButton" />
                         <Button Text="PRs →"
                                 Clicked="OnPullRequestsClicked"
                                 BackgroundColor="Transparent"
                                 TextColor="{StaticResource Primary}"
                                 Padding="16,12"
                                 FontSize="13"
-                                HorizontalOptions="Fill" />
+                                HorizontalOptions="Fill"
+                                AutomationId="RepoDetailPrsButton" />
                         <Button Text="Files →"
                                 Clicked="OnFilesClicked"
                                 BackgroundColor="Transparent"
@@ -152,7 +155,8 @@
                                 TextColor="{StaticResource Primary}"
                                 Padding="16,12"
                                 FontSize="13"
-                                HorizontalOptions="Fill" />
+                                HorizontalOptions="Fill"
+                                AutomationId="RepoDetailActionsButton" />
                         <Button Text="↗ Browser"
                                 Command="{Binding OpenInBrowserCommand}"
                                 CommandParameter="{Binding Repo.Value.HtmlUrl}"

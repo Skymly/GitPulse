@@ -5,7 +5,8 @@
              xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
              x:Class="GitPulse.App.Views.NotificationsPage"
              x:DataType="vm:NotificationsViewModel"
-             Title="Notifications">
+             Title="Notifications"
+             AutomationId="NotificationsPageRoot">
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
@@ -23,7 +24,8 @@
                         TextColor="{StaticResource Primary}"
                         Padding="12,10"
                         FontSize="13"
-                        HorizontalOptions="Fill" />
+                        HorizontalOptions="Fill"
+                        AutomationId="NotificationsRefreshButton" />
                 <Button Text="Mark all read"
                         Command="{Binding MarkAllAsReadCommand}"
                         BackgroundColor="Transparent"

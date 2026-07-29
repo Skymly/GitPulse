@@ -27,8 +27,10 @@
     <Color x:Key="Gray900">#212121</Color>
     <Color x:Key="Gray950">#141414</Color>
 
-    <!-- Semantic state colors (issue/PR state badges, error banners). -->
+    <!-- Semantic state colors (issue/PR state badges, error banners, success). -->
+    <Color x:Key="Green100">#DCFCE7</Color>
     <Color x:Key="Green700">#15803D</Color>
+    <Color x:Key="Green900">#14532D</Color>
     <Color x:Key="Purple700">#7E22CE</Color>
     <Color x:Key="Orange900">#9A3412</Color>
     <Color x:Key="Red100">#FEE2E2</Color>

@@ -5,7 +5,8 @@
              xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
              x:Class="GitPulse.App.Views.WorkflowRunsPage"
              x:DataType="vm:WorkflowRunsViewModel"
-             Title="Actions">
+             Title="Actions"
+             AutomationId="WorkflowRunsPageRoot">
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 

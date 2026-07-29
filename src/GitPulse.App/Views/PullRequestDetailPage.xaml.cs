@@ -54,7 +54,7 @@ public partial class PullRequestDetailPage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _ = Shell.Current.GoToAsync("..");
+        _ = AppNavigation.GoToAsync("..");
     }
 
     // ── Tab switching ──────────────────────────────────────────────

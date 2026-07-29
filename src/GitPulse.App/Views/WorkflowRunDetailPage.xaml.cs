@@ -45,7 +45,7 @@ public partial class WorkflowRunDetailPage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _ = Shell.Current.GoToAsync("..");
+        _ = AppNavigation.GoToAsync("..");
     }
 
     protected override void OnDisappearing()
