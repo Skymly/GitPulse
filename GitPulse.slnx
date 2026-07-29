@@ -8,5 +8,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GitPulse.Tests/GitPulse.Tests.csproj" />
+    <Project Path="tests/GitPulse.UITests/GitPulse.UITests.csproj" />
   </Folder>
 </Solution>

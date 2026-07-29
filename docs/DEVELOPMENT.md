@@ -13,6 +13,32 @@
 
 主目标框架：`net10.0-windows10.0.19041.0`（Windows）、`net10.0-android`（次要）。
 
+### Windows UI 自动化（本机）
+
+`tests/GitPulse.UITests` 使用 **FlaUI.UIA3 + NUnit**（直接启动 unpackaged `GitPulse.App.exe`），默认不进 `CiLib`。
+
+| 依赖 | 说明 |
+|------|------|
+| Windows + 开发人员模式 | UIA 自动化通常需要开启 |
+| `GITPULSE_UI_TEST_PAT` | User 环境变量；备用账号 PAT（勿提交） |
+| 被测 App | `artifacts/publish/win-x64/GitPulse.App.exe`，或设 `GITPULSE_UI_APP_PATH` |
+
+```powershell
+# Publish unpackaged Windows app (TargetFrameworks workaround for NU1102)
+dotnet restore GitPulse.slnx
+dotnet publish src/GitPulse.App/GitPulse.App.csproj `
+  -c Release -f net10.0-windows10.0.19041.0 -r win-x64 --self-contained true --no-restore `
+  -o artifacts/publish/win-x64 `
+  -p:TargetFrameworks=net10.0-windows10.0.19041.0 `
+  -p:WindowsPackageType=None
+
+$env:GITPULSE_UI_TEST_PAT = [Environment]::GetEnvironmentVariable('GITPULSE_UI_TEST_PAT','User')
+dotnet test tests/GitPulse.UITests/GitPulse.UITests.csproj -c Release
+```
+
+`FlaUISetup` 会设置 `GITPULSE_UI_TEST_HOST=1`。在该模式下 App 用 `UiTestHostPage`（`TabbedPage` + `NavigationPage`）代替 `AppShell`，因为 **Shell + NavigationView** 下 UIA 看不到 `ContentPage` 正文。页面在 `Window` 首帧 `Appearing` 后再构造（`CreateWindow` 期间 inflate `SettingsPage` 会 WinUI 崩溃）。深度导航走 `AppNavigation`（有 Shell 时仍用 `Shell.GoToAsync`）。诊断输出：`artifacts/uitest-diagnostics/`。
+
+
 ## 克隆与构建
 
 ```powershell
