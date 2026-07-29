@@ -149,5 +149,5 @@ Agent 行为准则——与「与用户沟通」并行生效：
 ## 待用户决策项（非阻塞）
 
 - GitHub App OAuth 是否在 v0.1.0 之后纳入（当前 ADR-004 为 PAT only）。
-- Android 出应用通知是否在 v0.1.0 之后纳入（ADR-011 / ADR-012：v0.1.0 不做）。
-- 商店上架 / Windows Authenticode / AAB 是否在 v0.1.0 之后纳入（ADR-012：v0.1.0 仅 GitHub Releases）。
+- Android 出应用通知是否在 v0.1.0 之后纳入（ADR-011 / ADR-013：v0.1.0 不做）。
+- 商店上架 / Windows Authenticode / AAB / 公开发 Android APK 是否在 v0.1.0 之后纳入（ADR-013：v0.1.0 仅 Windows GitHub Release zip）。

@@ -7,6 +7,10 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Changed
+
+- **ADR-013**: v0.1.0 GitHub Release is **Windows publish zip only**; Android signed APK remains optional (`PublishAndroid*`) and is deferred until device smoke is available (supersedes ADR-012 dual-artifact cut).
+
 ### Fixed
 
 - Restore missing `Green100` / `Green900` resources so Settings (and the stored-token banner) inflate without a XAML crash.
@@ -14,7 +18,8 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
-- Windows FlaUI UI smoke project (`tests/GitPulse.UITests`; not in CiLib). Requires `GITPULSE_UI_TEST_HOST` App support from the companion App PR.
+- Windows FlaUI UI smoke project (`tests/GitPulse.UITests`; not in CiLib). Requires `GITPULSE_UI_TEST_HOST` App support.
+
 ### Added — M12 CI-signed Android APK (#57)
 
 - Nuke `PublishAndroid` builds the Android Release Artifact from the four
@@ -23,15 +28,15 @@ Versions are derived automatically from Git tags by MinVer.
   properties, never on the command line) and copies the signed package to
   `artifacts/GitPulse-android.apk`. No AAB. `PublishAndroidVerify` fails the
   release when the APK is missing, is not a valid APK zip, or carries no APK
-  Signature Scheme v2+ block. The `v*` release job attaches the signed APK
-  alongside the Windows publish zip; missing secrets or artifacts fail the
-  job instead of shipping a half-empty Release.
+  Signature Scheme v2+ block. Optional for later Android public releases
+  (`PublishAndroidVerify`); **not** attached to v0.1.0 (ADR-013).
 
 ### Added — M12 Windows publish-folder zip (#56)
 
 - Nuke `Publish` zips the full self-contained Windows publish folder to
   `artifacts/GitPulse-{Runtime}.zip`. `PublishVerify` fails if the zip is
-  missing, lacks `GitPulse.exe`/`GitPulse.dll`, or does not contain every
+  missing, lacks `GitPulse.App.exe`/`GitPulse.App.dll` (or legacy
+  `GitPulse.exe`/`GitPulse.dll`), or does not contain every
   file from the publish folder. The `v*` release job attaches that zip
   (not a lone exe) as the Windows Release Artifact.
 

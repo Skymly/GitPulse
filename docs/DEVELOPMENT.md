@@ -67,7 +67,7 @@ cd GitPulse
 ./build.ps1 --target PublishAndroidVerify --configuration Release
 ```
 
-`CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。**签名 APK、Win publish zip 挂 GitHub Release** 属 M12（ADR-012）；契约与 cut 冒烟见下文 [发版手册（M12 / ADR-012）](#release-m12)。
+`CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。**v0.1.0 公开发版仅 Win publish zip**（ADR-013）；签名 APK 目标保留供日后使用。契约与 cut 冒烟见下文 [发版手册（M12 / ADR-013）](#release-m12)。
 
 **传统 dotnet：**
 
@@ -143,17 +143,17 @@ CI：[`.github/workflows/build-and-test.yml`](../.github/workflows/build-and-tes
 
 <a id="release-m12"></a>
 
-## 发版手册（M12 / ADR-012）
+## 发版手册（M12 / ADR-013）
 
-v0.1.0 经 **GitHub Release** 分发（术语见 [CONTEXT.md](CONTEXT.md)）。决策见 [ADR-012](adr/ADR-012-v0.1.0-github-release-artifacts.md)；epic [#54](https://github.com/Skymly/GitPulse/issues/54)。流水线实现（Win zip / 签名 APK）见 [#56](https://github.com/Skymly/GitPulse/issues/56)、[#57](https://github.com/Skymly/GitPulse/issues/57)；首次公开发版见 [#58](https://github.com/Skymly/GitPulse/issues/58)。
+v0.1.0 经 **GitHub Release** 分发（术语见 [CONTEXT.md](CONTEXT.md)）。决策见 [ADR-013](adr/ADR-013-v0.1.0-windows-only-github-release.md)（取代 [ADR-012](adr/ADR-012-v0.1.0-github-release-distribution.md)）；epic [#54](https://github.com/Skymly/GitPulse/issues/54)。Win zip 流水线见 [#56](https://github.com/Skymly/GitPulse/issues/56)；Android 签名能力见 [#57](https://github.com/Skymly/GitPulse/issues/57)（**不**挂到 v0.1.0）；首次公开发版见 [#58](https://github.com/Skymly/GitPulse/issues/58)。
 
 ### 分发与 Release Artifact
 
 | 项 | 约定 |
 |----|------|
 | 渠道 | 仅 GitHub Releases；`v*` tag 触发 `release` job。不上商店。 |
-| Windows **Release Artifact** | self-contained publish **目录 zip**（`artifacts/GitPulse-{RID}.zip`；非整包单挂 `GitPulse.exe`）。未 Authenticode。 |
-| Android **Release Artifact** | CI **签名 APK**（`artifacts/GitPulse-android.apk`）。不做 AAB。 |
+| Windows **Release Artifact**（v0.1.0 必挂） | self-contained publish **目录 zip**（`artifacts/GitPulse-{RID}.zip`）。未 Authenticode。入口为 `GitPulse.App.exe`。 |
+| Android **Release Artifact** | CI **签名 APK** 目标仍可用（`PublishAndroid*`）；**v0.1.0 不挂、不冒烟**。不做 AAB。 |
 | 版本 | MinVer + `v` tag 前缀；首发 tag 预期 `v0.1.0`。 |
 | Release 说明 | `CHANGELOG.md` 对应版本节为权威；`generate_release_notes` 仅可作补充。 |
 
@@ -161,7 +161,7 @@ v0.1.0 经 **GitHub Release** 分发（术语见 [CONTEXT.md](CONTEXT.md)）。�
 
 ### Android 签名 Secrets 契约
 
-仅 Android 在 CI 签名。密钥材料**只**放在 GitHub Secrets（另保留离线备份）；**禁止**提交 keystore / 密码。缺失任一 Secret 或产物时，`release` job **必须失败**（不得发布半空 Release）。
+仅在跑 `PublishAndroid*`（日后挂 APK）时需要。密钥材料**只**放在 GitHub Secrets（另保留离线备份）；**禁止**提交 keystore / 密码。v0.1.0 的 `release` job **不**再要求这些 Secret。
 
 | Secret 名 | 用途 | 映射（实现参考） |
 |-----------|------|------------------|
@@ -170,33 +170,36 @@ v0.1.0 经 **GitHub Release** 分发（术语见 [CONTEXT.md](CONTEXT.md)）。�
 | `ANDROID_KEY_ALIAS` | 密钥别名 | `AndroidSigningKeyAlias` |
 | `ANDROID_KEY_PASSWORD` | 密钥密码 | `AndroidSigningKeyPass` |
 
-仓库 Settings → Secrets and variables → Actions 中配置上述名称。流水线实现见 [#57](https://github.com/Skymly/GitPulse/issues/57)：`release` job 将四个 Secret 映射为同名环境变量传入 Nuke `Release`；`PublishAndroid` 把 keystore 解码到仓库外的临时文件（用后删除），密码经环境变量属性进入 MSBuild、**不上命令行**。本地跑 `Release` / `PublishAndroid*` 需自行设置同名环境变量（取自离线备份），缺一即按契约失败（fail closed）。Windows 发布保持未签名。
+仓库 Settings → Secrets and variables → Actions 中可预先配置。本地跑 `PublishAndroid*` 需自行设置同名环境变量（取自离线备份），缺一即失败。Windows 发布保持未签名。
 
 ### Tag → GitHub Release 流程
 
 1. （公开 cut 前）完成下方短冒烟；将 `CHANGELOG.md` 的 `[Unreleased]` 收成目标版本节（如 `[0.1.0]`）。
 2. 在已合入流水线的 `main` 上打并推送 `v*` tag（例如 `v0.1.0`）。**不要** force-push tag；**不要**未经冒烟发版。
-3. Workflow：`ci-lib` + `ci-windows` → `release`（`Nuke` `Release`）。
-4. `release` 产出并挂到该 tag 的 **GitHub Release**：Windows publish 目录 zip + 签名 Android APK 两个 **Release Artifact**。
+3. Workflow：`ci-lib` + `ci-windows` → `release`（Nuke `Release` = Win publish zip）。
+4. `release` 产出并挂到该 tag 的 **GitHub Release**：**仅** Windows publish 目录 zip。
 5. 发布前可用 `upload-artifact` / Release draft 做干跑检查（不宣布正式 cut）。
 
-本地对照（不替代 CI 签名与挂包）：
+本地对照：
 
 ```powershell
-# 需先设置四个 ANDROID_* 环境变量（PublishAndroid 缺一即失败）；仅验 Windows 可用 --target PublishVerify
+./build.ps1 --target PublishVerify --configuration Release
+# 完整 Release（含 CiAll + Win zip；不含 Android）
 ./build.ps1 --target Release --configuration Release
+# 日后单独打签名 APK（需 ANDROID_*）
+./build.ps1 --target PublishAndroidVerify --configuration Release
 ```
 
 ### Cut 短冒烟清单
 
-在打公开 tag 前手过一遍（ADR-012）：
+在打公开 tag 前过一遍（ADR-013）：
 
-- [ ] **Windows**：解压 Release Artifact zip（或等价 publish 目录），运行 App，用 PAT 登录。
-- [ ] **Android**：侧载签名 APK，用 PAT 登录。
-- [ ] **各平台**：打开任一等公民页（Repos / Issues / PRs / Notifications / Search / Actions 等）不崩溃。
+- [ ] **Windows**：解压 Release Artifact zip（或等价 publish 目录），运行 `GitPulse.App.exe`，用 PAT 登录。
+- [ ] **一等公民页**：Repos / Issues / PRs / Notifications / Search / Actions 等至少各开一页不崩溃（可用本机 FlaUI UITests）。
 - [ ] `CHANGELOG.md` 已收口；GitHub Release 正文以该版本节为准。
+- [ ] **不要求** Android 侧载冒烟（ADR-013）。
 
-非目标（勿混入 cut）：商店上架、Win Authenticode、AAB、OAuth、Android 出应用通知、新功能 / UX 精修。
+非目标（勿混入 cut）：商店上架、Win Authenticode、AAB、OAuth、Android 出应用通知、公开发 Android APK、新功能 / UX 精修。
 
 ## 相关文档
 
@@ -204,6 +207,7 @@ v0.1.0 经 **GitHub Release** 分发（术语见 [CONTEXT.md](CONTEXT.md)）。�
 - [DOCUMENTATION.md](DOCUMENTATION.md) — 文档约定
 - [ROADMAP.md](ROADMAP.md) — 里程碑路线图
 - [CONTEXT.md](CONTEXT.md) — Release Artifact / GitHub Release 术语
-- [adr/ADR-012-v0.1.0-github-release-artifacts.md](adr/ADR-012-v0.1.0-github-release-artifacts.md) — v0.1.0 分发决策
+- [adr/ADR-013-v0.1.0-windows-only-github-release.md](adr/ADR-013-v0.1.0-windows-only-github-release.md) — v0.1.0 分发决策（现行）
+- [adr/ADR-012-v0.1.0-github-release-distribution.md](adr/ADR-012-v0.1.0-github-release-distribution.md) — 原双产物决策（已取代）
 - [../CONTRIBUTING.md](../CONTRIBUTING.md) — 贡献流程
 - [../AGENTS.md](../AGENTS.md) — AI Agent 上下文
