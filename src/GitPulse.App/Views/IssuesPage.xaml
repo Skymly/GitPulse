@@ -5,7 +5,8 @@
              xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
              x:Class="GitPulse.App.Views.IssuesPage"
              x:DataType="vm:IssuesViewModel"
-             Title="Issues">
+             Title="Issues"
+             AutomationId="IssuesPageRoot">
 
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
 
@@ -38,7 +39,8 @@
                     TextColor="{StaticResource Primary}"
                     Padding="16,12"
                     FontSize="13"
-                    HorizontalOptions="Fill" />
+                    HorizontalOptions="Fill"
+                    AutomationId="IssuesOpenPrsButton" />
             <Button Text="Files →"
                     Clicked="OnFilesClicked"
                     BackgroundColor="Transparent"

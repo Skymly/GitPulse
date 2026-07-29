@@ -42,7 +42,7 @@ public partial class WorkflowRunsPage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _ = Shell.Current.GoToAsync("..");
+        _ = AppNavigation.GoToAsync("..");
     }
 
     private void OnRunSelected(object? sender, SelectionChangedEventArgs e)
@@ -51,7 +51,7 @@ public partial class WorkflowRunsPage : ContentPage
             return;
 
         ((CollectionView)sender!).SelectedItem = null;
-        _ = Shell.Current.GoToAsync(
+        _ = AppNavigation.GoToAsync(
             $"WorkflowRunDetailPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}"
             + $"&runId={run.Id}");
@@ -60,6 +60,6 @@ public partial class WorkflowRunsPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _viewModel.Dispose();
+        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
     }
 }

@@ -74,12 +74,8 @@ public partial class ReposPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _searchSubscription?.Dispose();
-        _searchSubscription = null;
-        _searchSubject.Dispose();
-        SearchBar.TextChanged -= OnSearchBarTextChanged;
-        // ViewModels are transient; dispose to release R3 subscriptions.
-        _viewModel.Dispose();
+        // Keep the search bridge and ViewModel alive: Repos is a root tab and is
+        // reused when switching back (same pattern as NotificationsPage).
     }
 
     private async void OnRepoSelected(object? sender, SelectionChangedEventArgs e)
@@ -93,7 +89,7 @@ public partial class ReposPage : ContentPage
             var parts = repo.FullName.Split('/', 2);
             if (parts.Length == 2)
             {
-                await Shell.Current.GoToAsync(
+                await AppNavigation.GoToAsync(
                     $"RepoDetailPage?owner={Uri.EscapeDataString(parts[0])}" +
                     $"&repo={Uri.EscapeDataString(parts[1])}");
             }

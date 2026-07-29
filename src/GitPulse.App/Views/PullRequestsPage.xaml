@@ -5,7 +5,8 @@
              xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
              x:Class="GitPulse.App.Views.PullRequestsPage"
              x:DataType="vm:PullRequestsViewModel"
-             Title="Pull Requests">
+             Title="Pull Requests"
+             AutomationId="PullRequestsPageRoot">
 
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
 
@@ -20,7 +21,8 @@
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
                     Padding="8,4"
-                    VerticalOptions="Center" />
+                    VerticalOptions="Center"
+                    AutomationId="PullRequestsBackButton" />
             <Label Grid.Column="1"
                    Text="{Binding RepoFullName.Value}"
                    FontSize="18"

@@ -43,7 +43,7 @@ public partial class CreateIssuePage : ContentPage
         if (_viewModel.CreatedIssueNumber.Value is int number)
         {
             _viewModel.CreatedIssueNumber.Value = null;
-            await Shell.Current.GoToAsync(
+            await AppNavigation.GoToAsync(
                 $"IssueDetailPage?owner={Uri.EscapeDataString(Uri.UnescapeDataString(OwnerQuery))}"
                 + $"&repo={Uri.EscapeDataString(Uri.UnescapeDataString(RepoQuery))}"
                 + $"&number={number}");
@@ -52,12 +52,12 @@ public partial class CreateIssuePage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _ = Shell.Current.GoToAsync("..");
+        _ = AppNavigation.GoToAsync("..");
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _viewModel.Dispose();
+        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
     }
 }

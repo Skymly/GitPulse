@@ -45,7 +45,7 @@ public partial class PullRequestsPage : ContentPage
 
     private async void OpenPrDetail(PullRequest pr)
     {
-        await Shell.Current.GoToAsync(
+        await AppNavigation.GoToAsync(
             $"PullRequestDetailPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}"
             + $"&number={pr.Number}");
@@ -53,7 +53,7 @@ public partial class PullRequestsPage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _ = Shell.Current.GoToAsync("..");
+        _ = AppNavigation.GoToAsync("..");
     }
 
     private void OnFilterOpen(object? sender, EventArgs e)
@@ -101,6 +101,6 @@ public partial class PullRequestsPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _viewModel.Dispose();
+        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
     }
 }

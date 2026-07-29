@@ -60,7 +60,7 @@ public partial class FileBrowserPage : ContentPage
             else
             {
                 // Navigate to file editor with path.
-                await Shell.Current.GoToAsync(
+                await AppNavigation.GoToAsync(
                     $"FileEditorPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
                     + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}"
                     + $"&path={Uri.EscapeDataString(entry.Path)}"
@@ -75,7 +75,7 @@ public partial class FileBrowserPage : ContentPage
         // The new file path will be relative to the current directory.
         var currentDir = _viewModel.CurrentPath.Value;
         var basePath = string.IsNullOrEmpty(currentDir) ? "" : currentDir + "/";
-        await Shell.Current.GoToAsync(
+        await AppNavigation.GoToAsync(
             $"FileEditorPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}"
             + $"&path={Uri.EscapeDataString(basePath + "new-file.txt")}"
@@ -84,12 +84,12 @@ public partial class FileBrowserPage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _ = Shell.Current.GoToAsync("..");
+        _ = AppNavigation.GoToAsync("..");
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _viewModel.Dispose();
+        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
     }
 }

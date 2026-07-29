@@ -131,7 +131,7 @@ public partial class SearchPage : ContentPage
         ((CollectionView)sender!).SelectedItem = null;
         if (TrySplitFullName(repo.FullName, out var owner, out var name))
         {
-            await Shell.Current.GoToAsync(
+            await AppNavigation.GoToAsync(
                 $"RepoDetailPage?owner={Uri.EscapeDataString(owner)}"
                 + $"&repo={Uri.EscapeDataString(name)}");
         }
@@ -145,7 +145,7 @@ public partial class SearchPage : ContentPage
         ((CollectionView)sender!).SelectedItem = null;
         if (TryParseRepositoryUrl(issue.RepositoryUrl, out var owner, out var repo))
         {
-            await Shell.Current.GoToAsync(
+            await AppNavigation.GoToAsync(
                 $"IssueDetailPage?owner={Uri.EscapeDataString(owner)}"
                 + $"&repo={Uri.EscapeDataString(repo)}"
                 + $"&number={issue.Number}");
@@ -160,7 +160,7 @@ public partial class SearchPage : ContentPage
         ((CollectionView)sender!).SelectedItem = null;
         if (TryParseRepositoryUrl(pullRequest.RepositoryUrl, out var owner, out var repo))
         {
-            await Shell.Current.GoToAsync(
+            await AppNavigation.GoToAsync(
                 $"PullRequestDetailPage?owner={Uri.EscapeDataString(owner)}"
                 + $"&repo={Uri.EscapeDataString(repo)}"
                 + $"&number={pullRequest.Number}");
@@ -175,7 +175,7 @@ public partial class SearchPage : ContentPage
         ((CollectionView)sender!).SelectedItem = null;
         if (TrySplitFullName(code.Repository.FullName, out var owner, out var repo))
         {
-            await Shell.Current.GoToAsync(
+            await AppNavigation.GoToAsync(
                 $"FileEditorPage?owner={Uri.EscapeDataString(owner)}"
                 + $"&repo={Uri.EscapeDataString(repo)}"
                 + $"&path={Uri.EscapeDataString(code.Path)}"

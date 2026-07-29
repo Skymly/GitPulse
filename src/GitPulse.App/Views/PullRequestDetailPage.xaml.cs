@@ -54,7 +54,7 @@ public partial class PullRequestDetailPage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _ = Shell.Current.GoToAsync("..");
+        _ = AppNavigation.GoToAsync("..");
     }
 
     // ── Tab switching ──────────────────────────────────────────────
@@ -144,7 +144,6 @@ public partial class PullRequestDetailPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _viewModel.Dispose();
-        _diffViewModel.Dispose();
+        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
     }
 }

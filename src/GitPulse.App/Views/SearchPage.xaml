@@ -5,7 +5,8 @@
              xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
              x:Class="GitPulse.App.Views.SearchPage"
              x:DataType="vm:SearchViewModel"
-             Title="Search">
+             Title="Search"
+             AutomationId="SearchPageRoot">
 
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="16,12">
         <!-- Search field + button share the row; long queries truncate in the bar. -->
@@ -19,7 +20,8 @@
                     Text="Search"
                     Clicked="OnSearchClicked"
                     Padding="16,10"
-                    VerticalOptions="Center" />
+                    VerticalOptions="Center"
+                    AutomationId="SearchSubmitButton" />
         </Grid>
 
         <!-- Equal-width type tabs stay tappable on narrow portrait widths. -->

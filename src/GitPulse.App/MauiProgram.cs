@@ -32,6 +32,10 @@ public static class MauiProgram
             .UseR3()
             .UseMarkdownView();
 
+#if WINDOWS
+        builder.UseWindowsAutomationTreeFix();
+#endif
+
         // Platform-specific credential store, presence, and toast.
 #if WINDOWS
         builder.Services.AddSingleton<ICredentialStore, WindowsCredentialStore>();
