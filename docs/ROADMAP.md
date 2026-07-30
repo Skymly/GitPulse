@@ -16,11 +16,11 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 | 状态 |
 |--------|------|----------------|------|
-| **M12** | Release v0.1.0（完整发布流水线） | full pipeline | 🔄 进行中（ADR-012） |
+| **M12** | Release v0.1.0（完整发布流水线） | full pipeline | 🔄 进行中（ADR-013） |
 
-**M12 DoD（摘要）**：发版工程；仅 GitHub Releases；Win publish 目录 zip + CI 签名 Android APK；流水线与 cut `v0.1.0` 分两刀；cut 前短冒烟 + CHANGELOG 收口。细节见 [ADR-012](adr/ADR-012-v0.1.0-github-release-artifacts.md)；操作手册（Secrets 契约、tag → Release Artifact、短冒烟）见 [DEVELOPMENT.md](DEVELOPMENT.md#release-m12)。Epic：[\#54](https://github.com/Skymly/GitPulse/issues/54)。
+**M12 DoD（摘要）**：发版工程；仅 GitHub Releases；**v0.1.0 仅** Win publish 目录 zip（ADR-013 取代 ADR-012）；Android 签名 APK 流水线保留、公开发版延后；流水线与 cut `v0.1.0` 分两刀；cut 前 Windows 短冒烟 + CHANGELOG 收口。细节见 [ADR-013](adr/ADR-013-v0.1.0-windows-only-github-release.md)；操作手册见 [DEVELOPMENT.md](DEVELOPMENT.md#release-m12)。Epic：[\#54](https://github.com/Skymly/GitPulse/issues/54)。
 
-**M12 非目标**：商店上架；Windows Authenticode；AAB；OAuth；Android 出应用通知；iOS / MacCatalyst；新功能 / UX 精修。
+**M12 非目标**：商店上架；Windows Authenticode；AAB；OAuth；Android 出应用通知；**公开发 Android APK（v0.1.0）**；iOS / MacCatalyst；新功能 / UX 精修。
 
 ---
 

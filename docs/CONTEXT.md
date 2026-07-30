@@ -29,7 +29,7 @@ The service that periodically fetches GitHub Notifications. While tray presence 
 _Avoid_: background sync (vague), push (GitPulse does not use push)
 
 **Release Artifact**:
-An installable build product attached to a GitHub Release for end users: the Windows publish-folder zip, or the signed Android APK. Not a store listing package.
+An installable build product attached to a GitHub Release for end users. For v0.1.0 (ADR-013) this is the Windows publish-folder zip only; a CI-signed Android APK may be attached in a later release when device smoke is available. Not a store listing package.
 _Avoid_: AAB (Play upload package), MSIX store package, unsigned CI compile output
 
 **GitHub Release**:

@@ -271,12 +271,19 @@ sealed class Build : NukeBuild
         .DependsOn(Publish)
         .Executes(() =>
         {
+            AbsolutePath exeApp = PublishDirectory / "GitPulse.App.exe";
+            AbsolutePath dllApp = PublishDirectory / "GitPulse.App.dll";
             AbsolutePath exe = PublishDirectory / "GitPulse.exe";
             AbsolutePath dll = PublishDirectory / "GitPulse.dll";
 
-            AbsolutePath entryPoint = exe.FileExists() ? exe : dll;
+            AbsolutePath entryPoint =
+                exeApp.FileExists() ? exeApp :
+                dllApp.FileExists() ? dllApp :
+                exe.FileExists() ? exe :
+                dll;
+
             Assert.FileExists(entryPoint,
-                $"Published entry point not found. Expected {exe} or {dll} in {PublishDirectory}");
+                $"Published entry point not found. Expected GitPulse.App.exe/dll or GitPulse.exe/dll in {PublishDirectory}");
 
             var sizeMb = new FileInfo(entryPoint).Length / (1024.0 * 1024.0);
             Console.WriteLine($"Publish verified: {entryPoint.Name} ({sizeMb:F1} MB) at {PublishDirectory}");
@@ -296,12 +303,14 @@ sealed class Build : NukeBuild
             bool hasEntryPoint = fileEntries.Any(static e =>
             {
                 string name = Path.GetFileName(e.FullName.Replace('\\', '/'));
-                return name.Equals("GitPulse.exe", StringComparison.OrdinalIgnoreCase)
+                return name.Equals("GitPulse.App.exe", StringComparison.OrdinalIgnoreCase)
+                    || name.Equals("GitPulse.App.dll", StringComparison.OrdinalIgnoreCase)
+                    || name.Equals("GitPulse.exe", StringComparison.OrdinalIgnoreCase)
                     || name.Equals("GitPulse.dll", StringComparison.OrdinalIgnoreCase);
             });
 
             Assert.True(hasEntryPoint,
-                $"Windows Release Artifact zip has wrong shape. Expected GitPulse.exe or GitPulse.dll inside {PublishZipFile}");
+                $"Windows Release Artifact zip has wrong shape. Expected GitPulse.App.exe/dll (or GitPulse.exe/dll) inside {PublishZipFile}");
 
             Assert.True(fileEntries.Length >= publishFiles.Length,
                 $"Windows Release Artifact zip has wrong shape. Expected at least {publishFiles.Length} files from {PublishDirectory}, found {fileEntries.Length} in {PublishZipFile}");
@@ -557,17 +566,15 @@ sealed class Build : NukeBuild
         });
 
     /// <summary>
-    ///   Full release pipeline: CiAll → PublishVerify (Windows zip) →
-    ///   PublishAndroidVerify (CI-signed APK). Run on tag pushes (v*) or
-    ///   manually with --target Release; requires the four ANDROID_* secrets
-    ///   (docs/DEVELOPMENT.md), otherwise PublishAndroid fails by design.
+    ///   Full release pipeline: CiAll → PublishVerify (Windows zip only).
+    ///   Android signed APK remains available via PublishAndroidVerify but is
+    ///   not part of v0.1.0 / ADR-013 tag releases.
     /// </summary>
     Target Release => _ => _
         .DependsOn(CiAll)
         .DependsOn(PublishVerify)
-        .DependsOn(PublishAndroidVerify)
         .Executes(() =>
         {
-            Console.WriteLine("Release pipeline completed successfully.");
+            Console.WriteLine("Release pipeline completed successfully (Windows zip; Android optional separately).");
         });
 }
