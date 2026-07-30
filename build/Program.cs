@@ -246,13 +246,21 @@ sealed class Build : NukeBuild
         {
             PublishDirectory.CreateOrCleanDirectory();
 
+            // Restore without a RID first so library assets keep net10.0 targets.
+            // Then publish with Windows-only TFMs + RID and --no-restore: a single
+            // publish restore with RID hits NU1102 (Android Mono.win-x64 pack).
+            DotNetRestore(s => s.SetProjectFile(SolutionFile));
+
             DotNetPublish(s => ApplyVersionOverride(s
                 .SetProject(AppProject)
                 .SetConfiguration(Configuration)
                 .SetFramework(WindowsFramework)
                 .SetRuntime(Runtime)
                 .SetSelfContained(true)
-                .SetOutput(PublishDirectory)));
+                .SetOutput(PublishDirectory)
+                .SetNoRestore(true)
+                .SetProperty("TargetFrameworks", WindowsFramework)
+                .SetProperty("WindowsPackageType", "None")));
 
             if (PublishZipFile.FileExists())
             {
