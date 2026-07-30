@@ -7,6 +7,10 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-30
+
+First public GitHub Release (ADR-013): Windows self-contained publish-folder zip only.
+
 ### Changed
 
 - **ADR-013**: v0.1.0 GitHub Release is **Windows publish zip only**; Android signed APK remains optional (`PublishAndroid*`) and is deferred until device smoke is available (supersedes ADR-012 dual-artifact cut).
@@ -15,6 +19,7 @@ Versions are derived automatically from Git tags by MinVer.
 
 - Restore missing `Green100` / `Green900` resources so Settings (and the stored-token banner) inflate without a XAML crash.
 - Keep Settings and Repos ViewModels alive across tab switches so returning to those tabs stays usable.
+- Nuke `Publish` restores without a RID, then publishes with Windows-only `TargetFrameworks`, `WindowsPackageType=None`, and `--no-restore` so multi-TFM + RID no longer fails with NU1102 on `Microsoft.NETCore.App.Runtime.Mono.win-x64`.
 
 ### Added
 
