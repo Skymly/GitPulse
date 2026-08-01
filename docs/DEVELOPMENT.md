@@ -81,7 +81,7 @@ cd GitPulse
 ./build.ps1 --target PublishAndroidVerify --configuration Release
 ```
 
-`CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。**v0.1.0 公开发版仅 Win publish zip**（ADR-013）；签名 APK 目标保留供日后使用。契约与 cut 冒烟见下文 [发版手册（M12 / ADR-013）](#release-m12)。
+`CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。**v0.1.0** 仅 Win zip（ADR-013）；**v0.1.1+** 在 Android Emulator UI Smoke 通过后可挂签名 APK（ADR-014）。契约与 cut 冒烟见下文 [发版手册（M12 / ADR-013 → M13 / ADR-014）](#release-m12)。
 
 **传统 dotnet：**
 
