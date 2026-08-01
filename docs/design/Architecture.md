@@ -1,7 +1,7 @@
 # Design Doc: Architecture
 
-> **版本**：Unreleased（目标 v0.1.0）
-> **关联 ADR**：[ADR-001](../adr/ADR-001-layered-solution-architecture.md)、[ADR-004](../adr/ADR-004-pat-auth-platform-credential-store.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)、[ADR-011](../adr/ADR-011-android-m11-daily-usable-phone.md)
+> **版本**：Unreleased（目标 v0.1.1）
+> **关联 ADR**：[ADR-001](../adr/ADR-001-layered-solution-architecture.md)、[ADR-004](../adr/ADR-004-pat-auth-platform-credential-store.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)、[ADR-011](../adr/ADR-011-android-m11-daily-usable-phone.md)、[ADR-014](../adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md)
 
 ## 概述
 
@@ -57,8 +57,8 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 ### 平台
 
 - Windows：DPAPI、`WindowHelpers` Mica/Acrylic；Tray Presence（`AppWindow.Closing` 取消关闭后隐藏）与 `AppNotificationManager` Toast（ADR-010）
-- Android（M11 ✅ / ADR-011）：`SecureStorage`；托盘/Toast / `IAppPresence` 为空操作；**无**出应用系统通知（v0.1.0 前）。竖屏手机日用可用：同一套 XAML 就地修补；`CiAndroid` / `CiAll` 编译 `net10.0-android`。v0.1.0 **不**公开发 APK（ADR-013）；签名 APK 流水线保留待有设备后再发。
-- 发布（M12 / ADR-013）：仅 GitHub Releases；v0.1.0 = Windows publish 目录 zip（未 Authenticode）；Android APK 延后。
+- Android（M11 ✅ / ADR-011）：`SecureStorage`；托盘/Toast / `IAppPresence` 为空操作；**无**出应用系统通知（v0.1.0 前）。竖屏手机日用可用：同一套 XAML 就地修补；`CiAndroid` / `CiAll` 编译 `net10.0-android`。v0.1.0 **未**公开发 APK（ADR-013）；**v0.1.1+** 在 Android Emulator UI Smoke 通过后可挂签名 APK（ADR-014）。
+- 发布：仅 GitHub Releases；v0.1.0 = Windows publish 目录 zip（ADR-013）；v0.1.1+ = Win zip + 签名 APK（ADR-014）。Windows 未 Authenticode；无 AAB。
 
 ## 设计权衡
 
@@ -68,7 +68,7 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 ## 已知局限
 
 - App 项目未纳入 `CiLib`（需 MAUI workload）；CI 分 `Ci` / `CiLib` 两条路径。
-- Android 编译门禁已落地（[#32](https://github.com/Skymly/GitPulse/issues/32)）；功能仍靠本机冒烟，无模拟器 UI 自动化门禁。
+- Android 编译门禁已落地（[#32](https://github.com/Skymly/GitPulse/issues/32)）；Android Emulator UI Smoke（Appium）为 M13 cut 清单、默认不进 `CiLib`（ADR-014）。
 
 ## 不在范围内
 

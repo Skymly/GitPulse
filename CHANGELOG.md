@@ -7,6 +7,14 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Changed
+
+- **ADR-014**: Android Emulator UI Smoke (Appium / cut checklist) unlocks attaching the signed APK on **v0.1.1**; supersedes ADR-013’s “physical device required” gate for later releases (v0.1.0 remains Windows-only).
+
+### Added
+
+- Roadmap M13: Android Emulator UI Smoke + dual-artifact `v0.1.1` cut (docs).
+
 ## [0.1.0] - 2026-07-30
 
 First public GitHub Release (ADR-013): Windows self-contained publish-folder zip only.
