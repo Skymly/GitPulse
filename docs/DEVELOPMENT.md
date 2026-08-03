@@ -40,17 +40,49 @@ dotnet test tests/GitPulse.UITests/GitPulse.UITests.csproj -c Release
 
 ### Android UI 自动化（本机模拟器）
 
-`tests/GitPulse.AndroidUITests`（待 M13 落地）使用 **Appium 2 + UiAutomator2 + NUnit**，默认不进 `CiLib`。决策见 [ADR-014](adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md)；术语 **Android Emulator UI Smoke** 见 [CONTEXT.md](CONTEXT.md)。
+`tests/GitPulse.AndroidUITests` 使用 **Appium 2 + UiAutomator2 + NUnit**，默认不进 `CiLib`。决策见 [ADR-014](adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md)；术语 **Android Emulator UI Smoke** 见 [CONTEXT.md](CONTEXT.md)。
 
 | 依赖 | 说明 |
 |------|------|
-| Android SDK + 模拟器 | 默认 **API 34+ 竖屏手机 AVD** |
-| Appium 2 + UiAutomator2 driver | 本机安装；不进默认 CI |
+| Android SDK + 模拟器 | 默认 AVD 名 **`GitPulse_API34_Phone`**（API 34+ 竖屏手机）；可用 `GITPULSE_ANDROID_AVD` 覆盖 |
+| JDK 17+ | 构建/模拟器常用；本机可设 `JAVA_HOME` |
+| Appium 2 + UiAutomator2 driver | `npm i -g appium` 后 `appium driver install uiautomator2`；不进默认 CI |
 | `GITPULSE_UI_TEST_PAT` | 与 Windows UITests 相同（User 环境变量；勿提交） |
-| `GITPULSE_UI_TEST_HOST=1` | 复用 `UiTestHostPage`（与 Windows 一致） |
-| 被测包 | 日常可用 debug；**cut / 挂 APK 前**须对 **签名 APK**（`PublishAndroid` → `artifacts/GitPulse-android.apk`）再跑 |
+| UI Test Host | Appium 经 `optionalIntentArguments --es GITPULSE_UI_TEST_HOST 1` 启用（Android 进程读不到宿主机环境变量；见 App `MainActivity`） |
+| 被测包 | 日常可用 debug/Release APK；**cut / 挂 APK 前**须对 **签名 APK**（`PublishAndroid` → `artifacts/GitPulse-android.apk`）再跑；可用 `GITPULSE_ANDROID_APK` 覆盖路径 |
 
-实现落地后在此补充精确的 `dotnet test` / 启动模拟器命令。
+创建默认 AVD（一次性）：**
+
+```powershell
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"   # 或本机 SDK 路径
+$env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
+$env:Path = "$env:ANDROID_HOME\emulator;$env:ANDROID_HOME\platform-tools;$env:ANDROID_HOME\cmdline-tools\latest\bin;$env:Path"
+
+# 若尚未安装：emulator + platforms;android-34 + system-images;android-34;google_apis;x86_64
+avdmanager create avd -n GitPulse_API34_Phone -k "system-images;android-34;google_apis;x86_64" -d pixel_6 --force
+```
+
+**构建被测 APK 并跑短冒烟：**
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Android\openjdk\jdk-21.0.8'  # 按本机 JDK 调整
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
+$env:Path = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\emulator;$env:ANDROID_HOME\platform-tools;$env:Path"
+
+# 日常：Release APK（EmbedAssemblies 避免 Fast Deployment 与 Appium 冲突）
+dotnet build src/GitPulse.App/GitPulse.App.csproj -c Release -f net10.0-android `
+  -p:EmbedAssembliesIntoApk=true -p:AndroidPackageFormats=apk
+
+# 可选：先手动启动模拟器（否则 Appium 会按 GITPULSE_ANDROID_AVD / 默认名拉起）
+# emulator -avd GitPulse_API34_Phone -no-snapshot-load
+
+$env:GITPULSE_UI_TEST_PAT = [Environment]::GetEnvironmentVariable('GITPULSE_UI_TEST_PAT','User')
+# 可选：$env:GITPULSE_ANDROID_APK = 'artifacts/GitPulse-android.apk'
+dotnet test tests/GitPulse.AndroidUITests/GitPulse.AndroidUITests.csproj -c Release
+```
+
+失败时诊断输出写入 `artifacts/uitest-diagnostics/`（截图 + page source）。`AppiumSetup` 会在端口 `4723` 无服务时自启本地 Appium；也可另开终端手动 `appium`。
 
 
 ## 克隆与构建

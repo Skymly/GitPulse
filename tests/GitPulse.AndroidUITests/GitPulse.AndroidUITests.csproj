@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>GitPulse.AndroidUITests</RootNamespace>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+		<!-- Keep UI tests out of default CI library gates; run explicitly. -->
+		<IsUiTestProject>true</IsUiTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Appium.WebDriver" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="NUnit" />
+		<PackageReference Include="NUnit3TestAdapter" />
+	</ItemGroup>
+
+	<!-- Align AutomationIds with Windows FlaUI UITests (ADR-014). -->
+	<ItemGroup>
+		<Compile Include="..\GitPulse.UITests\AutomationIds.cs" Link="AutomationIds.cs" />
+	</ItemGroup>
+
+</Project>
