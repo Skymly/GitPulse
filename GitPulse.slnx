@@ -9,5 +9,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/GitPulse.Tests/GitPulse.Tests.csproj" />
     <Project Path="tests/GitPulse.UITests/GitPulse.UITests.csproj" />
+    <Project Path="tests/GitPulse.AndroidUITests/GitPulse.AndroidUITests.csproj" />
   </Folder>
 </Solution>

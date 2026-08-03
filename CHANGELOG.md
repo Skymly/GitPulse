@@ -7,13 +7,14 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
-### Changed
-
-- **ADR-014**: Android Emulator UI Smoke (Appium / cut checklist) unlocks attaching the signed APK on **v0.1.1**; supersedes ADR-013’s “physical device required” gate for later releases (v0.1.0 remains Windows-only).
-
 ### Added
 
 - Roadmap M13: Android Emulator UI Smoke + dual-artifact `v0.1.1` cut (docs).
+- Android Emulator UI Smoke project (`tests/GitPulse.AndroidUITests`; Appium 2 + UiAutomator2 + NUnit; not in CiLib). Reuses Windows `AutomationIds`, `GITPULSE_UI_TEST_PAT`, and UI Test Host via Appium intent extras.
+
+### Changed
+
+- **ADR-014**: Android Emulator UI Smoke (Appium / cut checklist) unlocks attaching the signed APK on **v0.1.1**; supersedes ADR-013’s “physical device required” gate for later releases (v0.1.0 remains Windows-only).
 
 ## [0.1.0] - 2026-07-30
 
