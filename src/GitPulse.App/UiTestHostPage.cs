@@ -3,8 +3,8 @@ using GitPulse.App.Views;
 namespace GitPulse.App;
 
 /// <summary>
-///   Non-Shell host for Windows UI automation. MAUI Shell's NavigationView does
-///   not expose ContentPage bodies to UIA (FlaUI/Appium), so UITests launch with
+///   Non-Shell host for UI automation (Windows FlaUI and Android Appium). MAUI Shell
+///   does not expose ContentPage bodies reliably to automation, so UITests launch with
 ///   GITPULSE_UI_TEST_HOST=1 to use a TabbedPage that keeps page controls visible.
 /// </summary>
 /// <remarks>
