@@ -574,15 +574,20 @@ sealed class Build : NukeBuild
         });
 
     /// <summary>
-    ///   Full release pipeline: CiAll → PublishVerify (Windows zip only).
-    ///   Android signed APK remains available via PublishAndroidVerify but is
-    ///   not part of v0.1.0 / ADR-013 tag releases.
+    ///   Full release pipeline: CiAll → PublishVerify (Windows zip) →
+    ///   PublishAndroidVerify (CI-signed APK). Run on tag pushes (v*) or
+    ///   manually with --target Release; requires the four ANDROID_* secrets
+    ///   (docs/DEVELOPMENT.md / ADR-014), otherwise PublishAndroid fails by
+    ///   design so a dual-artifact cut never ships a half-empty Release.
+    ///   Android Emulator UI Smoke stays on the cut checklist — not a hard
+    ///   dependency of this target.
     /// </summary>
     Target Release => _ => _
         .DependsOn(CiAll)
         .DependsOn(PublishVerify)
+        .DependsOn(PublishAndroidVerify)
         .Executes(() =>
         {
-            Console.WriteLine("Release pipeline completed successfully (Windows zip; Android optional separately).");
+            Console.WriteLine("Release pipeline completed successfully (Windows zip + signed Android APK).");
         });
 }
