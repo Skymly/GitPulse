@@ -111,6 +111,9 @@ cd GitPulse
 # Android 签名 APK 发布（Release Artifact：artifacts/GitPulse-android.apk）
 # 需先设置四个 ANDROID_* 环境变量（见下文「Android 签名 Secrets 契约」），缺一即失败
 ./build.ps1 --target PublishAndroidVerify --configuration Release
+
+# 双产物 tag 形状（Win zip + 签名 APK；ADR-014 / v0.1.1+；缺 Secret/APK 即失败）
+./build.ps1 --target Release --configuration Release
 ```
 
 `CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。**v0.1.0** 仅 Win zip（ADR-013）；**v0.1.1+** 在 Android Emulator UI Smoke 通过后可挂签名 APK（ADR-014）。契约与 cut 冒烟见下文 [发版手册（M12 / ADR-013 → M13 / ADR-014）](#release-m12)。
@@ -207,7 +210,7 @@ v0.1.0 经 **GitHub Release** 分发且 **仅 Windows zip**（[ADR-013](adr/ADR-
 
 ### Android 签名 Secrets 契约
 
-跑 `PublishAndroid*` 或（自 **v0.1.1** 起）tag `release` 挂 APK 时需要。密钥材料**只**放在 GitHub Secrets（另保留离线备份）；**禁止**提交 keystore / 密码。**v0.1.0** 的 `release` job 不要求这些 Secret；**v0.1.1+** 若恢复挂 APK，缺 Secret 应失败（勿发半空 Release）。
+跑 `PublishAndroid*` 或（自 **v0.1.1** 起）tag `release` 挂 APK 时需要。密钥材料**只**放在 GitHub Secrets（另保留离线备份）；**禁止**提交 keystore / 密码。**v0.1.0** 的 Release 历史上不要求这些 Secret（ADR-013）；**v0.1.1+** 双产物 cut 缺任一 Secret 或 APK 即失败（勿发半空 Release）。
 
 | Secret 名 | 用途 | 映射（实现参考） |
 |-----------|------|------------------|
@@ -222,18 +225,19 @@ v0.1.0 经 **GitHub Release** 分发且 **仅 Windows zip**（[ADR-013](adr/ADR-
 
 1. （公开 cut 前）完成下方短冒烟；将 `CHANGELOG.md` 的 `[Unreleased]` 收成目标版本节（如 `[0.1.1]`）。
 2. 在已合入能力的 `main` 上打并推送 `v*` tag（例如 `v0.1.1`）。**不要** force-push tag；**不要**未经冒烟发版。
-3. Workflow：`ci-lib` + `ci-windows` → `release`（Nuke）。
-4. **v0.1.0**：Release **仅** Windows publish zip（ADR-013，已发布）。
-5. **v0.1.1+**（ADR-014）：Release 挂 **Windows zip + 签名 Android APK**（UI 冒烟在 cut 清单本机完成，默认不作为 job 硬门禁）。流水线改回双产物属 M13 实现票。
+3. Workflow：`ci-lib` + `ci-windows` → `release`（Nuke `Release`）。
+4. **v0.1.0**：Release **仅** Windows publish zip（ADR-013，已发布；历史事实不变）。
+5. **v0.1.1+**（ADR-014）：`release` job 挂 **Windows zip + 签名 Android APK**；缺 `ANDROID_*` / APK **fail closed**。Android Emulator UI Smoke 在 cut 清单本机完成，**不**作为本 job 硬步骤。
 6. 发布前可用 `upload-artifact` / Release draft 做干跑检查。
 
 本地对照：
 
 ```powershell
+# Win zip only
 ./build.ps1 --target PublishVerify --configuration Release
-# Win zip（v0.1.0 形状）；M13 后 Release target 预期再含 APK
+# 双产物（需 ANDROID_*）：Win zip + 签名 APK；缺 Secret/APK 即失败
 ./build.ps1 --target Release --configuration Release
-# 签名 APK（需 ANDROID_*）；cut 前 Android Emulator UI Smoke 应对此产物再跑
+# 仅签名 APK（需 ANDROID_*）；cut 前 Android Emulator UI Smoke 应对此产物再跑
 ./build.ps1 --target PublishAndroidVerify --configuration Release
 ```
 
