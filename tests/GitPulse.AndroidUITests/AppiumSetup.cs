@@ -82,7 +82,9 @@ public sealed class AppiumSetup
             options,
             TimeSpan.FromSeconds(180));
 
-        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(2);
+        // Explicit waits in BaseTest poll FindElements; keep implicit wait at zero
+        // so short deadlines (e.g. 5s) are not inflated by per-lookup stalls.
+        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 
         WaitForUiTestHostReady();
     }
