@@ -38,6 +38,20 @@ dotnet test tests/GitPulse.UITests/GitPulse.UITests.csproj -c Release
 
 `FlaUISetup` 会设置 `GITPULSE_UI_TEST_HOST=1`。在该模式下 App 用 `UiTestHostPage`（`TabbedPage` + `NavigationPage`）代替 `AppShell`，因为 **Shell + NavigationView** 下 UIA 看不到 `ContentPage` 正文。页面在 `Window` 首帧 `Appearing` 后再构造（`CreateWindow` 期间 inflate `SettingsPage` 会 WinUI 崩溃）。深度导航走 `AppNavigation`（有 Shell 时仍用 `Shell.GoToAsync`）。诊断输出：`artifacts/uitest-diagnostics/`。
 
+### Android UI 自动化（本机模拟器）
+
+`tests/GitPulse.AndroidUITests`（待 M13 落地）使用 **Appium 2 + UiAutomator2 + NUnit**，默认不进 `CiLib`。决策见 [ADR-014](adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md)；术语 **Android Emulator UI Smoke** 见 [CONTEXT.md](CONTEXT.md)。
+
+| 依赖 | 说明 |
+|------|------|
+| Android SDK + 模拟器 | 默认 **API 34+ 竖屏手机 AVD** |
+| Appium 2 + UiAutomator2 driver | 本机安装；不进默认 CI |
+| `GITPULSE_UI_TEST_PAT` | 与 Windows UITests 相同（User 环境变量；勿提交） |
+| `GITPULSE_UI_TEST_HOST=1` | 复用 `UiTestHostPage`（与 Windows 一致） |
+| 被测包 | 日常可用 debug；**cut / 挂 APK 前**须对 **签名 APK**（`PublishAndroid` → `artifacts/GitPulse-android.apk`）再跑 |
+
+实现落地后在此补充精确的 `dotnet test` / 启动模拟器命令。
+
 
 ## 克隆与构建
 
@@ -67,7 +81,7 @@ cd GitPulse
 ./build.ps1 --target PublishAndroidVerify --configuration Release
 ```
 
-`CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。**v0.1.0 公开发版仅 Win publish zip**（ADR-013）；签名 APK 目标保留供日后使用。契约与 cut 冒烟见下文 [发版手册（M12 / ADR-013）](#release-m12)。
+`CiAll` 经 `Compile` → `CompileAndroid` 覆盖 Android 编译门禁（ADR-011 / [#32](https://github.com/Skymly/GitPulse/issues/32)）。日常只改 Android 相关时可先跑 `CiAndroid`。**v0.1.0** 仅 Win zip（ADR-013）；**v0.1.1+** 在 Android Emulator UI Smoke 通过后可挂签名 APK（ADR-014）。契约与 cut 冒烟见下文 [发版手册（M12 / ADR-013 → M13 / ADR-014）](#release-m12)。
 
 **传统 dotnet：**
 
@@ -143,25 +157,25 @@ CI：[`.github/workflows/build-and-test.yml`](../.github/workflows/build-and-tes
 
 <a id="release-m12"></a>
 
-## 发版手册（M12 / ADR-013）
+## 发版手册（M12 / ADR-013 → M13 / ADR-014）
 
-v0.1.0 经 **GitHub Release** 分发（术语见 [CONTEXT.md](CONTEXT.md)）。决策见 [ADR-013](adr/ADR-013-v0.1.0-windows-only-github-release.md)（取代 [ADR-012](adr/ADR-012-v0.1.0-github-release-distribution.md)）；epic [#54](https://github.com/Skymly/GitPulse/issues/54)。Win zip 流水线见 [#56](https://github.com/Skymly/GitPulse/issues/56)；Android 签名能力见 [#57](https://github.com/Skymly/GitPulse/issues/57)（**不**挂到 v0.1.0）；首次公开发版见 [#58](https://github.com/Skymly/GitPulse/issues/58)。
+v0.1.0 经 **GitHub Release** 分发且 **仅 Windows zip**（[ADR-013](adr/ADR-013-v0.1.0-windows-only-github-release.md)）。自 **v0.1.1** 起，cut 在通过 **Android Emulator UI Smoke** 后可同时挂签名 APK（[ADR-014](adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md)）。术语见 [CONTEXT.md](CONTEXT.md)。Epic：M12 [\#54](https://github.com/Skymly/GitPulse/issues/54)；M13 [\#67](https://github.com/Skymly/GitPulse/issues/67)。
 
 ### 分发与 Release Artifact
 
 | 项 | 约定 |
 |----|------|
 | 渠道 | 仅 GitHub Releases；`v*` tag 触发 `release` job。不上商店。 |
-| Windows **Release Artifact**（v0.1.0 必挂） | self-contained publish **目录 zip**（`artifacts/GitPulse-{RID}.zip`）。未 Authenticode。入口为 `GitPulse.App.exe`。 |
-| Android **Release Artifact** | CI **签名 APK** 目标仍可用（`PublishAndroid*`）；**v0.1.0 不挂、不冒烟**。不做 AAB。 |
-| 版本 | MinVer + `v` tag 前缀；首发 tag 预期 `v0.1.0`。 |
+| Windows **Release Artifact** | self-contained publish **目录 zip**（`artifacts/GitPulse-{RID}.zip`）。未 Authenticode。入口为 `GitPulse.App.exe`。 |
+| Android **Release Artifact** | CI **签名 APK**（`artifacts/GitPulse-android.apk`）。**v0.1.0 未挂**；**v0.1.1+** 在 Android Emulator UI Smoke（cut 清单）通过后挂。不做 AAB。 |
+| 版本 | MinVer + `v` tag 前缀；下一目标 tag **`v0.1.1`**。 |
 | Release 说明 | `CHANGELOG.md` 对应版本节为权威；`generate_release_notes` 仅可作补充。 |
 
-交付拆两刀：**先合发布流水线**（可不打公开 tag），再单独 **cut**（冒烟 + CHANGELOG 收口 + 打 tag）。
+交付仍拆两刀：**先合能力**（自动化 / 流水线），再单独 **cut**（冒烟 + CHANGELOG 收口 + 打 tag）。
 
 ### Android 签名 Secrets 契约
 
-仅在跑 `PublishAndroid*`（日后挂 APK）时需要。密钥材料**只**放在 GitHub Secrets（另保留离线备份）；**禁止**提交 keystore / 密码。v0.1.0 的 `release` job **不**再要求这些 Secret。
+跑 `PublishAndroid*` 或（自 **v0.1.1** 起）tag `release` 挂 APK 时需要。密钥材料**只**放在 GitHub Secrets（另保留离线备份）；**禁止**提交 keystore / 密码。**v0.1.0** 的 `release` job 不要求这些 Secret；**v0.1.1+** 若恢复挂 APK，缺 Secret 应失败（勿发半空 Release）。
 
 | Secret 名 | 用途 | 映射（实现参考） |
 |-----------|------|------------------|
@@ -174,40 +188,51 @@ v0.1.0 经 **GitHub Release** 分发（术语见 [CONTEXT.md](CONTEXT.md)）。�
 
 ### Tag → GitHub Release 流程
 
-1. （公开 cut 前）完成下方短冒烟；将 `CHANGELOG.md` 的 `[Unreleased]` 收成目标版本节（如 `[0.1.0]`）。
-2. 在已合入流水线的 `main` 上打并推送 `v*` tag（例如 `v0.1.0`）。**不要** force-push tag；**不要**未经冒烟发版。
-3. Workflow：`ci-lib` + `ci-windows` → `release`（Nuke `Release` = Win publish zip）。
-4. `release` 产出并挂到该 tag 的 **GitHub Release**：**仅** Windows publish 目录 zip。
-5. 发布前可用 `upload-artifact` / Release draft 做干跑检查（不宣布正式 cut）。
+1. （公开 cut 前）完成下方短冒烟；将 `CHANGELOG.md` 的 `[Unreleased]` 收成目标版本节（如 `[0.1.1]`）。
+2. 在已合入能力的 `main` 上打并推送 `v*` tag（例如 `v0.1.1`）。**不要** force-push tag；**不要**未经冒烟发版。
+3. Workflow：`ci-lib` + `ci-windows` → `release`（Nuke）。
+4. **v0.1.0**：Release **仅** Windows publish zip（ADR-013，已发布）。
+5. **v0.1.1+**（ADR-014）：Release 挂 **Windows zip + 签名 Android APK**（UI 冒烟在 cut 清单本机完成，默认不作为 job 硬门禁）。流水线改回双产物属 M13 实现票。
+6. 发布前可用 `upload-artifact` / Release draft 做干跑检查。
 
 本地对照：
 
 ```powershell
 ./build.ps1 --target PublishVerify --configuration Release
-# 完整 Release（含 CiAll + Win zip；不含 Android）
+# Win zip（v0.1.0 形状）；M13 后 Release target 预期再含 APK
 ./build.ps1 --target Release --configuration Release
-# 日后单独打签名 APK（需 ANDROID_*）
+# 签名 APK（需 ANDROID_*）；cut 前 Android Emulator UI Smoke 应对此产物再跑
 ./build.ps1 --target PublishAndroidVerify --configuration Release
 ```
 
 ### Cut 短冒烟清单
 
-在打公开 tag 前过一遍（ADR-013）：
+#### v0.1.0（已完成，ADR-013）
 
-- [ ] **Windows**：解压 Release Artifact zip（或等价 publish 目录），运行 `GitPulse.App.exe`，用 PAT 登录。
-- [ ] **一等公民页**：Repos / Issues / PRs / Notifications / Search / Actions 等至少各开一页不崩溃（可用本机 FlaUI UITests）。
-- [ ] `CHANGELOG.md` 已收口；GitHub Release 正文以该版本节为准。
-- [ ] **不要求** Android 侧载冒烟（ADR-013）。
+- [x] **Windows**：解压 Release Artifact zip，运行 `GitPulse.App.exe`，用 PAT 登录。
+- [x] **一等公民页**（可用 FlaUI）：Repos / Issues / PRs / Notifications / Search / Actions 等至少各开一页不崩溃。
+- [x] `CHANGELOG.md` 已收口；GitHub Release 正文以该版本节为准。
+- [x] **不要求** Android 侧载冒烟。
 
-非目标（勿混入 cut）：商店上架、Win Authenticode、AAB、OAuth、Android 出应用通知、公开发 Android APK、新功能 / UX 精修。
+#### v0.1.1+（ADR-014）
+
+在打公开 tag 前过一遍：
+
+- [ ] **Windows**：同 v0.1.0（FlaUI 短冒烟可选复跑）。
+- [ ] **Android Emulator UI Smoke**：默认 API 34+ 竖屏模拟器；Appium 短冒烟对齐 Windows 场景；**cut 前对签名 APK** 再跑一遍。
+- [ ] `CHANGELOG.md` 已收口；GitHub Release 挂 **Win zip + 签名 APK**。
+- [ ] **不要求** 真机侧载必过；UI 冒烟默认 **不**进 `CiLib` / `release` 硬门禁。
+
+非目标（勿混入 cut）：商店上架、Win Authenticode、AAB、OAuth、Android 出应用通知、产品新功能 / UX 精修。
 
 ## 相关文档
 
 - [docs/README.md](README.md) — 文档索引
 - [DOCUMENTATION.md](DOCUMENTATION.md) — 文档约定
 - [ROADMAP.md](ROADMAP.md) — 里程碑路线图
-- [CONTEXT.md](CONTEXT.md) — Release Artifact / GitHub Release 术语
-- [adr/ADR-013-v0.1.0-windows-only-github-release.md](adr/ADR-013-v0.1.0-windows-only-github-release.md) — v0.1.0 分发决策（现行）
+- [CONTEXT.md](CONTEXT.md) — Release Artifact / GitHub Release / Android Emulator UI Smoke 术语
+- [adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md](adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md) — 现行：模拟器冒烟解锁 APK
+- [adr/ADR-013-v0.1.0-windows-only-github-release.md](adr/ADR-013-v0.1.0-windows-only-github-release.md) — v0.1.0 Win-only（已取代）
 - [adr/ADR-012-v0.1.0-github-release-distribution.md](adr/ADR-012-v0.1.0-github-release-distribution.md) — 原双产物决策（已取代）
 - [../CONTRIBUTING.md](../CONTRIBUTING.md) — 贡献流程
 - [../AGENTS.md](../AGENTS.md) — AI Agent 上下文

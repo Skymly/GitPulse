@@ -29,9 +29,17 @@ The service that periodically fetches GitHub Notifications. While tray presence 
 _Avoid_: background sync (vague), push (GitPulse does not use push)
 
 **Release Artifact**:
-An installable build product attached to a GitHub Release for end users. For v0.1.0 (ADR-013) this is the Windows publish-folder zip only; a CI-signed Android APK may be attached in a later release when device smoke is available. Not a store listing package.
+An installable build product attached to a GitHub Release for end users. v0.1.0 shipped the Windows publish-folder zip only (ADR-013). From **v0.1.1** (ADR-014) a cut may also attach the CI-signed Android APK once Android Emulator UI Smoke has passed. Not a store listing package.
 _Avoid_: AAB (Play upload package), MSIX store package, unsigned CI compile output
 
 **GitHub Release**:
-The sole v0.1.0 distribution channel: a tagged GitHub Releases entry that carries Release Artifacts. Not a store submission.
+The sole distribution channel for public cuts: a tagged GitHub Releases entry that carries Release Artifacts. Not a store submission.
 _Avoid_: Microsoft Store, Google Play, sideload-only untagged build
+
+**Android Emulator UI Smoke**:
+A short, repeatable Appium (UiAutomator2) UI pass on a default portrait phone emulator (API 34+), covering launch, main tabs, saving a PAT, and opening first-class pages without crash—aligned with the Windows FlaUI short smoke. It is a **cut checklist** gate for attaching the signed Android APK; it is not a `CiLib` / tag `release` hard gate by default. Physical-device sideload is optional spot-check only.
+_Avoid_: device-only smoke (required), full E2E, IME automation, CI UI gate
+
+**UI Test Host**:
+The non-Shell `UiTestHostPage` (TabbedPage + NavigationPage) enabled by `GITPULSE_UI_TEST_HOST=1` so UI automation can see page controls. Used for Windows FlaUI and Android Emulator UI Smoke; not the production Shell chrome.
+_Avoid_: production Shell, test-only navigation as user-facing design

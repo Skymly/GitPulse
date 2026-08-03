@@ -8,7 +8,7 @@
 |----|------|
 | **类型** | 个人项目（Skymly workspace） |
 | **远程** | https://github.com/Skymly/GitPulse |
-| **阶段** | **v0.1.0 已发布**（M12 / ADR-013；见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
+| **阶段** | **v0.1.0 已发布**；**M13 进行中**（Android Emulator UI Smoke → `v0.1.1` 挂 APK；ADR-014；见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
 | **目的** | [Observables](https://github.com/Skymly/Observables) 的真实世界展示应用（声明式 RestAPI + R3）。非玩具 demo，作者日常使用的 GitHub 客户端。 |
 
 ## 技术栈
@@ -148,6 +148,7 @@ Agent 行为准则——与「与用户沟通」并行生效：
 
 ## 待用户决策项（非阻塞）
 
-- GitHub App OAuth 是否在 v0.1.0 之后纳入（当前 ADR-004 为 PAT only）。
-- Android 出应用通知是否在 v0.1.0 之后纳入（ADR-011 / ADR-013：v0.1.0 不做）。
-- 商店上架 / Windows Authenticode / AAB / 公开发 Android APK 是否在 v0.1.0 之后纳入（ADR-013：v0.1.0 仅 Windows GitHub Release zip）。
+- GitHub App OAuth 是否纳入后续版本（当前 ADR-004 为 PAT only）。
+- Android 出应用通知是否纳入后续版本（ADR-011：v0.1.0 未做）。
+- 商店上架 / Windows Authenticode / AAB 是否纳入后续版本（ADR-014：仍仅 GitHub Releases；v0.1.1 起可挂签名 APK）。
+- 真机抽查 / IME 自动化是否在 M13 之后加强（ADR-014：非 cut 必过）。

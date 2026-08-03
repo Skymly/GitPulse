@@ -1,6 +1,6 @@
 # GitPulse 路线图
 
-功能与技术 backlog 的滚动清单。里程碑编号 **M0–M12**；完成项移入「已完成（归档）」章节。
+功能与技术 backlog 的滚动清单。里程碑编号 **M0–M13**；完成项移入「已完成（归档）」章节。
 
 - **文档标准**：[DOCUMENTATION.md](DOCUMENTATION.md)
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
@@ -14,7 +14,13 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 ## 进行中
 
-（暂无 — v0.1.0 已发布；后续里程碑待排期）
+| 里程碑 | 内容 | Observables 域 | 状态 |
+|--------|------|----------------|------|
+| **M13** | Android Emulator UI Smoke + `v0.1.1` 挂签名 APK | full pipeline | 🔄 进行中（ADR-014） |
+
+**M13 DoD（摘要）**：本机 Appium/UiAutomator2 短冒烟（默认 API 34+ 竖屏模拟器；对齐 Windows FlaUI 场景；cut 必过、不进 CiLib）；cut 前对签名 APK 再跑；下一公开 tag **`v0.1.1`** 同时挂 Win zip + 签名 APK。细节见 [ADR-014](adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md)。Epic：[\#67](https://github.com/Skymly/GitPulse/issues/67)。
+
+**M13 非目标**：真机必过；IME/Diff 自动化；UI 冒烟进 `CiLib`/`release` 硬门禁；商店 / Authenticode / AAB；OAuth；Android 出应用通知；产品新功能。
 
 ---
 
@@ -28,9 +34,9 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 项 | 说明 |
 |----|------|
-| 公开发 Android 签名 APK | ADR-013：流水线保留；有侧载冒烟设备后再挂 GitHub Release |
-| Microsoft Store / Google Play / Authenticode / AAB | ADR-012/013 明确延后 |
+| Microsoft Store / Google Play / Authenticode / AAB | ADR-012/013/014 明确延后 |
 | GitHub App OAuth | 当前仅 PAT（ADR-004） |
+| 真机抽查 / IME 自动化 | ADR-014：非 cut 必过 |
 
 ---
 
