@@ -14,15 +14,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 ## 进行中
 
-| 里程碑 | 内容 | Observables 域 | 状态 |
-|--------|------|----------------|------|
-| **M13** | Android Emulator UI Smoke + `v0.1.1` 挂签名 APK | full pipeline | 🔄 进行中（ADR-014） |
-
-**M13 DoD（摘要）**：本机 Appium/UiAutomator2 短冒烟（默认 API 34+ 竖屏模拟器；对齐 Windows FlaUI 场景；cut 必过、不进 CiLib）；cut 前对签名 APK 再跑；下一公开 tag **`v0.1.1`** 同时挂 Win zip + 签名 APK。细节见 [ADR-014](adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md)。Epic：[\#67](https://github.com/Skymly/GitPulse/issues/67)。
-
-**M13 非目标**：真机必过；IME/Diff 自动化；UI 冒烟进 `CiLib`/`release` 硬门禁；商店 / Authenticode / AAB；OAuth；Android 出应用通知；产品新功能。
-
----
+（暂无）
 
 ## 排期
 
@@ -54,6 +46,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
+| **M13** ✅ | Android Emulator UI Smoke + v0.1.1 双产物 GitHub Release（Win zip + 签名 APK；ADR-014；[#67](https://github.com/Skymly/GitPulse/issues/67) / [#71](https://github.com/Skymly/GitPulse/issues/71)） | full pipeline |
 | **M12** ✅ | Release v0.1.0（GitHub Releases；Win publish zip；ADR-013；[#54](https://github.com/Skymly/GitPulse/issues/54) / [#58](https://github.com/Skymly/GitPulse/issues/58)） | full pipeline |
 | **M0** ✅ | 项目骨架：solution、Nuke、CI、文档、空 MAUI 应用可编译 | — |
 | **M1** ✅ | 认证 + 仓库列表浏览 | RestAPI + Events |

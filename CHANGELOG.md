@@ -7,6 +7,8 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-05
+
 ### Added
 
 - Roadmap M13: Android Emulator UI Smoke + dual-artifact `v0.1.1` cut (docs).
