@@ -365,6 +365,12 @@ public class SearchViewModelTests
             return Task.FromResult((BuildClient(queryHandler), queryHandler));
         }
 
+        public Task<PagedGitHubSession> CreatePagedSessionAsync(CancellationToken ct = default)
+        {
+            var queryHandler = new GitHubQueryHandler(handler);
+            return Task.FromResult(new PagedGitHubSession(BuildClient(queryHandler), queryHandler));
+        }
+
         private HttpClient BuildClient(HttpMessageHandler messageHandler)
         {
             var client = new HttpClient(messageHandler, disposeHandler: false)

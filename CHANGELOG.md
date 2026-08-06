@@ -7,6 +7,13 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added
+
+- `PagedGitHubSession` (Core/Http) — owns one paged GitHub HTTP client cycle
+  (page cursor, Link `HasNextPage`, query-handler injection, dispose).
+  `IGitHubClientFactory.CreatePagedSessionAsync` returns it; the tuple
+  `CreatePagedClientAsync` remains for Search until a follow-up.
+
 ## [0.1.1] - 2026-08-05
 
 ### Added
