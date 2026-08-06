@@ -37,6 +37,12 @@ public sealed class GitHubClientFactory : IGitHubClientFactory
         return (client, queryHandler);
     }
 
+    public async Task<PagedGitHubSession> CreatePagedSessionAsync(CancellationToken ct = default)
+    {
+        var (client, queryHandler) = await CreatePagedClientAsync(ct);
+        return new PagedGitHubSession(client, queryHandler);
+    }
+
     private HttpClient BuildClient(string? token, HttpMessageHandler handler)
     {
         var client = new HttpClient(handler)

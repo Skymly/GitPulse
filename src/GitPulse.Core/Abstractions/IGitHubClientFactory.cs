@@ -16,7 +16,14 @@ public interface IGitHubClientFactory
     /// Creates a client backed by a <see cref="GitHubQueryHandler"/>
     /// for pagination/filtering. The handler is returned so the caller can
     /// set <c>Page</c>/<c>PerPage</c>/<c>State</c> before each request.
+    /// Prefer <see cref="CreatePagedSessionAsync"/> for list pagination.
     /// </summary>
     Task<(HttpClient Client, GitHubQueryHandler QueryHandler)> CreatePagedClientAsync(
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates a <see cref="PagedGitHubSession"/> that owns the paged client
+    /// cycle (page cursor, Link <c>HasNextPage</c>, query-handler injection, dispose).
+    /// </summary>
+    Task<PagedGitHubSession> CreatePagedSessionAsync(CancellationToken ct = default);
 }
