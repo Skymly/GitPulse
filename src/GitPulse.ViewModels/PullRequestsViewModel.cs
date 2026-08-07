@@ -71,11 +71,10 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
     private void OnStateChanged(string state)
     {
-        if (_session is null)
-            return;
-
-        _session.State = state;
-        _ = LoadCommand.ExecuteAsync(null);
+        // Filter change reloads from page 1 once a session cycle has started.
+        // Load recreates the session so credential changes apply.
+        if (_session is not null)
+            _ = LoadCommand.ExecuteAsync(null);
     }
 
     [RelayCommand]

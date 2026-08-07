@@ -82,13 +82,10 @@ public sealed partial class IssuesViewModel : IDisposable
 
     private void OnStateChanged(string state)
     {
-        // State filter is server-side via the paged session.
-        // When the filter changes, update session State and reload from page 1.
-        if (_session is null)
-            return;
-
-        _session.State = state;
-        _ = LoadCommand.ExecuteAsync(null);
+        // Filter change reloads from page 1 once a session cycle has started.
+        // Load recreates the session so credential changes apply.
+        if (_session is not null)
+            _ = LoadCommand.ExecuteAsync(null);
     }
 
     /// <summary>Initial load (page 1) or reload after filter change.</summary>
