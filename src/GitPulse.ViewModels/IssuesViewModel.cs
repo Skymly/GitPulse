@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Http;
@@ -16,16 +15,16 @@ namespace GitPulse.ViewModels;
 /// <see cref="ApiResponse{T}"/> (exposing the <c>Link</c> header for
 /// pagination), reactive state filtering (open / closed / all) via R3
 /// <see cref="BindableReactiveProperty{T}"/>, and server-side pagination
-/// via <see cref="GitHubQueryHandler"/>.
+/// via <see cref="PagedGitHubSession"/>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The ViewModel holds a <see cref="GitHubQueryHandler"/> across load calls
-/// so that <c>Page</c>/<c>State</c> state persists between the initial load
-/// and subsequent "load more" requests. The handler injects these values as
-/// query parameters at the HTTP layer, working around the Observables 0.1.4
-/// OBS3004 limitation that prevents <c>[Query]</c> parameters on declarative
-/// interface methods with path parameters.
+/// The ViewModel holds a <see cref="PagedGitHubSession"/> across load calls
+/// so that page cursor and <c>State</c> persist between the initial load
+/// and subsequent "load more" requests. The session writes these values onto
+/// <see cref="GitHubQueryHandler"/> at the HTTP layer, working around the
+/// Observables OBS3004 limitation that prevents <c>[Query]</c> parameters on
+/// declarative interface methods with path parameters.
 /// </para>
 /// </remarks>
 public sealed partial class IssuesViewModel : IDisposable
@@ -35,10 +34,7 @@ public sealed partial class IssuesViewModel : IDisposable
 
     private string _owner = string.Empty;
     private string _repo = string.Empty;
-    private HttpClient? _pagedClient;
-    private GitHubQueryHandler? _queryHandler;
-    private int _currentPage;
-    private bool _hasNextPage;
+    private PagedGitHubSession? _session;
 
     /// <summary>Issues currently displayed.</summary>
     public ObservableCollection<Issue> Issues { get; } = [];
@@ -85,10 +81,13 @@ public sealed partial class IssuesViewModel : IDisposable
 
     private void OnStateChanged(string state)
     {
-        // State filter is server-side via query handler.
-        // When the filter changes, reload from page 1 (if already initialized).
-        if (_queryHandler is not null)
-            _ = LoadCommand.ExecuteAsync(null);
+        // State filter is server-side via the paged session.
+        // When the filter changes, update session State and reload from page 1.
+        if (_session is null)
+            return;
+
+        _session.State = state;
+        _ = LoadCommand.ExecuteAsync(null);
     }
 
     /// <summary>Initial load (page 1) or reload after filter change.</summary>
@@ -103,24 +102,24 @@ public sealed partial class IssuesViewModel : IDisposable
 
         try
         {
-            // Dispose previous paged client if reloading.
-            _pagedClient?.Dispose();
-
-            var (client, queryHandler) = await _clientFactory.CreatePagedClientAsync();
-            if (client.DefaultRequestHeaders.Authorization is null)
+            if (_session is null)
             {
-                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
-                client.Dispose();
-                return;
+                var session = await _clientFactory.CreatePagedSessionAsync();
+                if (session.Client.DefaultRequestHeaders.Authorization is null)
+                {
+                    ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                    session.Dispose();
+                    return;
+                }
+
+                _session = session;
             }
 
-            _pagedClient = client;
-            _queryHandler = queryHandler;
-            _queryHandler.State = StateFilter.Value;
-            _queryHandler.Page = 1;
-            _queryHandler.PerPage = 30;
+            _session.State = StateFilter.Value;
+            _session.Reset();
+            _session.PrepareRequest();
 
-            var api = RestService.For<IGitHubReposApi>(client);
+            var api = RestService.For<IGitHubReposApi>(_session.Client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync(cts.Token);
 
@@ -128,9 +127,8 @@ public sealed partial class IssuesViewModel : IDisposable
             foreach (var issue in response.Content ?? [])
                 Issues.Add(issue);
 
-            _currentPage = 1;
-            _hasNextPage = LinkHeaderParser.GetNextUrl(response.Headers) is not null;
-            CanLoadMore.Value = _hasNextPage;
+            _session.ApplyLink(response.Headers);
+            CanLoadMore.Value = _session.HasNextPage;
         }
         catch (OperationCanceledException)
         {
@@ -150,7 +148,10 @@ public sealed partial class IssuesViewModel : IDisposable
     [RelayCommand]
     private async Task LoadMoreAsync()
     {
-        if (!_hasNextPage || _queryHandler is null || _pagedClient is null || IsLoading.Value)
+        if (_session is null || !_session.HasNextPage || IsLoading.Value)
+            return;
+
+        if (!_session.Advance())
             return;
 
         IsLoading.Value = true;
@@ -158,18 +159,17 @@ public sealed partial class IssuesViewModel : IDisposable
 
         try
         {
-            _queryHandler.Page = _currentPage + 1;
+            _session.PrepareRequest();
 
-            var api = RestService.For<IGitHubReposApi>(_pagedClient);
+            var api = RestService.For<IGitHubReposApi>(_session.Client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync(cts.Token);
 
             foreach (var issue in response.Content ?? [])
                 Issues.Add(issue);
 
-            _currentPage++;
-            _hasNextPage = LinkHeaderParser.GetNextUrl(response.Headers) is not null;
-            CanLoadMore.Value = _hasNextPage;
+            _session.ApplyLink(response.Headers);
+            CanLoadMore.Value = _session.HasNextPage;
         }
         catch (OperationCanceledException)
         {
@@ -195,6 +195,6 @@ public sealed partial class IssuesViewModel : IDisposable
         RepoFullName.Dispose();
         Owner.Dispose();
         RepoName.Dispose();
-        _pagedClient?.Dispose();
+        _session?.Dispose();
     }
 }

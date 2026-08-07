@@ -155,10 +155,38 @@ public class IssuesViewModelTests
         var vm = new IssuesViewModel(factory);
         vm.Initialize("owner", "repo");
 
-        // LoadMore without Load — _hasNextPage is false.
+        // LoadMore without Load — session HasNextPage is false.
         await vm.LoadMoreCommand.ExecuteAsync(null);
 
         Assert.Empty(vm.Issues);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task StateFilter_Change_ReloadsFromPage1WithNewState()
+    {
+        string? lastQuery = null;
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", req =>
+            {
+                lastQuery = req.RequestUri?.Query;
+                return new MockResponse(IssuesJson("closed"), LinkNoNext);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Contains("state=open", lastQuery);
+
+        vm.StateFilter.Value = "closed";
+        // StateFilter subscription kicks Load asynchronously; wait for it.
+        await AsyncTestWait.UntilAsync(() => lastQuery?.Contains("state=closed") == true);
+
+        Assert.Contains("state=closed", lastQuery);
+        // GitHubQueryHandler omits page when it is 1 (default).
+        Assert.DoesNotContain("page=", lastQuery);
+        Assert.Single(vm.Issues);
         vm.Dispose();
     }
 

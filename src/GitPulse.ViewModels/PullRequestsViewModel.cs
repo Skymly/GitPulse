@@ -15,7 +15,7 @@ namespace GitPulse.ViewModels;
 /// <see cref="ApiResponse{T}"/> (exposing the <c>Link</c> header for
 /// pagination), reactive state filtering (open / closed / all) via R3
 /// <see cref="BindableReactiveProperty{T}"/>, and server-side pagination
-/// via <see cref="GitHubQueryHandler"/>.
+/// via <see cref="PagedGitHubSession"/>.
 /// </summary>
 public sealed partial class PullRequestsViewModel : IDisposable
 {
@@ -24,10 +24,7 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
     private string _owner = string.Empty;
     private string _repo = string.Empty;
-    private HttpClient? _pagedClient;
-    private GitHubQueryHandler? _queryHandler;
-    private int _currentPage;
-    private bool _hasNextPage;
+    private PagedGitHubSession? _session;
 
     /// <summary>Pull requests currently displayed.</summary>
     public ObservableCollection<PullRequest> PullRequests { get; } = [];
@@ -74,8 +71,11 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
     private void OnStateChanged(string state)
     {
-        if (_queryHandler is not null)
-            _ = LoadCommand.ExecuteAsync(null);
+        if (_session is null)
+            return;
+
+        _session.State = state;
+        _ = LoadCommand.ExecuteAsync(null);
     }
 
     [RelayCommand]
@@ -89,23 +89,24 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
         try
         {
-            _pagedClient?.Dispose();
-
-            var (client, queryHandler) = await _clientFactory.CreatePagedClientAsync();
-            if (client.DefaultRequestHeaders.Authorization is null)
+            if (_session is null)
             {
-                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
-                client.Dispose();
-                return;
+                var session = await _clientFactory.CreatePagedSessionAsync();
+                if (session.Client.DefaultRequestHeaders.Authorization is null)
+                {
+                    ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                    session.Dispose();
+                    return;
+                }
+
+                _session = session;
             }
 
-            _pagedClient = client;
-            _queryHandler = queryHandler;
-            _queryHandler.State = StateFilter.Value;
-            _queryHandler.Page = 1;
-            _queryHandler.PerPage = 30;
+            _session.State = StateFilter.Value;
+            _session.Reset();
+            _session.PrepareRequest();
 
-            var api = RestService.For<IGitHubReposApi>(client);
+            var api = RestService.For<IGitHubReposApi>(_session.Client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(cts.Token);
 
@@ -113,9 +114,8 @@ public sealed partial class PullRequestsViewModel : IDisposable
             foreach (var pr in response.Content ?? [])
                 PullRequests.Add(pr);
 
-            _currentPage = 1;
-            _hasNextPage = LinkHeaderParser.GetNextUrl(response.Headers) is not null;
-            CanLoadMore.Value = _hasNextPage;
+            _session.ApplyLink(response.Headers);
+            CanLoadMore.Value = _session.HasNextPage;
         }
         catch (OperationCanceledException)
         {
@@ -135,7 +135,10 @@ public sealed partial class PullRequestsViewModel : IDisposable
     [RelayCommand]
     private async Task LoadMoreAsync()
     {
-        if (!_hasNextPage || _queryHandler is null || _pagedClient is null || IsLoading.Value)
+        if (_session is null || !_session.HasNextPage || IsLoading.Value)
+            return;
+
+        if (!_session.Advance())
             return;
 
         IsLoading.Value = true;
@@ -143,18 +146,17 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
         try
         {
-            _queryHandler.Page = _currentPage + 1;
+            _session.PrepareRequest();
 
-            var api = RestService.For<IGitHubReposApi>(_pagedClient);
+            var api = RestService.For<IGitHubReposApi>(_session.Client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(cts.Token);
 
             foreach (var pr in response.Content ?? [])
                 PullRequests.Add(pr);
 
-            _currentPage++;
-            _hasNextPage = LinkHeaderParser.GetNextUrl(response.Headers) is not null;
-            CanLoadMore.Value = _hasNextPage;
+            _session.ApplyLink(response.Headers);
+            CanLoadMore.Value = _session.HasNextPage;
         }
         catch (OperationCanceledException)
         {
@@ -180,6 +182,6 @@ public sealed partial class PullRequestsViewModel : IDisposable
         RepoFullName.Dispose();
         Owner.Dispose();
         RepoName.Dispose();
-        _pagedClient?.Dispose();
+        _session?.Dispose();
     }
 }

@@ -159,4 +159,31 @@ public class PullRequestsViewModelTests
         Assert.Empty(vm.PullRequests);
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task StateFilter_Change_ReloadsFromPage1WithNewState()
+    {
+        string? lastQuery = null;
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/pulls", req =>
+            {
+                lastQuery = req.RequestUri?.Query;
+                return new MockResponse(PrsJson(("closed", false, true)), LinkNoNext);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestsViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Contains("state=open", lastQuery);
+
+        vm.StateFilter.Value = "closed";
+        await AsyncTestWait.UntilAsync(() => lastQuery?.Contains("state=closed") == true);
+
+        Assert.Contains("state=closed", lastQuery);
+        // GitHubQueryHandler omits page when it is 1 (default).
+        Assert.DoesNotContain("page=", lastQuery);
+        Assert.Single(vm.PullRequests);
+        vm.Dispose();
+    }
 }
