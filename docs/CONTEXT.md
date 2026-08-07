@@ -43,3 +43,7 @@ _Avoid_: device-only smoke (required), full E2E, IME automation, CI UI gate
 **UI Test Host**:
 The non-Shell `UiTestHostPage` (TabbedPage + NavigationPage) enabled by `GITPULSE_UI_TEST_HOST=1` so UI automation can see page controls. Used for Windows FlaUI and Android Emulator UI Smoke; not the production Shell chrome.
 _Avoid_: production Shell, test-only navigation as user-facing design
+
+**Paged GitHub Session**:
+A Core type (`PagedGitHubSession`) that owns one paged GitHub HTTP client cycle: `GitHubQueryHandler` page/state injection, current page cursor, `Link`-header `HasNextPage`, and client dispose. List ViewModels call `RestService.For` on its `Client` and map domain items; they do not reassemble handler + Link parsing. Created via `IGitHubClientFactory.CreatePagedSessionAsync`. Does not own auth-timeout error envelope or Search-specific TotalCount / multi-type tables. Search still uses the tuple `CreatePagedClientAsync` until a follow-up.
+_Avoid_: generic HTTP session, repository, paging service, call envelope

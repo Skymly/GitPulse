@@ -76,9 +76,13 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 
 ### 分页
 
-1. ViewModel 调用 `List*Paged` → `Observable<ApiResponse<T>>`
-2. `GitHubQueryHandler` 注入 `page` / `per_page`（及 issues 的 `state`）
-3. `LinkHeaderParser` 解析 `rel="next"` → `CanLoadMore`
+列表分页（Repos / Issues / PRs / WorkflowRuns）经 **Paged GitHub Session**（`PagedGitHubSession`，`IGitHubClientFactory.CreatePagedSessionAsync`）：
+
+1. ViewModel：`Reset` → `PrepareRequest` → `List*Paged`（`Observable<ApiResponse<T>>`）→ `ApplyLink`；Load more：`Advance`（当 `HasNextPage`）→ `PrepareRequest` → 再请求 → `ApplyLink`；`CanLoadMore` 映射自 `HasNextPage`
+2. Session 内部用 `GitHubQueryHandler` 注入 `page` / `per_page`（及 Issues/PRs 的 `state`）；handler 不是 ViewModel 面向契约
+3. Session 用 `LinkHeaderParser` 解析 `rel="next"` → `HasNextPage`
+
+Search 仍通过元组 `CreatePagedClientAsync` 自行管理 handler + Link（迁移为 follow-up，不在本切片范围）。
 
 ### CRUD（M3+）
 
@@ -148,7 +152,8 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 
 ## 设计权衡
 
-- **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续使用 Handler 以统一 Link 检测。
+- **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续由 Handler 注入，并由 Paged GitHub Session 统一 cursor / Link / dispose。
+- **Paged GitHub Session vs 元组工厂**：列表 ViewModel 面向 session；`CreatePagedClientAsync` 仅为 Search（及未迁移调用方）保留，直至 follow-up。
 - **404 处理**：README 等可选资源在 ViewModel 层吞掉 NotFound，不失败整页加载。
 
 ## 已知局限
@@ -168,4 +173,6 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 ## 参考
 
 - `src/GitPulse.GitHubApi/IGitHubReposApi.cs`
+- `src/GitPulse.Core/Http/PagedGitHubSession.cs`
 - `src/GitPulse.Core/Http/GitHubQueryHandler.cs`
+- `src/GitPulse.Core/Abstractions/IGitHubClientFactory.cs`
