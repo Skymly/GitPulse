@@ -19,9 +19,10 @@ namespace GitPulse.ViewModels;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The ViewModel holds a <see cref="PagedGitHubSession"/> across load calls
-/// so that page cursor and <c>State</c> persist between the initial load
-/// and subsequent "load more" requests. The session writes these values onto
+/// The ViewModel creates a fresh <see cref="PagedGitHubSession"/> on each load
+/// (so credential changes are picked up) and holds it so that page cursor and
+/// <c>State</c> persist between the initial load and subsequent "load more"
+/// requests. The session writes these values onto
 /// <see cref="GitHubQueryHandler"/> at the HTTP layer, working around the
 /// Observables OBS3004 limitation that prevents <c>[Query]</c> parameters on
 /// declarative interface methods with path parameters.
@@ -102,19 +103,18 @@ public sealed partial class IssuesViewModel : IDisposable
 
         try
         {
-            if (_session is null)
-            {
-                var session = await _clientFactory.CreatePagedSessionAsync();
-                if (session.Client.DefaultRequestHeaders.Authorization is null)
-                {
-                    ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
-                    session.Dispose();
-                    return;
-                }
+            _session?.Dispose();
+            _session = null;
 
-                _session = session;
+            var session = await _clientFactory.CreatePagedSessionAsync();
+            if (session.Client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                session.Dispose();
+                return;
             }
 
+            _session = session;
             _session.State = StateFilter.Value;
             _session.Reset();
             _session.PrepareRequest();

@@ -89,19 +89,18 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
         try
         {
-            if (_session is null)
-            {
-                var session = await _clientFactory.CreatePagedSessionAsync();
-                if (session.Client.DefaultRequestHeaders.Authorization is null)
-                {
-                    ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
-                    session.Dispose();
-                    return;
-                }
+            _session?.Dispose();
+            _session = null;
 
-                _session = session;
+            var session = await _clientFactory.CreatePagedSessionAsync();
+            if (session.Client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                session.Dispose();
+                return;
             }
 
+            _session = session;
             _session.State = StateFilter.Value;
             _session.Reset();
             _session.PrepareRequest();
