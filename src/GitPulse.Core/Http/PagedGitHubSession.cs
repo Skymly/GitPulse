@@ -15,6 +15,7 @@ public sealed class PagedGitHubSession : IDisposable
 
     private readonly GitHubQueryHandler _queryHandler;
     private int _currentPage = 1;
+    private int? _loadMorePage;
     private bool _disposed;
 
     /// <summary>
@@ -46,6 +47,7 @@ public sealed class PagedGitHubSession : IDisposable
     {
         ThrowIfDisposed();
         _currentPage = 1;
+        _loadMorePage = null;
         HasNextPage = false;
     }
 
@@ -56,21 +58,31 @@ public sealed class PagedGitHubSession : IDisposable
     public void PrepareRequest()
     {
         ThrowIfDisposed();
-        _queryHandler.Page = _currentPage;
+        _queryHandler.Page = _loadMorePage ?? _currentPage;
         _queryHandler.PerPage = DefaultPerPage;
         _queryHandler.State = State;
     }
 
-    /// <summary>Updates <see cref="HasNextPage"/> from response <c>Link</c> headers.</summary>
+    /// <summary>
+    /// Updates <see cref="HasNextPage"/> from response <c>Link</c> headers.
+    /// Commits a pending <see cref="Advance"/> so failed LoadMore retries the same page.
+    /// </summary>
     public void ApplyLink(HttpResponseHeaders? headers)
     {
         ThrowIfDisposed();
+        if (_loadMorePage is int page)
+        {
+            _currentPage = page;
+            _loadMorePage = null;
+        }
+
         HasNextPage = LinkHeaderParser.GetNextUrl(headers) is not null;
     }
 
     /// <summary>
-    /// Advances the page cursor for LoadMore. Returns <c>false</c> (no-op) when
-    /// <see cref="HasNextPage"/> is false.
+    /// Prepares the next page for LoadMore without committing the cursor.
+    /// The cursor advances only when <see cref="ApplyLink"/> runs after a successful response.
+    /// Returns <c>false</c> (no-op) when <see cref="HasNextPage"/> is false.
     /// </summary>
     public bool Advance()
     {
@@ -78,7 +90,7 @@ public sealed class PagedGitHubSession : IDisposable
         if (!HasNextPage)
             return false;
 
-        _currentPage++;
+        _loadMorePage = _currentPage + 1;
         return true;
     }
 

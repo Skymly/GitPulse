@@ -100,7 +100,7 @@ public class ReposViewModelTests
         var factory = new FakeGitHubClientFactory(handler);
         var vm = new ReposViewModel(factory);
 
-        // LoadMore without Load — _hasNextPage is false, so nothing happens.
+        // LoadMore without Load — session HasNextPage is false, so nothing happens.
         await vm.LoadMoreCommand.ExecuteAsync(null);
 
         Assert.Empty(vm.Repos);

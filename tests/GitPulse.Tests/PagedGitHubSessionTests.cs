@@ -104,6 +104,27 @@ public class PagedGitHubSessionTests
     }
 
     [Fact]
+    public async Task Advance_WithoutApplyLink_DoesNotCommitCursor()
+    {
+        using var session = CreateSession(out var capturing);
+        session.Reset();
+        session.ApplyLink(HeadersWithNextPage(2));
+        Assert.True(session.Advance());
+        session.PrepareRequest();
+        Assert.Contains("page=2", await capturing.SendThroughAsync(session));
+
+        // Failed LoadMore never calls ApplyLink — retry must request the same page.
+        Assert.True(session.Advance());
+        session.PrepareRequest();
+        Assert.Contains("page=2", await capturing.SendThroughAsync(session));
+
+        session.ApplyLink(HeadersWithNextPage(3));
+        Assert.True(session.Advance());
+        session.PrepareRequest();
+        Assert.Contains("page=3", await capturing.SendThroughAsync(session));
+    }
+
+    [Fact]
     public async Task PrepareRequest_WritesStateToHandler()
     {
         using var session = CreateSession(out var capturing);

@@ -13,17 +13,14 @@ namespace GitPulse.ViewModels;
 /// Repository list view model — the primary showcase of
 /// <see cref="IGitHubReposApi"/> (Observables.RestAPI.R3) and
 /// R3 <see cref="BindableReactiveProperty{T}"/> state management.
-/// Supports pagination via <see cref="ApiResponse{T}"/> + <c>Link</c> header.
+/// Supports pagination via <see cref="PagedGitHubSession"/>.
 /// </summary>
 public sealed partial class ReposViewModel : IDisposable
 {
     private readonly IGitHubClientFactory _clientFactory;
     private readonly CompositeDisposable _disposables = [];
 
-    private HttpClient? _pagedClient;
-    private GitHubQueryHandler? _queryHandler;
-    private int _currentPage;
-    private bool _hasNextPage;
+    private PagedGitHubSession? _session;
 
     /// <summary>Repos currently displayed (after search filter).</summary>
     public ObservableCollection<Repo> Repos { get; } = [];
@@ -97,34 +94,33 @@ public sealed partial class ReposViewModel : IDisposable
 
         try
         {
-            _pagedClient?.Dispose();
+            _session?.Dispose();
+            _session = null;
             _allRepos.Clear();
 
-            var (client, queryHandler) = await _clientFactory.CreatePagedClientAsync();
-            if (client.DefaultRequestHeaders.Authorization is null)
+            var session = await _clientFactory.CreatePagedSessionAsync();
+            if (session.Client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
                 IsAuthenticated.Value = false;
-                client.Dispose();
+                session.Dispose();
                 return;
             }
 
             IsAuthenticated.Value = true;
-            _pagedClient = client;
-            _queryHandler = queryHandler;
-            _queryHandler.Page = 1;
-            _queryHandler.PerPage = 30;
+            _session = session;
+            _session.Reset();
+            _session.PrepareRequest();
 
-            var api = RestService.For<IGitHubReposApi>(client);
+            var api = RestService.For<IGitHubReposApi>(_session.Client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var response = await api.ListMyReposPaged().FirstAsync(cts.Token);
 
             _allRepos.AddRange(response.Content ?? []);
             ApplyFilter(SearchText.Value);
 
-            _currentPage = 1;
-            _hasNextPage = LinkHeaderParser.GetNextUrl(response.Headers) is not null;
-            CanLoadMore.Value = _hasNextPage;
+            _session.ApplyLink(response.Headers);
+            CanLoadMore.Value = _session.HasNextPage;
         }
         catch (OperationCanceledException)
         {
@@ -144,7 +140,10 @@ public sealed partial class ReposViewModel : IDisposable
     [RelayCommand]
     private async Task LoadMoreAsync()
     {
-        if (!_hasNextPage || _queryHandler is null || _pagedClient is null || IsLoading.Value)
+        if (_session is null || !_session.HasNextPage || IsLoading.Value)
+            return;
+
+        if (!_session.Advance())
             return;
 
         IsLoading.Value = true;
@@ -152,18 +151,17 @@ public sealed partial class ReposViewModel : IDisposable
 
         try
         {
-            _queryHandler.Page = _currentPage + 1;
+            _session.PrepareRequest();
 
-            var api = RestService.For<IGitHubReposApi>(_pagedClient);
+            var api = RestService.For<IGitHubReposApi>(_session.Client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var response = await api.ListMyReposPaged().FirstAsync(cts.Token);
 
             _allRepos.AddRange(response.Content ?? []);
             ApplyFilter(SearchText.Value);
 
-            _currentPage++;
-            _hasNextPage = LinkHeaderParser.GetNextUrl(response.Headers) is not null;
-            CanLoadMore.Value = _hasNextPage;
+            _session.ApplyLink(response.Headers);
+            CanLoadMore.Value = _session.HasNextPage;
         }
         catch (OperationCanceledException)
         {
@@ -187,6 +185,6 @@ public sealed partial class ReposViewModel : IDisposable
         IsAuthenticated.Dispose();
         CanLoadMore.Dispose();
         ErrorMessage.Dispose();
-        _pagedClient?.Dispose();
+        _session?.Dispose();
     }
 }
