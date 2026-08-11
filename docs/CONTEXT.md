@@ -47,3 +47,7 @@ _Avoid_: production Shell, test-only navigation as user-facing design
 **Paged GitHub Session**:
 A Core type (`PagedGitHubSession`) that owns one paged GitHub HTTP client cycle: `GitHubQueryHandler` page/state injection, current page cursor, `Link`-header `HasNextPage`, and client dispose. List ViewModels call `RestService.For` on its `Client` and map domain items; they do not reassemble handler + Link parsing. Created via `IGitHubClientFactory.CreatePagedSessionAsync`. Does not own auth-timeout error envelope or Search-specific TotalCount / multi-type tables. Search still uses the tuple `CreatePagedClientAsync` until a follow-up.
 _Avoid_: generic HTTP session, repository, paging service, call envelope
+
+**Draft PR**:
+A pull request opened with GitHub’s create-time draft flag. In the v0.2.0 create/manage-PRs slice this means optional draft-at-create only; toggling draft ↔ ready after create is out of scope.
+_Avoid_: ready for review (in-app), draft lifecycle, WIP PR (informal)

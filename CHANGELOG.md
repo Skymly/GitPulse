@@ -9,6 +9,8 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Roadmap M14 / v0.2.0: create/manage PRs (same-repo Create PR + create-time
+  Draft PR; PR title/body edit) and Draft PR glossary (docs).
 - `PagedGitHubSession` (Core/Http) — owns one paged GitHub HTTP client cycle
   (page cursor, Link `HasNextPage`, query-handler injection, dispose).
   `IGitHubClientFactory.CreatePagedSessionAsync` returns it; the tuple

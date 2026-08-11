@@ -1,6 +1,6 @@
 # GitPulse 路线图
 
-功能与技术 backlog 的滚动清单。里程碑编号 **M0–M13**；完成项移入「已完成（归档）」章节。
+功能与技术 backlog 的滚动清单。里程碑编号 **M0–M14**；完成项移入「已完成（归档）」章节。
 
 - **文档标准**：[DOCUMENTATION.md](DOCUMENTATION.md)
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
@@ -14,7 +14,13 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 ## 进行中
 
-（暂无）
+| 里程碑 | 内容 | Observables 域 | 状态 |
+|--------|------|----------------|------|
+| **M14** | v0.2.0 create/manage PRs：同仓 Create PR（含可选 create-time Draft PR）+ PR detail 编辑 title/body | RestAPI | 🔄 进行中 |
+
+**M14 DoD（摘要）**：从 PR 列表进入 New pull request；表单含 title、head/base（`ListBranches`）、可选 body、可选 create-time Draft PR；成功打开新 PR detail；detail 可编辑 title/body 并刷新；失败（含无 token / 缺 PR write）可见；Windows 为日用路径；Android 跟 ADR-011（IME 不挡提交）与 ADR-014（新页不崩）。Epic：[\#93](https://github.com/Skymly/GitPulse/issues/93)。
+
+**M14 非目标**：draft ↔ ready 生命周期 / GraphQL；跨 fork Create PR；Issue→PR；创建时 labels / reviewers / review requests；formal review / change-base / update-branch / PR commits list；Checks / PR gate；Issue detail 编辑 title/body；新 ADR；OAuth；商店 / Authenticode / AAB；Android 出应用通知。
 
 ## 排期
 
