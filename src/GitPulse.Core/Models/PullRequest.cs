@@ -83,6 +83,29 @@ public enum MergeMethod
 }
 
 /// <summary>
+/// Request body for <c>POST /repos/{owner}/{repo}/pulls</c>.
+/// Create-time Draft PR only (<c>draft</c>); no post-create lifecycle fields.
+/// </summary>
+public sealed class PullRequestCreateRequest
+{
+    [JsonPropertyName("title")]
+    public string Title { get; set; } = string.Empty;
+
+    [JsonPropertyName("head")]
+    public string Head { get; set; } = string.Empty;
+
+    [JsonPropertyName("base")]
+    public string Base { get; set; } = string.Empty;
+
+    [JsonPropertyName("body")]
+    public string? Body { get; set; }
+
+    /// <summary>Optional create-time draft flag (Glossary: Draft PR).</summary>
+    [JsonPropertyName("draft")]
+    public bool? Draft { get; set; }
+}
+
+/// <summary>
 /// Request body for <c>PUT /repos/{owner}/{repo}/pulls/{number}/merge</c>.
 /// </summary>
 public sealed class MergeRequest
