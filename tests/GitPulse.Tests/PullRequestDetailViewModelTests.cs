@@ -418,10 +418,21 @@ public class PullRequestDetailViewModelTests
     [Fact]
     public async Task SaveTitleBody_WithEmptyTitle_DoesNothing()
     {
+        var patchCount = 0;
         var handler = new MockHttpHandler()
             .When("/pulls/42", PrJson(42, title: "Original", body: "keep me"))
             .When("/issues/42/comments", "[]")
-            .When("/issues/42", _ => new MockResponse(PrJson(42, title: "should-not-happen")));
+            .When("/issues/42", req =>
+            {
+                if (req.Method == HttpMethod.Patch)
+                {
+                    patchCount++;
+                    return new MockResponse(
+                        "{\"number\":42,\"title\":\"should-not-happen\",\"state\":\"open\",\"body\":\"changed body\"}");
+                }
+
+                return new MockResponse("[]");
+            });
         var factory = new FakeGitHubClientFactory(handler);
         var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
         vm.Initialize("owner", "repo", 42);
@@ -431,6 +442,7 @@ public class PullRequestDetailViewModelTests
         vm.BodyInput.Value = "changed body";
         await vm.SaveTitleBodyCommand.ExecuteAsync(null);
 
+        Assert.Equal(0, patchCount);
         Assert.Empty(vm.ErrorMessage.Value);
         Assert.Equal("#42 Original", vm.Title.Value);
         Assert.Equal("Original", vm.PullRequest.Value!.Title);
