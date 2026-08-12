@@ -8,8 +8,10 @@ namespace GitPulse.Tests;
 public class PullRequestDetailViewModelTests
 {
     private static string PrJson(int number, string state = "open", bool draft = false, bool merged = false,
-        bool? mergeable = null, string? mergeableState = null, int commits = 0, int additions = 0, int deletions = 0, int changedFiles = 0) =>
-        $"{{\"number\":{number},\"title\":\"PR {number}\",\"state\":\"{state}\"," +
+        bool? mergeable = null, string? mergeableState = null, int commits = 0, int additions = 0, int deletions = 0, int changedFiles = 0,
+        string? title = null, string body = "") =>
+        $"{{\"number\":{number},\"title\":\"{title ?? $"PR {number}"}\",\"state\":\"{state}\"," +
+        $"\"body\":\"{body}\"," +
         $"\"draft\":{draft.ToString().ToLower()},\"merged\":{merged.ToString().ToLower()}," +
         $"\"headRef\":\"feature\",\"baseRef\":\"main\"," +
         (mergeable.HasValue ? $"\"mergeable\":{mergeable.Value.ToString().ToLower()}," : "") +
@@ -408,6 +410,198 @@ public class PullRequestDetailViewModelTests
             new FakeGitHubClientFactory(new MockHttpHandler()), new FakeBrowserLauncher());
 
         Assert.Equal("merge", vm.MergeMethod.Value);
+        vm.Dispose();
+    }
+
+    // ── M14: Save title/body ─────────────────────────────────────
+
+    [Fact]
+    public async Task SaveTitleBody_WithEmptyTitle_DoesNothing()
+    {
+        var patchCount = 0;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, title: "Original", body: "keep me"))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42", req =>
+            {
+                if (req.Method == HttpMethod.Patch)
+                {
+                    patchCount++;
+                    return new MockResponse(
+                        "{\"number\":42,\"title\":\"should-not-happen\",\"state\":\"open\",\"body\":\"changed body\"}");
+                }
+
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.TitleInput.Value = "   ";
+        vm.BodyInput.Value = "changed body";
+        await vm.SaveTitleBodyCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, patchCount);
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("#42 Original", vm.Title.Value);
+        Assert.Equal("Original", vm.PullRequest.Value!.Title);
+        Assert.Equal("keep me", vm.PullRequest.Value.Body);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SaveTitleBody_WithEmptyBody_RefreshesDetail()
+    {
+        var saved = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", _ => new MockResponse(
+                saved
+                    ? PrJson(42, title: "Kept title", body: "")
+                    : PrJson(42, title: "Kept title", body: "old body")))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42", req =>
+            {
+                if (req.Method == HttpMethod.Patch)
+                {
+                    saved = true;
+                    return new MockResponse(
+                        "{\"number\":42,\"title\":\"Kept title\",\"state\":\"open\",\"body\":\"\"}");
+                }
+
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.TitleInput.Value = "Kept title";
+        vm.BodyInput.Value = "";
+        await vm.SaveTitleBodyCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("#42 Kept title", vm.Title.Value);
+        Assert.Equal("Kept title", vm.TitleInput.Value);
+        Assert.Equal(string.Empty, vm.BodyInput.Value);
+        Assert.Equal(string.Empty, vm.PullRequest.Value!.Body);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SaveTitleBody_WithValidInputs_RefreshesDetail()
+    {
+        var saved = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", _ => new MockResponse(
+                saved
+                    ? PrJson(42, title: "Updated title", body: "Updated body")
+                    : PrJson(42, title: "Original", body: "old")))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42", req =>
+            {
+                if (req.Method == HttpMethod.Patch)
+                {
+                    saved = true;
+                    return new MockResponse(
+                        "{\"number\":42,\"title\":\"Updated title\",\"state\":\"open\",\"body\":\"Updated body\"}");
+                }
+
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.TitleInput.Value = "Updated title";
+        vm.BodyInput.Value = "Updated body";
+        await vm.SaveTitleBodyCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("#42 Updated title", vm.Title.Value);
+        Assert.Equal("Updated title", vm.TitleInput.Value);
+        Assert.Equal("Updated body", vm.BodyInput.Value);
+        Assert.Equal("Updated title", vm.PullRequest.Value!.Title);
+        Assert.Equal("Updated body", vm.PullRequest.Value.Body);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SaveTitleBody_WithoutToken_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler();
+        var factory = new FakeGitHubClientFactory(handler, token: null);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        vm.PullRequest.Value = new PullRequest
+        {
+            Number = 42,
+            Title = "Original",
+            Body = "body",
+            State = "open",
+        };
+        vm.TitleInput.Value = "New title";
+        vm.BodyInput.Value = "New body";
+
+        await vm.SaveTitleBodyCommand.ExecuteAsync(null);
+
+        Assert.Contains("No token", vm.ErrorMessage.Value);
+        Assert.Equal("Original", vm.PullRequest.Value!.Title);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SaveTitleBody_WithApiError_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, title: "Original", body: "old"))
+            .When("/issues/42/comments", "[]");
+        // No /issues/42 PATCH route → 404
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.TitleInput.Value = "New title";
+        await vm.SaveTitleBodyCommand.ExecuteAsync(null);
+
+        Assert.Contains("Save failed", vm.ErrorMessage.Value);
+        Assert.Equal("#42 Original", vm.Title.Value);
+        Assert.Equal("Original", vm.PullRequest.Value!.Title);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SaveTitleBody_WhileSaving_DoesNothing()
+    {
+        var patchCount = 0;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, title: "Original", body: "old"))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42", req =>
+            {
+                if (req.Method == HttpMethod.Patch)
+                {
+                    patchCount++;
+                    return new MockResponse(
+                        "{\"number\":42,\"title\":\"should-not-happen\",\"state\":\"open\"}");
+                }
+
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.TitleInput.Value = "New title";
+        vm.IsSaving.Value = true;
+        await vm.SaveTitleBodyCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, patchCount);
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("#42 Original", vm.Title.Value);
         vm.Dispose();
     }
 }
