@@ -132,6 +132,30 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Edit title/body (M14); save refreshes Title + Markdown body above. -->
+                <VerticalStackLayout Spacing="8"
+                                     IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
+                    <Label Text="Edit title and body"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Entry Text="{Binding TitleInput.Value}"
+                           Placeholder="Pull request title"
+                           FontSize="14"
+                           HorizontalOptions="Fill" />
+                    <Editor Text="{Binding BodyInput.Value}"
+                            Placeholder="Description (Markdown, optional)"
+                            AutoSize="TextChanges"
+                            FontSize="14"
+                            MinimumHeightRequest="100"
+                            HorizontalOptions="Fill" />
+                    <Button Text="Save"
+                            Command="{Binding SaveTitleBodyCommand}"
+                            IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
+                            HorizontalOptions="Fill"
+                            Padding="24,12"
+                            FontSize="14" />
+                </VerticalStackLayout>
+
                 <!-- Full-width actions stay tappable on narrow portrait widths. -->
                 <VerticalStackLayout Spacing="8">
                     <Button Text="Open in browser ↗"

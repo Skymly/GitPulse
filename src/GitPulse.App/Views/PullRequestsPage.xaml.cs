@@ -51,6 +51,13 @@ public partial class PullRequestsPage : ContentPage
             + $"&number={pr.Number}");
     }
 
+    private async void OnNewPullRequestClicked(object? sender, EventArgs e)
+    {
+        await AppNavigation.GoToAsync(
+            $"CreatePullRequestPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
+            + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}");
+    }
+
     private void OnBackClicked(object? sender, EventArgs e)
     {
         _ = AppNavigation.GoToAsync("..");

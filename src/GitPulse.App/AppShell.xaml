@@ -62,6 +62,11 @@
         Route="PullRequestsPage" />
 
     <ShellContent
+        Title="New pull request"
+        ContentTemplate="{DataTemplate views:CreatePullRequestPage}"
+        Route="CreatePullRequestPage" />
+
+    <ShellContent
         Title="PR Detail"
         ContentTemplate="{DataTemplate views:PullRequestDetailPage}"
         Route="PullRequestDetailPage" />

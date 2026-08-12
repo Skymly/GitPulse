@@ -61,6 +61,7 @@ public static class AppNavigation
         "IssuesPage" => _services!.GetRequiredService<IssuesPage>(),
         "IssueDetailPage" => _services!.GetRequiredService<IssueDetailPage>(),
         "CreateIssuePage" => _services!.GetRequiredService<CreateIssuePage>(),
+        "CreatePullRequestPage" => _services!.GetRequiredService<CreatePullRequestPage>(),
         "PullRequestsPage" => _services!.GetRequiredService<PullRequestsPage>(),
         "PullRequestDetailPage" => _services!.GetRequiredService<PullRequestDetailPage>(),
         "FileBrowserPage" => _services!.GetRequiredService<FileBrowserPage>(),
