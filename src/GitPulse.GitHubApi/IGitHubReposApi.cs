@@ -91,6 +91,10 @@ public interface IGitHubReposApi
     [Get("/repos/{owner}/{repo}/pulls/{number}")]
     Observable<PullRequest> GetPullRequest(string owner, string repo, int number);
 
+    [Post("/repos/{owner}/{repo}/pulls")]
+    Observable<PullRequest> CreatePullRequest(
+        string owner, string repo, [Body] PullRequestCreateRequest body);
+
     // ── PR Merge (M6: PR review & merge) ─────────────────────────
 
     /// <summary>
