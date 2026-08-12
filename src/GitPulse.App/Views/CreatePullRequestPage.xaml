@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
+             x:Class="GitPulse.App.Views.CreatePullRequestPage"
+             x:DataType="vm:CreatePullRequestViewModel"
+             Title="New pull request">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Back + title: Grid keeps Back visible on narrow widths. -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="16,12,16,4">
+            <Button Grid.Column="0"
+                    Text="← Back"
+                    Clicked="OnBackClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    Padding="8,4"
+                    VerticalOptions="Center" />
+            <Label Grid.Column="1"
+                   Text="New pull request"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1" />
+        </Grid>
+
+        <!-- ScrollView + AdjustResize: Create stays reachable with IME open. -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16" Spacing="12">
+
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Title"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Entry Text="{Binding TitleInput.Value}"
+                           Placeholder="Pull request title"
+                           FontSize="14"
+                           HorizontalOptions="Fill" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Description (Markdown, optional)"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Editor Text="{Binding BodyInput.Value}"
+                            Placeholder="Describe the change..."
+                            AutoSize="TextChanges"
+                            FontSize="14"
+                            MinimumHeightRequest="120"
+                            HorizontalOptions="Fill" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Head branch"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Picker Title="Select head branch"
+                            ItemsSource="{Binding Branches}"
+                            ItemDisplayBinding="{Binding Name}"
+                            SelectedIndexChanged="OnHeadPickerChanged"
+                            FontSize="14"
+                            HorizontalOptions="Fill" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Base branch"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Picker Title="Select base branch"
+                            ItemsSource="{Binding Branches}"
+                            ItemDisplayBinding="{Binding Name}"
+                            SelectedIndexChanged="OnBasePickerChanged"
+                            FontSize="14"
+                            HorizontalOptions="Fill" />
+                </VerticalStackLayout>
+
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12">
+                    <Label Grid.Column="0"
+                           Text="Create as Draft PR"
+                           FontSize="14"
+                           VerticalOptions="Center"
+                           LineBreakMode="WordWrap" />
+                    <Switch Grid.Column="1"
+                            IsToggled="{Binding IsDraft.Value}"
+                            VerticalOptions="Center" />
+                </Grid>
+
+                <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                        BackgroundColor="{StaticResource Red100}"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="12">
+                    <Label Text="{Binding ErrorMessage.Value}"
+                           TextColor="{StaticResource Red900}"
+                           FontSize="13"
+                           LineBreakMode="WordWrap" />
+                </Border>
+
+                <!-- Full-width Create stays tappable after window resize for soft keyboard. -->
+                <Button Text="Create pull request"
+                        Command="{Binding CreateCommand}"
+                        IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
+                        HorizontalOptions="Fill"
+                        Padding="24,12"
+                        FontSize="14" />
+
+                <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
+                                   IsVisible="{Binding IsSaving.Value}" />
+                <ActivityIndicator IsRunning="{Binding IsLoadingBranches.Value}"
+                                   IsVisible="{Binding IsLoadingBranches.Value}" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>

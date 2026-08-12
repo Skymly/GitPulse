@@ -69,6 +69,7 @@ public static class MauiProgram
         builder.Services.AddTransient<IssuesViewModel>();
         builder.Services.AddTransient<IssueDetailViewModel>();
         builder.Services.AddTransient<CreateIssueViewModel>();
+        builder.Services.AddTransient<CreatePullRequestViewModel>();
         builder.Services.AddTransient<PullRequestsViewModel>();
         builder.Services.AddTransient<PullRequestDetailViewModel>();
         builder.Services.AddTransient<PrDiffViewModel>();
@@ -86,6 +87,7 @@ public static class MauiProgram
         builder.Services.AddTransient<IssuesPage>();
         builder.Services.AddTransient<IssueDetailPage>();
         builder.Services.AddTransient<CreateIssuePage>();
+        builder.Services.AddTransient<CreatePullRequestPage>();
         builder.Services.AddTransient<PullRequestsPage>();
         builder.Services.AddTransient<PullRequestDetailPage>();
         builder.Services.AddTransient<NotificationsPage>();

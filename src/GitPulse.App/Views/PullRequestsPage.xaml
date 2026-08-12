@@ -8,7 +8,7 @@
              Title="Pull Requests"
              AutomationId="PullRequestsPageRoot">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
 
         <!-- Back + repo name: Grid so long names truncate instead of clipping Back. -->
         <Grid Grid.Row="0"
@@ -32,8 +32,18 @@
                    MaxLines="1" />
         </Grid>
 
+        <VerticalStackLayout Grid.Row="1" Spacing="8" Padding="16,0,16,8">
+            <Button Text="+ New pull request"
+                    Clicked="OnNewPullRequestClicked"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    Padding="16,12"
+                    FontSize="13"
+                    HorizontalOptions="Fill" />
+        </VerticalStackLayout>
+
         <!-- Equal-width filter tabs stay tappable on narrow portrait widths. -->
-        <Grid Grid.Row="1"
+        <Grid Grid.Row="2"
               ColumnDefinitions="*,*,*"
               ColumnSpacing="8"
               Padding="16,0,16,8">
@@ -61,7 +71,7 @@
         </Grid>
 
         <!-- Error banner -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="3"
                 IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
                 BackgroundColor="{StaticResource Red100}"
                 StrokeShape="RoundRectangle 8"
@@ -74,7 +84,7 @@
         </Border>
 
         <!-- Pull requests list -->
-        <CollectionView Grid.Row="3"
+        <CollectionView Grid.Row="4"
                         ItemsSource="{Binding PullRequests}"
                         Margin="16,8,16,0"
                         SelectionMode="Single"
@@ -173,7 +183,7 @@
         </CollectionView>
 
         <!-- Loading + load more -->
-        <VerticalStackLayout Grid.Row="4" Padding="16" Spacing="8">
+        <VerticalStackLayout Grid.Row="5" Padding="16" Spacing="8">
             <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
                                IsVisible="{Binding IsLoading.Value}" />
             <Button Text="Load more"
