@@ -15,7 +15,7 @@ namespace GitPulse.ViewModels;
 /// share the issue comments endpoint), and M3 CRUD operations:
 /// <see cref="IGitHubReposApi.CreateIssueComment"/> (PR comments use the
 /// issue comments endpoint) and <see cref="IGitHubReposApi.UpdateIssue"/>
-/// (PR state is toggled via the issue PATCH endpoint).
+/// (PR state toggle and title/body edit via the issue PATCH endpoint).
 /// M6 adds PR merge via <see cref="IGitHubReposApi.MergePullRequest"/>.
 /// </summary>
 public sealed partial class PullRequestDetailViewModel : IDisposable
@@ -36,7 +36,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
     /// <summary>Whether a load operation is in progress.</summary>
     public BindableReactiveProperty<bool> IsLoading { get; } = new(false);
 
-    /// <summary>Whether a write operation (comment/state/merge) is in progress.</summary>
+    /// <summary>Whether a write operation (comment/state/merge/title-body) is in progress.</summary>
     public BindableReactiveProperty<bool> IsSaving { get; } = new(false);
 
     /// <summary>Error message; empty when no error.</summary>
@@ -44,6 +44,12 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
     /// <summary>PR title for the page header.</summary>
     public BindableReactiveProperty<string> Title { get; } = new(string.Empty);
+
+    /// <summary>Editable PR title draft (seeded on load).</summary>
+    public BindableReactiveProperty<string> TitleInput { get; } = new(string.Empty);
+
+    /// <summary>Editable PR body draft (seeded on load); empty body allowed on save.</summary>
+    public BindableReactiveProperty<string> BodyInput { get; } = new(string.Empty);
 
     /// <summary>Repository owner (set by Initialize, used by Files tab).</summary>
     public BindableReactiveProperty<string> Owner { get; } = new(string.Empty);
@@ -112,9 +118,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
             var pr = await api.GetPullRequest(_owner, _repo, _prNumber).FirstAsync(cts.Token);
-            PullRequest.Value = pr;
-            Title.Value = $"#{pr.Number} {pr.Title}";
-            UpdateMergeStatus(pr);
+            ApplyPullRequest(pr);
 
             var comments = await api.ListIssueComments(_owner, _repo, _prNumber).FirstAsync(cts.Token);
             Comments.Clear();
@@ -224,6 +228,69 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         {
             IsSaving.Value = false;
         }
+    }
+
+    /// <summary>
+    /// Save PR title and body via the issue PATCH endpoint, then refresh detail
+    /// with <see cref="IGitHubReposApi.GetPullRequest"/>. Empty title is rejected;
+    /// empty body is allowed.
+    /// </summary>
+    [RelayCommand]
+    private async Task SaveTitleBodyAsync()
+    {
+        if (PullRequest.Value is null
+            || string.IsNullOrWhiteSpace(TitleInput.Value)
+            || IsSaving.Value)
+        {
+            return;
+        }
+
+        IsSaving.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+            var request = new IssueUpdateRequest
+            {
+                Title = TitleInput.Value.Trim(),
+                Body = BodyInput.Value,
+            };
+            await api.UpdateIssue(_owner, _repo, _prNumber, request).FirstAsync(cts.Token);
+
+            var pr = await api.GetPullRequest(_owner, _repo, _prNumber).FirstAsync(cts.Token);
+            ApplyPullRequest(pr);
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Save failed: {ex.Message}";
+        }
+        finally
+        {
+            IsSaving.Value = false;
+        }
+    }
+
+    private void ApplyPullRequest(PullRequest pr)
+    {
+        PullRequest.Value = pr;
+        Title.Value = $"#{pr.Number} {pr.Title}";
+        TitleInput.Value = pr.Title;
+        BodyInput.Value = pr.Body ?? string.Empty;
+        UpdateMergeStatus(pr);
     }
 
     // ── M6: Merge logic ──────────────────────────────────────────
@@ -353,6 +420,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         IsSaving.Dispose();
         ErrorMessage.Dispose();
         Title.Dispose();
+        TitleInput.Dispose();
+        BodyInput.Dispose();
         Owner.Dispose();
         RepoName.Dispose();
         CommentInput.Dispose();
