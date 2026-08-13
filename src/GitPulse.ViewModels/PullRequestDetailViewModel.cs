@@ -241,6 +241,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
                 HeadRef = pr.HeadRef,
                 BaseRef = pr.BaseRef,
             };
+            UpdateReviewPermissions(PullRequest.Value);
         }
         catch (OperationCanceledException)
         {
@@ -559,6 +560,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
                     ChangedFiles = pr.ChangedFiles,
                 };
                 UpdateMergeStatus(PullRequest.Value);
+                UpdateReviewPermissions(PullRequest.Value);
             }
             else
             {
