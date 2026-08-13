@@ -8,7 +8,7 @@
 |----|------|
 | **类型** | 个人项目（Skymly workspace） |
 | **远程** | https://github.com/Skymly/GitPulse |
-| **阶段** | **v0.1.1 已发布**；M14 已完成（同仓 Create PR + create-time Draft PR + PR title/body edit；见 [docs/ROADMAP.md](docs/ROADMAP.md)）；下一发版候选为 v0.2.0 |
+| **阶段** | **v0.2.0 已发布**；M14 已完成（同仓 Create PR + create-time Draft PR + PR title/body edit；Win zip + 签名 APK；见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
 | **目的** | [Observables](https://github.com/Skymly/Observables) 的真实世界展示应用（声明式 RestAPI + R3）。非玩具 demo，作者日常使用的 GitHub 客户端。 |
 
 ## 技术栈
