@@ -7,9 +7,13 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-13
+
 ### Added
 
-- Submit and list Pull Request Reviews on PR detail (COMMENT / APPROVE / REQUEST_CHANGES; skip PENDING).
+- Submit and list Pull Request Reviews on PR detail (COMMENT / APPROVE /
+  REQUEST_CHANGES; skip PENDING; PR author can only COMMENT).
+- Roadmap M15 / v0.3.0: Submit Pull Request Review (docs).
 
 ## [0.2.0] - 2026-08-13
 
