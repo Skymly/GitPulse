@@ -31,6 +31,13 @@ public interface IGitHubReposApi
 {
     // ── Repositories ──────────────────────────────────────────────
 
+    /// <summary>
+    /// Authenticated user (M15). <see cref="User.Login"/> is compared to the
+    /// PR author so self APPROVE / REQUEST_CHANGES can be disabled.
+    /// </summary>
+    [Get("/user")]
+    Observable<User> GetAuthenticatedUser();
+
     [Get("/user/repos")]
     Observable<ApiResponse<Repo[]>> ListMyReposPaged();
 
@@ -119,6 +126,24 @@ public interface IGitHubReposApi
     [Post("/repos/{owner}/{repo}/pulls/{number}/comments")]
     Observable<ReviewComment> CreateReviewComment(
         string owner, string repo, int number, [Body] ReviewCommentRequest body);
+
+    // ── Pull Request Reviews (M15: immediate submit) ──────────────
+
+    /// <summary>
+    /// List Pull Request Reviews (first page). Submitted <c>state</c> is not
+    /// the create-time Review Event.
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/pulls/{number}/reviews")]
+    Observable<PullRequestReview[]> ListPullRequestReviews(string owner, string repo, int number);
+
+    /// <summary>
+    /// Submit a Pull Request Review immediately. Set
+    /// <see cref="PullRequestReviewCreateRequest.Event"/> to APPROVE,
+    /// REQUEST_CHANGES, or COMMENT (do not omit — that would be pending).
+    /// </summary>
+    [Post("/repos/{owner}/{repo}/pulls/{number}/reviews")]
+    Observable<PullRequestReview> CreatePullRequestReview(
+        string owner, string repo, int number, [Body] PullRequestReviewCreateRequest body);
 
     // ── Notifications ─────────────────────────────────────────────
     // M4: Notification center with polling-simulated realtime.
