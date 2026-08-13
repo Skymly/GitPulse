@@ -74,6 +74,9 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
     /// <summary>Status text for mergeability (e.g. "Mergeable", "Conflicts", "Pending").</summary>
     public BindableReactiveProperty<string> MergeStatus { get; } = new(string.Empty);
 
+    /// <summary>Whether the PR has been merged (shows merge result instead of merge button).</summary>
+    public BindableReactiveProperty<bool> IsMerged { get; } = new(false);
+
     /// <summary>Submitted Pull Request Reviews (PENDING omitted).</summary>
     public ObservableCollection<PullRequestReview> Reviews { get; } = [];
 
