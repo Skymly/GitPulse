@@ -182,6 +182,82 @@
                             HorizontalOptions="Fill" />
                 </VerticalStackLayout>
 
+                <!-- M15: submitted Pull Request Reviews + submit -->
+                <VerticalStackLayout Spacing="8"
+                                     IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
+                    <Label Text="Reviews"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           Margin="0,8,0,4" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Reviews}"
+                                         Spacing="8">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:PullRequestReview">
+                                <Border Padding="14"
+                                        StrokeShape="RoundRectangle 8"
+                                        Stroke="{StaticResource Gray200}">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding User.Login}"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource Primary}"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1"
+                                                   VerticalOptions="Center" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding State}"
+                                                   FontSize="12"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource Gray600}"
+                                                   VerticalOptions="Center" />
+                                        </Grid>
+                                        <Label Text="{Binding SubmittedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource Gray500}" />
+                                        <idk:MarkdownView MarkdownText="{Binding Body}"
+                                                          UseAppTheme="True"
+                                                          H1FontSize="16"
+                                                          H2FontSize="15"
+                                                          H3FontSize="14"
+                                                          TextFontSize="13" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="8"
+                                         IsVisible="{Binding CanReview.Value}">
+                        <Label Text="Submit a review"
+                               FontSize="14"
+                               FontAttributes="Bold" />
+                        <Label Text="You can only comment on your own pull request."
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               LineBreakMode="WordWrap"
+                               IsVisible="{Binding CanApproveOrRequestChanges.Value, Converter={StaticResource InvertedBoolConverter}}" />
+                        <Picker Title="Event"
+                                ItemsSource="{Binding ReviewEventOptions}"
+                                SelectedItem="{Binding ReviewEvent.Value}"
+                                FontSize="13"
+                                HorizontalOptions="Fill" />
+                        <Editor Text="{Binding ReviewBody.Value}"
+                                Placeholder="Summary (required except for APPROVE)"
+                                AutoSize="TextChanges"
+                                FontSize="14"
+                                MinimumHeightRequest="80"
+                                HorizontalOptions="Fill" />
+                        <Button Text="Submit review"
+                                Command="{Binding SubmitReviewCommand}"
+                                IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
+                                HorizontalOptions="Fill"
+                                Padding="24,12"
+                                FontSize="14" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+
                 <!-- M6: PR merge section (spot-check only on phone; must not overflow/crash). -->
                 <Border StrokeShape="RoundRectangle 8"
                          Stroke="{StaticResource Gray200}"
