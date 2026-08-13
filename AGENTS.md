@@ -8,7 +8,7 @@
 |----|------|
 | **类型** | 个人项目（Skymly workspace） |
 | **远程** | https://github.com/Skymly/GitPulse |
-| **阶段** | **v0.1.1 已发布**；M13 已完成（Android Emulator UI Smoke + Win zip / 签名 APK 双产物；ADR-014；见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
+| **阶段** | **v0.1.1 已发布**；M14 已完成（同仓 Create PR + create-time Draft PR + PR title/body edit；见 [docs/ROADMAP.md](docs/ROADMAP.md)）；下一发版候选为 v0.2.0 |
 | **目的** | [Observables](https://github.com/Skymly/Observables) 的真实世界展示应用（声明式 RestAPI + R3）。非玩具 demo，作者日常使用的 GitHub 客户端。 |
 
 ## 技术栈
@@ -85,7 +85,7 @@ build/                  — Nuke
 
 ## 路线图
 
-里程碑 **M0–M13** 见 [docs/ROADMAP.md](docs/ROADMAP.md)。**不要在本文件重复完整表格**——以 ROADMAP 为唯一 backlog 源。
+里程碑 **M0–M14** 见 [docs/ROADMAP.md](docs/ROADMAP.md)。**不要在本文件重复完整表格**——以 ROADMAP 为唯一 backlog 源。
 
 ## 文档体系
 
