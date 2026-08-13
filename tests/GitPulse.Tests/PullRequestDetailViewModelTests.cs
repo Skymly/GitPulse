@@ -604,6 +604,203 @@ public class PullRequestDetailViewModelTests
         Assert.Equal("#42 Original", vm.Title.Value);
         vm.Dispose();
     }
+    private static string UserJson(string login) => $"{{\"login\":\"{login}\"}}";
+
+    private static string ReviewJson(long id, string state, string body, string login = "alice") =>
+        $"{{\"id\":{id},\"state\":\"{state}\",\"body\":\"{body}\",\"user\":{{\"login\":\"{login}\"}}}}";
+
+    [Fact]
+    public async Task Load_ListsSubmittedReviews_SkipsPending()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews",
+                $"[{ReviewJson(1, "APPROVED", "LGTM")},{ReviewJson(2, "PENDING", "wip")},{ReviewJson(3, "COMMENTED", "nit")}]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(2, vm.Reviews.Count);
+        Assert.Equal("APPROVED", vm.Reviews[0].State);
+        Assert.Equal("COMMENTED", vm.Reviews[1].State);
+        Assert.Equal("alice", vm.ViewerLogin.Value);
+        Assert.True(vm.CanReview.Value);
+        Assert.True(vm.CanApproveOrRequestChanges.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenUserAndReviewsMissing_StillLoadsPullRequest()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.NotNull(vm.PullRequest.Value);
+        Assert.Empty(vm.Reviews);
+        Assert.Equal(string.Empty, vm.ViewerLogin.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SubmitReview_Comment_PostsEventAndClearsBody()
+    {
+        string? posted = null;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", mergeable: true, mergeableState: "clean"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                {
+                    posted = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return new MockResponse(ReviewJson(9, "COMMENTED", "Looks good"));
+                }
+
+                return new MockResponse($"[{ReviewJson(9, "COMMENTED", "Looks good")}]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.ReviewEvent.Value = "COMMENT";
+        vm.ReviewBody.Value = "Looks good";
+        await vm.SubmitReviewCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(string.Empty, vm.ReviewBody.Value);
+        Assert.Contains("\"event\":\"COMMENT\"", posted, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(vm.Reviews);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SubmitReview_Approve_AllowsEmptyBody()
+    {
+        string? posted = null;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                {
+                    posted = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return new MockResponse(ReviewJson(9, "APPROVED", ""));
+                }
+
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.ReviewEvent.Value = "APPROVE";
+        vm.ReviewBody.Value = "   ";
+        await vm.SubmitReviewCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.NotNull(posted);
+        Assert.Contains("\"event\":\"APPROVE\"", posted, StringComparison.OrdinalIgnoreCase);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SubmitReview_Comment_EmptyBody_DoesNothing()
+    {
+        var posted = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    posted = true;
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.ReviewEvent.Value = "COMMENT";
+        vm.ReviewBody.Value = "  ";
+        await vm.SubmitReviewCommand.ExecuteAsync(null);
+
+        Assert.False(posted);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SubmitReview_Author_CannotApprove()
+    {
+        var posted = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("bob"))
+            .When("/pulls/42/reviews", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    posted = true;
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanApproveOrRequestChanges.Value);
+        vm.ReviewEvent.Value = "APPROVE";
+        await vm.SubmitReviewCommand.ExecuteAsync(null);
+
+        Assert.False(posted);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SubmitReview_ClosedPullRequest_DoesNothing()
+    {
+        var posted = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    posted = true;
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanReview.Value);
+        vm.ReviewEvent.Value = "COMMENT";
+        vm.ReviewBody.Value = "too late";
+        await vm.SubmitReviewCommand.ExecuteAsync(null);
+
+        Assert.False(posted);
+        vm.Dispose();
+    }
 }
 
 public class PullRequestModelTests
@@ -687,4 +884,5 @@ public class PullRequestModelTests
         Assert.True(resp.Merged);
         Assert.Equal("Successfully merged", resp.Message);
     }
+
 }
