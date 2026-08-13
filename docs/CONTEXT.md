@@ -51,3 +51,11 @@ _Avoid_: generic HTTP session, repository, paging service, call envelope
 **Draft PR**:
 A pull request opened with GitHub’s create-time draft flag. In the v0.2.0 create/manage-PRs slice this means optional draft-at-create only; toggling draft ↔ ready after create is out of scope.
 _Avoid_: ready for review (in-app), draft lifecycle, WIP PR (informal)
+
+**Pull Request Review**:
+A submitted GitHub review on a pull request (author, summary body, submitted time). Listed `state` is GitHub’s submitted state (`APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`, …), not the create-time Review Event. Distinct from a Review Comment (M8 line comment on the diff). PENDING reviews are omitted from the Conversation list.
+_Avoid_: review comment (the line comment), pending review, verdict, approval (the event is APPROVE)
+
+**Review Event**:
+The submit action sent when creating a Pull Request Review: `APPROVE`, `REQUEST_CHANGES`, or `COMMENT`. v0.3.0 always sends an event (immediate submit). Omitting the event creates a pending review, which is out of scope.
+_Avoid_: pending, draft review, review status (GitHub’s `state` on a submitted review)

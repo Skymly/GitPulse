@@ -7,6 +7,10 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added
+
+- Submit and list Pull Request Reviews on PR detail (COMMENT / APPROVE / REQUEST_CHANGES; skip PENDING).
+
 ## [0.2.0] - 2026-08-13
 
 ### Added

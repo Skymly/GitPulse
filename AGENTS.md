@@ -8,7 +8,7 @@
 |----|------|
 | **类型** | 个人项目（Skymly workspace） |
 | **远程** | https://github.com/Skymly/GitPulse |
-| **阶段** | **v0.2.0 已发布**；M14 已完成（同仓 Create PR + create-time Draft PR + PR title/body edit；Win zip + 签名 APK；见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
+| **阶段** | **v0.2.0 已发布**；M15 进行中（Submit Pull Request Review；尚未打 v0.3.0 tag；见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
 | **目的** | [Observables](https://github.com/Skymly/Observables) 的真实世界展示应用（声明式 RestAPI + R3）。非玩具 demo，作者日常使用的 GitHub 客户端。 |
 
 ## 技术栈
@@ -116,6 +116,20 @@ build/                  — Nuke
 | 解决方案架构 | [Architecture.md](docs/design/Architecture.md) |
 | Observables RestAPI | [RestApi.md](docs/design/RestApi.md) |
 | Events / R3 UI | [Events.md](docs/design/Events.md) |
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on Skymly/GitPulse (`gh`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical strings: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: glossary at `docs/CONTEXT.md`, ADRs at `docs/adr/` (GitPulse `ADR-NNN` template). See `docs/agents/domain.md`.
 
 ---
 

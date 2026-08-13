@@ -47,6 +47,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M9 | `/search/repositories`, `/search/issues`, `/search/code` |
 | M10 ✅ | `/actions/runs`, run jobs, rerun, job logs |
 | M14 ✅ | `POST /repos/{owner}/{repo}/pulls` (`CreatePullRequest` + create-time Draft PR); PR title/body edit via existing `UpdateIssue` |
+| M15 ✅ | `GET /user` (`GetAuthenticatedUser`); `GET/POST /repos/{owner}/{repo}/pulls/{number}/reviews` (`ListPullRequestReviews`, `CreatePullRequestReview`) |
 
 ## M9 Search
 
@@ -156,6 +157,19 @@ Search 仍通过元组 `CreatePagedClientAsync` 自行管理 handler + Link（�
 | job 日志 | `GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs` |
 
 列表返回 `ApiResponse<T>`；日志下载需处理重定向。Windows 托盘 / Toast 见 [ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md) 与 [Events.md](Events.md)（App/platform，非本 API 文档范围）。
+
+
+### Pull Request Reviews (M15)
+
+Immediate submit only (no pending review). Methods live on `IGitHubReposApi` on purpose — no fourth interface:
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GetAuthenticatedUser` | `GET /user` | Authenticated `User.Login` for author vs viewer compare. Lives on `IGitHubReposApi` so PR detail does not add a Users API surface. |
+| `ListPullRequestReviews` | `GET /repos/{owner}/{repo}/pulls/{number}/reviews` | First page `Observable<PullRequestReview[]>`; omit PENDING in the ViewModel. Listed `state` is GitHub’s submitted state, not the create-time Review Event. |
+| `CreatePullRequestReview` | `POST /repos/{owner}/{repo}/pulls/{number}/reviews` | Immediate submit: `event` is required (`APPROVE` / `REQUEST_CHANGES` / `COMMENT`). Does not send `comments[]` (M8 `CreateReviewComment` stays independent). |
+
+`PullRequestReview` / `PullRequestReviewCreateRequest` are Core models. Body is required for COMMENT and REQUEST_CHANGES; optional for APPROVE. Authors cannot APPROVE or REQUEST_CHANGES (GitHub rejects self-review of those events).
 
 ## 设计权衡
 
