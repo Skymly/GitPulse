@@ -7,8 +7,15 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-13
+
 ### Added
 
+- Same-repo Create pull request from the pull requests list (title, head/base
+  from `ListBranches`, optional body, optional create-time Draft PR); success
+  opens the new PR detail.
+- Edit pull request title and body on PR detail (non-empty title required;
+  empty body allowed; save refreshes detail).
 - Roadmap M14 / v0.2.0: create/manage PRs (same-repo Create PR + create-time
   Draft PR; PR title/body edit) and Draft PR glossary (docs).
 - `PagedGitHubSession` (Core/Http) — owns one paged GitHub HTTP client cycle

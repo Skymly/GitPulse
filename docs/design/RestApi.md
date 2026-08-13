@@ -29,7 +29,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 |------|----------|------|
 | 分页列表 | `Observable<ApiResponse<T[]>>` | `ListIssuesPaged`, `ListMyReposPaged` |
 | 单资源 GET | `Observable<T>` | `GetRepo`, `GetIssue` |
-| 写操作 | `Observable<T>` + `[Body]` | `CreateIssue`, `MergePullRequest` |
+| 写操作 | `Observable<T>` + `[Body]` | `CreateIssue`, `CreatePullRequest`, `MergePullRequest` |
 | 无 body DELETE | `Observable<Unit>` | `MarkThreadRead` |
 
 ## 里程碑 API 面（已实现）
@@ -46,6 +46,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M8 | pull files, pull review comments |
 | M9 | `/search/repositories`, `/search/issues`, `/search/code` |
 | M10 ✅ | `/actions/runs`, run jobs, rerun, job logs |
+| M14 ✅ | `POST /repos/{owner}/{repo}/pulls` (`CreatePullRequest` + create-time Draft PR); PR title/body edit via existing `UpdateIssue` |
 
 ## M9 Search
 
@@ -88,6 +89,12 @@ Search 仍通过元组 `CreatePagedClientAsync` 自行管理 handler + Link（�
 
 - `CreateIssue`、`UpdateIssue`、`CreateIssueComment` 等使用 `[Body]` DTO（`Core/Models/IssueRequests.cs`）
 - PR 评论复用 issue comments 端点
+
+### Create PR（M14）
+
+- `CreatePullRequest`：`POST /repos/{owner}/{repo}/pulls`，path + `[Body]` `PullRequestCreateRequest`（`title` / `head` / `base` / 可选 `body` / 可选 create-time `draft`）
+- 同仓 head/base；分支来源复用已有 `ListBranches`；不包含跨 fork、draft ↔ ready 生命周期或 GraphQL
+- PR detail 编辑 title/body 复用 `UpdateIssue`（issues PATCH；与 open/close 同一 number 空间），不新增 pulls PATCH
 
 ### M8 Diff
 
