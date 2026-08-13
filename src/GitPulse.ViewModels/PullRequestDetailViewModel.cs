@@ -17,6 +17,9 @@ namespace GitPulse.ViewModels;
 /// issue comments endpoint) and <see cref="IGitHubReposApi.UpdateIssue"/>
 /// (PR state toggle and title/body edit via the issue PATCH endpoint).
 /// M6 adds PR merge via <see cref="IGitHubReposApi.MergePullRequest"/>.
+/// M15 adds Pull Request Review list/submit via
+/// <see cref="IGitHubReposApi.ListPullRequestReviews"/> and
+/// <see cref="IGitHubReposApi.CreatePullRequestReview"/>.
 /// </summary>
 public sealed partial class PullRequestDetailViewModel : IDisposable
 {
@@ -74,6 +77,27 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
     /// <summary>Whether the PR has been merged (shows merge result instead of merge button).</summary>
     public BindableReactiveProperty<bool> IsMerged { get; } = new(false);
 
+    /// <summary>Submitted Pull Request Reviews (PENDING omitted).</summary>
+    public ObservableCollection<PullRequestReview> Reviews { get; } = [];
+
+    /// <summary>Review Event for submit: APPROVE, REQUEST_CHANGES, or COMMENT.</summary>
+    public BindableReactiveProperty<string> ReviewEvent { get; } = new("COMMENT");
+
+    /// <summary>Summary body for the Pull Request Review being submitted.</summary>
+    public BindableReactiveProperty<string> ReviewBody { get; } = new(string.Empty);
+
+    /// <summary>Authenticated login; empty when GET /user failed.</summary>
+    public BindableReactiveProperty<string> ViewerLogin { get; } = new(string.Empty);
+
+    /// <summary>True when the PR is open and not merged.</summary>
+    public BindableReactiveProperty<bool> CanReview { get; } = new(false);
+
+    /// <summary>True when the viewer is not the PR author (or viewer is unknown).</summary>
+    public BindableReactiveProperty<bool> CanApproveOrRequestChanges { get; } = new(true);
+
+    /// <summary>Review Event picker options; authors only get COMMENT.</summary>
+    public ObservableCollection<string> ReviewEventOptions { get; } = ["COMMENT", "APPROVE", "REQUEST_CHANGES"];
+
     public PullRequestDetailViewModel(IGitHubClientFactory clientFactory, IBrowserLauncher browserLauncher)
     {
         _clientFactory = clientFactory;
@@ -124,6 +148,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
             Comments.Clear();
             foreach (var comment in comments)
                 Comments.Add(comment);
+
+            await LoadReviewExtrasAsync(api, cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -215,6 +241,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
                 HeadRef = pr.HeadRef,
                 BaseRef = pr.BaseRef,
             };
+            UpdateReviewPermissions(PullRequest.Value);
         }
         catch (OperationCanceledException)
         {
@@ -291,6 +318,146 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         TitleInput.Value = pr.Title;
         BodyInput.Value = pr.Body ?? string.Empty;
         UpdateMergeStatus(pr);
+        UpdateReviewPermissions(pr);
+    }
+
+    private void UpdateReviewPermissions(PullRequest pr)
+    {
+        CanReview.Value = pr.State == "open" && !pr.Merged;
+        var author = pr.User?.Login;
+        CanApproveOrRequestChanges.Value = string.IsNullOrEmpty(ViewerLogin.Value)
+            || string.IsNullOrEmpty(author)
+            || !string.Equals(ViewerLogin.Value, author, StringComparison.OrdinalIgnoreCase);
+
+        ReviewEventOptions.Clear();
+        ReviewEventOptions.Add("COMMENT");
+        if (CanApproveOrRequestChanges.Value)
+        {
+            ReviewEventOptions.Add("APPROVE");
+            ReviewEventOptions.Add("REQUEST_CHANGES");
+        }
+
+        if (!ReviewEventOptions.Any(option =>
+                string.Equals(option, ReviewEvent.Value, StringComparison.OrdinalIgnoreCase)))
+            ReviewEvent.Value = "COMMENT";
+    }
+
+    private async Task LoadReviewExtrasAsync(IGitHubReposApi api, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var user = await api.GetAuthenticatedUser().FirstAsync(cancellationToken);
+            ViewerLogin.Value = user.Login ?? string.Empty;
+        }
+        catch
+        {
+            ViewerLogin.Value = string.Empty;
+        }
+
+        if (PullRequest.Value is not null)
+            UpdateReviewPermissions(PullRequest.Value);
+
+        try
+        {
+            var reviews = await api.ListPullRequestReviews(_owner, _repo, _prNumber)
+                .FirstAsync(cancellationToken);
+            ReplaceReviews(reviews);
+        }
+        catch
+        {
+            Reviews.Clear();
+        }
+    }
+
+    private void ReplaceReviews(IEnumerable<PullRequestReview> reviews)
+    {
+        Reviews.Clear();
+        foreach (var review in reviews)
+        {
+            if (string.Equals(review.State, "PENDING", StringComparison.OrdinalIgnoreCase))
+                continue;
+            Reviews.Add(review);
+        }
+    }
+
+    /// <summary>Submit a Pull Request Review with the selected Review Event.</summary>
+    [RelayCommand]
+    private async Task SubmitReviewAsync()
+    {
+        if (PullRequest.Value is null || IsSaving.Value || !CanReview.Value)
+            return;
+
+        var reviewEvent = ReviewEvent.Value;
+        if (string.IsNullOrWhiteSpace(reviewEvent))
+            return;
+
+        var isApprove = string.Equals(reviewEvent, "APPROVE", StringComparison.OrdinalIgnoreCase);
+        var isRequestChanges = string.Equals(reviewEvent, "REQUEST_CHANGES", StringComparison.OrdinalIgnoreCase);
+        if ((isApprove || isRequestChanges) && !CanApproveOrRequestChanges.Value)
+            return;
+
+        if (!isApprove && string.IsNullOrWhiteSpace(ReviewBody.Value))
+            return;
+
+        IsSaving.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+            var request = new PullRequestReviewCreateRequest
+            {
+                Event = reviewEvent,
+                Body = string.IsNullOrWhiteSpace(ReviewBody.Value) ? null : ReviewBody.Value,
+                CommitId = PullRequest.Value.Head?.Sha,
+            };
+            await api.CreatePullRequestReview(_owner, _repo, _prNumber, request)
+                .FirstAsync(cts.Token);
+
+            ReviewBody.Value = string.Empty;
+
+            try
+            {
+                var reviews = await api.ListPullRequestReviews(_owner, _repo, _prNumber)
+                    .FirstAsync(cts.Token);
+                ReplaceReviews(reviews);
+            }
+            catch
+            {
+                // Keep the local list; submit already succeeded.
+            }
+
+            try
+            {
+                var pr = await api.GetPullRequest(_owner, _repo, _prNumber).FirstAsync(cts.Token);
+                ApplyPullRequest(pr);
+            }
+            catch
+            {
+                // Submit succeeded; mergeable refresh is best-effort.
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Review failed: {ex.Message}";
+        }
+        finally
+        {
+            IsSaving.Value = false;
+        }
     }
 
     // ── M6: Merge logic ──────────────────────────────────────────
@@ -393,6 +560,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
                     ChangedFiles = pr.ChangedFiles,
                 };
                 UpdateMergeStatus(PullRequest.Value);
+                UpdateReviewPermissions(PullRequest.Value);
             }
             else
             {
@@ -429,5 +597,10 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         CanMerge.Dispose();
         MergeStatus.Dispose();
         IsMerged.Dispose();
+        ReviewEvent.Dispose();
+        ReviewBody.Dispose();
+        ViewerLogin.Dispose();
+        CanReview.Dispose();
+        CanApproveOrRequestChanges.Dispose();
     }
 }
