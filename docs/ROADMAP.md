@@ -1,6 +1,6 @@
 # GitPulse 路线图
 
-功能与技术 backlog 的滚动清单。里程碑编号 **M0–M14**；完成项移入「已完成（归档）」章节。
+功能与技术 backlog 的滚动清单。里程碑编号 **M0–M15**；完成项移入「已完成（归档）」章节。
 
 - **文档标准**：[DOCUMENTATION.md](DOCUMENTATION.md)
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
@@ -14,7 +14,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 ## 进行中
 
-（暂无）
+（暂无；M15 功能已合入 main，v0.3.0 tag / GitHub Release 仍待 cut）
 
 ## 排期
 
@@ -46,6 +46,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
+| **M15** ✅ | v0.3.0 Submit Pull Request Review：PR detail Conversation 列出已提交 Review 并立即提交 COMMENT / APPROVE / REQUEST_CHANGES（[#114](https://github.com/Skymly/GitPulse/issues/114)；[#115](https://github.com/Skymly/GitPulse/issues/115)–[#120](https://github.com/Skymly/GitPulse/issues/120)） | RestAPI |
 | **M14** ✅ | v0.2.0 create/manage PRs：同仓 Create PR（含可选 create-time Draft PR）+ PR detail 编辑 title/body（[#93](https://github.com/Skymly/GitPulse/issues/93)；[#94](https://github.com/Skymly/GitPulse/issues/94)–[#100](https://github.com/Skymly/GitPulse/issues/100)） | RestAPI |
 | **M13** ✅ | Android Emulator UI Smoke + v0.1.1 双产物 GitHub Release（Win zip + 签名 APK；ADR-014；[#67](https://github.com/Skymly/GitPulse/issues/67) / [#71](https://github.com/Skymly/GitPulse/issues/71)） | full pipeline |
 | **M12** ✅ | Release v0.1.0（GitHub Releases；Win publish zip；ADR-013；[#54](https://github.com/Skymly/GitPulse/issues/54) / [#58](https://github.com/Skymly/GitPulse/issues/58)） | full pipeline |
