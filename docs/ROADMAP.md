@@ -14,7 +14,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 ## 进行中
 
-（暂无；M15 功能已合入 main，v0.3.0 tag / GitHub Release 仍待 cut）
+（暂无）
 
 ## 排期
 
