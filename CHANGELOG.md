@@ -7,6 +7,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added
+
+- Show a Gate Rollup on PR detail for the head SHA: latest Check Runs plus
+  combined Commit Statuses, with links to GitHub / CI detail URLs.
+- Roadmap M16 / v0.4.0: PR head Gate Rollup (docs).
+
 ## [0.3.0] - 2026-08-13
 
 ### Added

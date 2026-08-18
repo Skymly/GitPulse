@@ -59,3 +59,15 @@ _Avoid_: review comment (the line comment), pending review, verdict, approval (t
 **Review Event**:
 The submit action sent when creating a Pull Request Review: `APPROVE`, `REQUEST_CHANGES`, or `COMMENT`. v0.3.0 always sends an event (immediate submit). Omitting the event creates a pending review, which is out of scope.
 _Avoid_: pending, draft review, review status (GitHub’s `state` on a submitted review)
+
+**Check Run**:
+A GitHub Checks API run on a commit (name, `status`, `conclusion`). GitHub Actions produces Check Runs, not Commit Statuses. Listed from `GET /repos/{owner}/{repo}/commits/{ref}/check-runs`. Distinct from a Workflow Run (M10 repo-scoped Actions list) and from a Commit Status.
+_Avoid_: status check (ambiguous), CI, Actions run (the M10 workflow run)
+
+**Commit Status**:
+A classic status on a commit (`context` + `state` + optional `target_url`). Combined status (`GET /commits/{ref}/status`) aggregates only these. Empty `statuses` yields GitHub combined state `pending`, which is not a Gate Rollup pending by itself.
+_Avoid_: check run, combined status (the wrapper), CI
+
+**Gate Rollup**:
+A client-side summary of the latest Check Runs plus Commit Statuses on the pull request head SHA: pending, success, failure, or no checks. Not GitHub GraphQL `statusCheckRollup`. Empty combined statuses do not force pending when Check Runs exist or when both lists are empty.
+_Avoid_: mergeable_state (opaque GitHub merge-box hint), required checks, status check rollup (GraphQL)
