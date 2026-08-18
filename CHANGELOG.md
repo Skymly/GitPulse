@@ -7,6 +7,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added
+
+- Browse paged repository commit history from repo detail and open a commit
+  on GitHub.
+- Roadmap M18 / v0.6.0: repo commit history (docs).
+
 ## [0.5.0] - 2026-08-18
 
 ### Added

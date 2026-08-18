@@ -50,6 +50,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M15 ✅ | `GET /user` (`GetAuthenticatedUser`); `GET/POST /repos/{owner}/{repo}/pulls/{number}/reviews` (`ListPullRequestReviews`, `CreatePullRequestReview`) |
 | M16 ✅ | `GET /repos/{owner}/{repo}/commits/{ref}/check-runs` (`ListCheckRunsForRef`); `GET /repos/{owner}/{repo}/commits/{ref}/status` (`GetCombinedStatusForRef`) |
 | M17 ✅ | `GET /user/starred` (`ListStarredReposPaged`) |
+| M18 ✅ | `GET /repos/{owner}/{repo}/commits` (`ListCommitsPaged`) |
 
 ## M9 Search
 
