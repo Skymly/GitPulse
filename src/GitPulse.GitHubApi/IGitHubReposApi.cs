@@ -41,6 +41,13 @@ public interface IGitHubReposApi
     [Get("/user/repos")]
     Observable<ApiResponse<Repo[]>> ListMyReposPaged();
 
+    /// <summary>
+    /// Repositories starred by the authenticated user (M17). Paged via
+    /// <c>Link</c>; items reuse <see cref="Repo"/>.
+    /// </summary>
+    [Get("/user/starred")]
+    Observable<ApiResponse<Repo[]>> ListStarredReposPaged();
+
     [Get("/repos/{owner}/{repo}")]
     Observable<Repo> GetRepo(string owner, string repo);
 
