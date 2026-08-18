@@ -51,6 +51,12 @@ public interface IGitHubReposApi
     [Get("/repos/{owner}/{repo}")]
     Observable<Repo> GetRepo(string owner, string repo);
 
+    /// <summary>
+    /// List commits on the default branch (M18). Paged via <c>Link</c>.
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/commits")]
+    Observable<ApiResponse<GitCommit[]>> ListCommitsPaged(string owner, string repo);
+
     // ── Repository detail (M7: repo detail page) ──────────────────
 
     /// <summary>
