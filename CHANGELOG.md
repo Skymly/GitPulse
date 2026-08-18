@@ -7,6 +7,8 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-19
+
 ### Added
 
 - Browse paged repository commit history from repo detail and open a commit
