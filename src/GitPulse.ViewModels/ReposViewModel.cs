@@ -108,6 +108,7 @@ public sealed partial class ReposViewModel : IDisposable
             _session?.Dispose();
             _session = null;
             _allRepos.Clear();
+            ApplyFilter(SearchText.Value);
 
             var session = await _clientFactory.CreatePagedSessionAsync();
             if (session.Client.DefaultRequestHeaders.Authorization is null)
