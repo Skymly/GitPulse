@@ -11,7 +11,7 @@
 | [DOCUMENTATION.md](DOCUMENTATION.md) | **文档约定**（ADR、Design Doc 与同步规则） |
 | [CONTEXT.md](CONTEXT.md) | 领域术语（Tray Presence、Toast、New Notification 等） |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | 环境、构建、测试、仓库布局、Release runbook |
-| [ROADMAP.md](ROADMAP.md) | 里程碑 M0–M16 |
+| [ROADMAP.md](ROADMAP.md) | 里程碑 M0–M17 |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | 贡献流程 |
 | [../AGENTS.md](../AGENTS.md) | AI Agent 上下文 |
 | [../CHANGELOG.md](../CHANGELOG.md) | 变更日志 |
