@@ -7,6 +7,8 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-18
+
 ### Added
 
 - Show a Gate Rollup on PR detail for the head SHA: latest Check Runs plus

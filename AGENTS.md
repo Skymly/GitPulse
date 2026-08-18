@@ -8,7 +8,7 @@
 |----|------|
 | **类型** | 个人项目（Skymly workspace） |
 | **远程** | https://github.com/Skymly/GitPulse |
-| **阶段** | **v0.3.0 已发布**；M16 已落地（PR head Gate Rollup：PR detail 列出最新 Check Run + Commit Status 并显示客户端汇总；见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
+| **阶段** | **v0.4.0 已发布**；M16 已完成（PR head Gate Rollup：PR detail 列出最新 Check Run + Commit Status 并显示客户端汇总；Win zip + 签名 APK；见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
 | **目的** | [Observables](https://github.com/Skymly/Observables) 的真实世界展示应用（声明式 RestAPI + R3）。非玩具 demo，作者日常使用的 GitHub 客户端。 |
 
 ## 技术栈
