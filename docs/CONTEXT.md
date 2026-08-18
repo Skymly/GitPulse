@@ -71,3 +71,7 @@ _Avoid_: check run, combined status (the wrapper), CI
 **Gate Rollup**:
 A client-side summary of the latest Check Runs plus Commit Statuses on the pull request head SHA: pending, success, failure, or no checks. Not GitHub GraphQL `statusCheckRollup`. Empty combined statuses do not force pending when Check Runs exist or when both lists are empty.
 _Avoid_: mergeable_state (opaque GitHub merge-box hint), required checks, status check rollup (GraphQL)
+
+**Starred Repo List**:
+The authenticated user's starred repositories from `GET /user/starred`, shown as the Starred hub on the existing Repos tab. Paged with `PagedGitHubSession`. Distinct from My repos (`GET /user/repos`) and from GitHub Search.
+_Avoid_: watching / subscriptions, recently viewed, star toggle (write)

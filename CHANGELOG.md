@@ -7,6 +7,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added
+
+- Switch the Repos tab between My repos and Starred (`GET /user/starred`,
+  paged). Local name filter applies to the active list.
+- Roadmap M17 / v0.5.0: Starred repos on the Repos tab (docs).
+
 ## [0.4.0] - 2026-08-18
 
 ### Added

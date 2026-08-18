@@ -1,6 +1,6 @@
 # GitPulse 路线图
 
-功能与技术 backlog 的滚动清单。里程碑编号 **M0–M16**；完成项移入「已完成（归档）」章节。
+功能与技术 backlog 的滚动清单。里程碑编号 **M0–M17**；完成项移入「已完成（归档）」章节。
 
 - **文档标准**：[DOCUMENTATION.md](DOCUMENTATION.md)
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
@@ -46,6 +46,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
+| **M17** ✅ | v0.5.0 Starred repos：Repos 页 My repos / Starred 切换，分页 `GET /user/starred`（[#150](https://github.com/Skymly/GitPulse/issues/150)；[#151](https://github.com/Skymly/GitPulse/issues/151)–[#155](https://github.com/Skymly/GitPulse/issues/155)） | RestAPI |
 | **M16** ✅ | v0.4.0 PR head Gate Rollup：PR detail Conversation 列出最新 Check Run + combined Commit Status，并显示客户端汇总（[#132](https://github.com/Skymly/GitPulse/issues/132)；[#133](https://github.com/Skymly/GitPulse/issues/133)–[#138](https://github.com/Skymly/GitPulse/issues/138)） | RestAPI |
 | **M15** ✅ | v0.3.0 Submit Pull Request Review：PR detail Conversation 列出已提交 Review 并立即提交 COMMENT / APPROVE / REQUEST_CHANGES（[#114](https://github.com/Skymly/GitPulse/issues/114)；[#115](https://github.com/Skymly/GitPulse/issues/115)–[#120](https://github.com/Skymly/GitPulse/issues/120)） | RestAPI |
 | **M14** ✅ | v0.2.0 create/manage PRs：同仓 Create PR（含可选 create-time Draft PR）+ PR detail 编辑 title/body（[#93](https://github.com/Skymly/GitPulse/issues/93)；[#94](https://github.com/Skymly/GitPulse/issues/94)–[#100](https://github.com/Skymly/GitPulse/issues/100)） | RestAPI |

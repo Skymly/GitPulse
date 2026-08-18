@@ -49,6 +49,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M14 ✅ | `POST /repos/{owner}/{repo}/pulls` (`CreatePullRequest` + create-time Draft PR); PR title/body edit via existing `UpdateIssue` |
 | M15 ✅ | `GET /user` (`GetAuthenticatedUser`); `GET/POST /repos/{owner}/{repo}/pulls/{number}/reviews` (`ListPullRequestReviews`, `CreatePullRequestReview`) |
 | M16 ✅ | `GET /repos/{owner}/{repo}/commits/{ref}/check-runs` (`ListCheckRunsForRef`); `GET /repos/{owner}/{repo}/commits/{ref}/status` (`GetCombinedStatusForRef`) |
+| M17 ✅ | `GET /user/starred` (`ListStarredReposPaged`) |
 
 ## M9 Search
 
@@ -183,8 +184,17 @@ Read-only. Methods live on `IGitHubReposApi` — no `IGitHubChecksApi` / ADR-015
 
 `CheckRun` / `CheckRunsResult` / `CommitStatus` / `CombinedCommitStatus` are Core models. ViewModel computes Gate Rollup (pending / success / failure / no checks). Missing `Head.Sha` skips both calls. Either endpoint failing leaves the PR page intact.
 
-## 设计权衡
-- **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续由 Handler 注入，并由 Paged GitHub Session 统一 cursor / Link / dispose。
+### Starred repos (M17)
+
+Read-only. Lives on `IGitHubReposApi` and reuses `Repo` — no new interface or Core model.
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `ListStarredReposPaged` | `GET /user/starred` | `Observable<ApiResponse<Repo[]>>`; page / `Link` via Paged GitHub Session. |
+
+Repos tab switches My repos (`ListMyReposPaged`) vs Starred. Each hub owns its own session. Local `SearchText` filters the active list. No star/unstar writes.
+
+## 设计权衡- **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续由 Handler 注入，并由 Paged GitHub Session 统一 cursor / Link / dispose。
 - **Paged GitHub Session vs 元组工厂**：列表 ViewModel 面向 session；`CreatePagedClientAsync` 仅为 Search（及未迁移调用方）保留，直至 follow-up。
 - **404 处理**：README 等可选资源在 ViewModel 层吞掉 NotFound，不失败整页加载。
 
