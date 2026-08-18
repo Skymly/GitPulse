@@ -10,14 +10,36 @@
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-        <!-- Search bar: TextChanged event is bridged to an Observable
-             via R3 Subject in the code-behind (debounced). -->
-        <SearchBar x:Name="SearchBar"
-                   Grid.Row="0"
-                   Placeholder="Filter repositories..."
-                   Text="{Binding SearchText.Value}"
-                   Margin="16,12,16,8"
-                   AutomationId="ReposSearchBar" />
+        <VerticalStackLayout Grid.Row="0" Spacing="0">
+            <!-- Search bar: TextChanged event is bridged to an Observable
+                 via R3 Subject in the code-behind (debounced). -->
+            <SearchBar x:Name="SearchBar"
+                       Placeholder="Filter repositories..."
+                       Text="{Binding SearchText.Value}"
+                       Margin="16,12,16,4"
+                       AutomationId="ReposSearchBar" />
+
+            <!-- M17: My repos / Starred hub switch (not a fifth Shell tab). -->
+            <Grid ColumnDefinitions="*,*"
+                  ColumnSpacing="8"
+                  Margin="16,0,16,8">
+                <Button Text="My repos"
+                        Command="{Binding SelectHubCommand}"
+                        CommandParameter="{x:Static vm:ReposViewModel.MyReposHub}"
+                        Padding="12,10"
+                        FontSize="13"
+                        HorizontalOptions="Fill"
+                        AutomationId="ReposMyReposHub" />
+                <Button Grid.Column="1"
+                        Text="Starred"
+                        Command="{Binding SelectHubCommand}"
+                        CommandParameter="{x:Static vm:ReposViewModel.StarredHub}"
+                        Padding="12,10"
+                        FontSize="13"
+                        HorizontalOptions="Fill"
+                        AutomationId="ReposStarredHub" />
+            </Grid>
+        </VerticalStackLayout>
 
         <!-- Error banner -->
         <Border Grid.Row="1"
