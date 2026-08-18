@@ -1,3 +1,4 @@
+using System.Net;
 using GitPulse.Core.Models;
 using GitPulse.Tests.TestHelpers;
 using GitPulse.ViewModels;
@@ -188,6 +189,150 @@ public class ReposViewModelTests
         vm.SearchText.Value = "";
 
         Assert.Equal(2, vm.Repos.Count);
+        vm.Dispose();
+    }
+
+    private const string StarredLinkHasNext =
+        "<https://api.github.com/user/starred?page=2>; rel=\"next\", " +
+        "<https://api.github.com/user/starred?page=3>; rel=\"last\"";
+
+    private const string StarredLinkNoNext =
+        "<https://api.github.com/user/starred?page=1>; rel=\"prev\", " +
+        "<https://api.github.com/user/starred?page=1>; rel=\"first\"";
+
+    [Fact]
+    public async Task Load_DefaultHub_HitsUserRepos()
+    {
+        var starredCalled = false;
+        var handler = new MockHttpHandler()
+            .When("/user/repos", ReposJson(("mine", null)), LinkNoNext)
+            .When("/user/starred", req =>
+            {
+                starredCalled = true;
+                return new MockResponse(ReposJson(("starred", null)));
+            });
+        var vm = new ReposViewModel(new FakeGitHubClientFactory(handler));
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal(ReposViewModel.MyReposHub, vm.SelectedHub.Value);
+        Assert.Equal("mine", vm.Repos[0].Name);
+        Assert.False(starredCalled);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SelectHub_Starred_HitsUserStarred()
+    {
+        var handler = new MockHttpHandler()
+            .When("/user/repos", ReposJson(("mine", null)), LinkNoNext)
+            .When("/user/starred", ReposJson(("starred-one", "bookmarked")), StarredLinkHasNext);
+        var vm = new ReposViewModel(new FakeGitHubClientFactory(handler));
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        await vm.SelectHubCommand.ExecuteAsync(ReposViewModel.StarredHub);
+
+        Assert.Equal(ReposViewModel.StarredHub, vm.SelectedHub.Value);
+        Assert.Single(vm.Repos);
+        Assert.Equal("starred-one", vm.Repos[0].Name);
+        Assert.True(vm.CanLoadMore.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task LoadMore_Starred_AppendsNextPage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/user/repos", ReposJson(("mine", null)), LinkNoNext)
+            .When("/user/starred", req =>
+            {
+                var page = req.RequestUri?.Query ?? "";
+                if (page.Contains("page=2"))
+                    return new MockResponse(ReposJson(("starred-two", null)), StarredLinkNoNext);
+                return new MockResponse(ReposJson(("starred-one", null)), StarredLinkHasNext);
+            });
+        var vm = new ReposViewModel(new FakeGitHubClientFactory(handler));
+
+        await vm.SelectHubCommand.ExecuteAsync(ReposViewModel.StarredHub);
+        Assert.Single(vm.Repos);
+
+        await vm.LoadMoreCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, vm.Repos.Count);
+        Assert.Equal("starred-two", vm.Repos[1].Name);
+        Assert.False(vm.CanLoadMore.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SelectHub_ResetsListAndDoesNotMixSources()
+    {
+        var handler = new MockHttpHandler()
+            .When("/user/repos", ReposJson(("mine-a", null), ("mine-b", null)), LinkNoNext)
+            .When("/user/starred", ReposJson(("starred-one", null)), StarredLinkNoNext);
+        var vm = new ReposViewModel(new FakeGitHubClientFactory(handler));
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Equal(2, vm.Repos.Count);
+
+        await vm.SelectHubCommand.ExecuteAsync(ReposViewModel.StarredHub);
+        Assert.Single(vm.Repos);
+        Assert.Equal("starred-one", vm.Repos[0].Name);
+
+        await vm.SelectHubCommand.ExecuteAsync(ReposViewModel.MyReposHub);
+        Assert.Equal(2, vm.Repos.Count);
+        Assert.All(vm.Repos, repo => Assert.StartsWith("mine", repo.Name));
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SelectHub_EmptyStarred_IsQuiet()
+    {
+        var handler = new MockHttpHandler()
+            .When("/user/repos", ReposJson(("mine", null)), LinkNoNext)
+            .When("/user/starred", "[]", StarredLinkNoNext);
+        var vm = new ReposViewModel(new FakeGitHubClientFactory(handler));
+
+        await vm.SelectHubCommand.ExecuteAsync(ReposViewModel.StarredHub);
+
+        Assert.Empty(vm.Repos);
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.False(vm.CanLoadMore.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SelectHub_Starred404_ShowsErrorWithoutLeavingTab()
+    {
+        var handler = new MockHttpHandler()
+            .When("/user/repos", ReposJson(("mine", null)), LinkNoNext)
+            .When("/user/starred", HttpStatusCode.NotFound);
+        var vm = new ReposViewModel(new FakeGitHubClientFactory(handler));
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        await vm.SelectHubCommand.ExecuteAsync(ReposViewModel.StarredHub);
+
+        Assert.Equal(ReposViewModel.StarredHub, vm.SelectedHub.Value);
+        Assert.NotEmpty(vm.ErrorMessage.Value);
+        Assert.Empty(vm.Repos);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SearchText_FiltersStarredReposByName()
+    {
+        var handler = new MockHttpHandler()
+            .When("/user/repos", ReposJson(("mine", null)), LinkNoNext)
+            .When("/user/starred",
+                ReposJson(("gitpulse", "client"), ("observables", "bridges"), ("other", null)),
+                StarredLinkNoNext);
+        var vm = new ReposViewModel(new FakeGitHubClientFactory(handler));
+
+        await vm.SelectHubCommand.ExecuteAsync(ReposViewModel.StarredHub);
+        vm.SearchText.Value = "obs";
+
+        Assert.Single(vm.Repos);
+        Assert.Equal("observables", vm.Repos[0].Name);
         vm.Dispose();
     }
 }
