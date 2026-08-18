@@ -75,3 +75,7 @@ _Avoid_: mergeable_state (opaque GitHub merge-box hint), required checks, status
 **Starred Repo List**:
 The authenticated user's starred repositories from `GET /user/starred`, shown as the Starred hub on the existing Repos tab. Paged with `PagedGitHubSession`. Distinct from My repos (`GET /user/repos`) and from GitHub Search.
 _Avoid_: watching / subscriptions, recently viewed, star toggle (write)
+
+**Git Commit**:
+A commit on a repository default branch from `GET /repos/{owner}/{repo}/commits` (SHA, message, author, date, `html_url`). Distinct from a Check Run, a FileCommitResponse (Contents API write), and a PR head SHA.
+_Avoid_: commit comment, compare, blame
