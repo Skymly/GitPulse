@@ -61,6 +61,13 @@ public partial class RepoDetailPage : ContentPage
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}");
     }
 
+    private async void OnCommitsClicked(object? sender, EventArgs e)
+    {
+        await AppNavigation.GoToAsync(
+            $"CommitsPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
+            + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}");
+    }
+
     private async void OnFilesClicked(object? sender, EventArgs e)
     {
         await AppNavigation.GoToAsync(
