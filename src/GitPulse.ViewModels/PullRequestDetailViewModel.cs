@@ -20,6 +20,9 @@ namespace GitPulse.ViewModels;
 /// M15 adds Pull Request Review list/submit via
 /// <see cref="IGitHubReposApi.ListPullRequestReviews"/> and
 /// <see cref="IGitHubReposApi.CreatePullRequestReview"/>.
+/// M16 adds a PR-head Gate Rollup via
+/// <see cref="IGitHubReposApi.ListCheckRunsForRef"/> and
+/// <see cref="IGitHubReposApi.GetCombinedStatusForRef"/>.
 /// </summary>
 public sealed partial class PullRequestDetailViewModel : IDisposable
 {
@@ -98,6 +101,15 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
     /// <summary>Review Event picker options; authors only get COMMENT.</summary>
     public ObservableCollection<string> ReviewEventOptions { get; } = ["COMMENT", "APPROVE", "REQUEST_CHANGES"];
 
+    /// <summary>Latest Check Runs for the PR head SHA.</summary>
+    public ObservableCollection<CheckRun> CheckRuns { get; } = [];
+
+    /// <summary>Combined Commit Statuses for the PR head SHA.</summary>
+    public ObservableCollection<CommitStatus> CommitStatuses { get; } = [];
+
+    /// <summary>Client Gate Rollup: Pending, Success, Failure, or No checks.</summary>
+    public BindableReactiveProperty<string> GateRollup { get; } = new("No checks");
+
     public PullRequestDetailViewModel(IGitHubClientFactory clientFactory, IBrowserLauncher browserLauncher)
     {
         _clientFactory = clientFactory;
@@ -150,6 +162,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
                 Comments.Add(comment);
 
             await LoadReviewExtrasAsync(api, cts.Token);
+            await LoadGateAsync(api, cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -367,6 +380,96 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         {
             Reviews.Clear();
         }
+    }
+
+    private async Task LoadGateAsync(IGitHubReposApi api, CancellationToken cancellationToken)
+    {
+        var sha = PullRequest.Value?.Head?.Sha;
+        if (string.IsNullOrEmpty(sha))
+        {
+            CheckRuns.Clear();
+            CommitStatuses.Clear();
+            GateRollup.Value = "No checks";
+            return;
+        }
+
+        CheckRun[] runs = [];
+        CombinedCommitStatus? combined = null;
+
+        try
+        {
+            var result = await api.ListCheckRunsForRef(_owner, _repo, sha, "latest")
+                .FirstAsync(cancellationToken);
+            runs = result.CheckRuns ?? [];
+            ReplaceCheckRuns(runs);
+        }
+        catch
+        {
+            CheckRuns.Clear();
+            runs = [];
+        }
+
+        try
+        {
+            combined = await api.GetCombinedStatusForRef(_owner, _repo, sha)
+                .FirstAsync(cancellationToken);
+            ReplaceCommitStatuses(combined.Statuses ?? []);
+        }
+        catch
+        {
+            CommitStatuses.Clear();
+            combined = null;
+        }
+
+        GateRollup.Value = ComputeGateRollup(runs, combined);
+    }
+
+    private void ReplaceCheckRuns(IEnumerable<CheckRun> runs)
+    {
+        CheckRuns.Clear();
+        foreach (var run in runs)
+            CheckRuns.Add(run);
+    }
+
+    private void ReplaceCommitStatuses(IEnumerable<CommitStatus> statuses)
+    {
+        CommitStatuses.Clear();
+        foreach (var status in statuses)
+            CommitStatuses.Add(status);
+    }
+
+    internal static string ComputeGateRollup(
+        IReadOnlyList<CheckRun> runs, CombinedCommitStatus? combined)
+    {
+        var statuses = combined?.Statuses ?? [];
+        if (runs.Count == 0 && statuses.Length == 0)
+            return "No checks";
+
+        if (runs.Any(IsIncompleteCheckRun) ||
+            statuses.Any(status => status.State.Equals("pending", StringComparison.OrdinalIgnoreCase)))
+            return "Pending";
+
+        if (runs.Any(IsFailedCheckRun) ||
+            statuses.Any(status =>
+                status.State.Equals("failure", StringComparison.OrdinalIgnoreCase) ||
+                status.State.Equals("error", StringComparison.OrdinalIgnoreCase)))
+            return "Failure";
+
+        return "Success";
+    }
+
+    private static bool IsIncompleteCheckRun(CheckRun run) =>
+        !run.Status.Equals("completed", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsFailedCheckRun(CheckRun run)
+    {
+        var conclusion = run.Conclusion;
+        return conclusion is not null &&
+               (conclusion.Equals("failure", StringComparison.OrdinalIgnoreCase) ||
+                conclusion.Equals("timed_out", StringComparison.OrdinalIgnoreCase) ||
+                conclusion.Equals("cancelled", StringComparison.OrdinalIgnoreCase) ||
+                conclusion.Equals("startup_failure", StringComparison.OrdinalIgnoreCase) ||
+                conclusion.Equals("action_required", StringComparison.OrdinalIgnoreCase));
     }
 
     private void ReplaceReviews(IEnumerable<PullRequestReview> reviews)
@@ -602,5 +705,6 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         ViewerLogin.Dispose();
         CanReview.Dispose();
         CanApproveOrRequestChanges.Dispose();
+        GateRollup.Dispose();
     }
 }
