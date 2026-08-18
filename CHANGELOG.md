@@ -7,6 +7,8 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-18
+
 ### Added
 
 - Switch the Repos tab between My repos and Starred (`GET /user/starred`,
