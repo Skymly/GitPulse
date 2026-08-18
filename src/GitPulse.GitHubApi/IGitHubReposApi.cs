@@ -145,6 +145,25 @@ public interface IGitHubReposApi
     Observable<PullRequestReview> CreatePullRequestReview(
         string owner, string repo, int number, [Body] PullRequestReviewCreateRequest body);
 
+    // ── Check Runs / Commit Statuses (M16: PR head Gate Rollup) ──
+
+    /// <summary>
+    /// List Check Runs for a git ref (PR head SHA). Pass
+    /// <paramref name="filter"/> as <c>latest</c> for one row per name.
+    /// First page only — not an <c>ApiResponse</c> wrapper.
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/commits/{ref}/check-runs")]
+    Observable<CheckRunsResult> ListCheckRunsForRef(
+        string owner, string repo, string @ref, [Query] string filter);
+
+    /// <summary>
+    /// Combined Commit Statuses for a git ref. Does not include Check Runs.
+    /// Empty <c>statuses</c> yields GitHub combined state <c>pending</c>.
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/commits/{ref}/status")]
+    Observable<CombinedCommitStatus> GetCombinedStatusForRef(
+        string owner, string repo, string @ref);
+
     // ── Notifications ─────────────────────────────────────────────
     // M4: Notification center with polling-simulated realtime.
     // The poller (INotificationPoller) calls ListNotifications on a
