@@ -48,6 +48,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M10 ✅ | `/actions/runs`, run jobs, rerun, job logs |
 | M14 ✅ | `POST /repos/{owner}/{repo}/pulls` (`CreatePullRequest` + create-time Draft PR); PR title/body edit via existing `UpdateIssue` |
 | M15 ✅ | `GET /user` (`GetAuthenticatedUser`); `GET/POST /repos/{owner}/{repo}/pulls/{number}/reviews` (`ListPullRequestReviews`, `CreatePullRequestReview`) |
+| M16 ✅ | `GET /repos/{owner}/{repo}/commits/{ref}/check-runs` (`ListCheckRunsForRef`); `GET /repos/{owner}/{repo}/commits/{ref}/status` (`GetCombinedStatusForRef`) |
 
 ## M9 Search
 
@@ -171,8 +172,18 @@ Immediate submit only (no pending review). Methods live on `IGitHubReposApi` on 
 
 `PullRequestReview` / `PullRequestReviewCreateRequest` are Core models. Body is required for COMMENT and REQUEST_CHANGES; optional for APPROVE. Authors cannot APPROVE or REQUEST_CHANGES (GitHub rejects self-review of those events).
 
-## 设计权衡
+### PR head Gate Rollup (M16)
 
+Read-only. Methods live on `IGitHubReposApi` — no `IGitHubChecksApi` / ADR-015. `{ref}` is the PR `Head.Sha`. Combined status does **not** include Check Runs.
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `ListCheckRunsForRef` | `GET /repos/{owner}/{repo}/commits/{ref}/check-runs` | `[Query] filter` (`latest` from PR detail). First page `Observable<CheckRunsResult>`. |
+| `GetCombinedStatusForRef` | `GET /repos/{owner}/{repo}/commits/{ref}/status` | Combined Commit Statuses only. Empty `statuses` is GitHub `pending`; Gate Rollup does not treat that as pending by itself. |
+
+`CheckRun` / `CheckRunsResult` / `CommitStatus` / `CombinedCommitStatus` are Core models. ViewModel computes Gate Rollup (pending / success / failure / no checks). Missing `Head.Sha` skips both calls. Either endpoint failing leaves the PR page intact.
+
+## 设计权衡
 - **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续由 Handler 注入，并由 Paged GitHub Session 统一 cursor / Link / dispose。
 - **Paged GitHub Session vs 元组工厂**：列表 ViewModel 面向 session；`CreatePagedClientAsync` 仅为 Search（及未迁移调用方）保留，直至 follow-up。
 - **404 处理**：README 等可选资源在 ViewModel 层吞掉 NotFound，不失败整页加载。
