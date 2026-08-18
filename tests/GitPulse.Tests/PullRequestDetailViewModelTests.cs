@@ -1,3 +1,4 @@
+using System.Net;
 using GitPulse.Core.Models;
 using GitPulse.Tests.TestHelpers;
 using GitPulse.ViewModels;
@@ -9,7 +10,7 @@ public class PullRequestDetailViewModelTests
 {
     private static string PrJson(int number, string state = "open", bool draft = false, bool merged = false,
         bool? mergeable = null, string? mergeableState = null, int commits = 0, int additions = 0, int deletions = 0, int changedFiles = 0,
-        string? title = null, string body = "") =>
+        string? title = null, string body = "", string? headSha = null) =>
         $"{{\"number\":{number},\"title\":\"{title ?? $"PR {number}"}\",\"state\":\"{state}\"," +
         $"\"body\":\"{body}\"," +
         $"\"draft\":{draft.ToString().ToLower()},\"merged\":{merged.ToString().ToLower()}," +
@@ -17,6 +18,7 @@ public class PullRequestDetailViewModelTests
         (mergeable.HasValue ? $"\"mergeable\":{mergeable.Value.ToString().ToLower()}," : "") +
         (mergeableState is not null ? $"\"mergeable_state\":\"{mergeableState}\"," : "") +
         $"\"commits\":{commits},\"additions\":{additions},\"deletions\":{deletions},\"changed_files\":{changedFiles}," +
+        (headSha is not null ? $"\"head\":{{\"sha\":\"{headSha}\"}}," : "") +
         $"\"user\":{{\"login\":\"bob\"}}}}";
 
     private static string MergeJson(string sha, bool merged = true) =>
@@ -799,6 +801,203 @@ public class PullRequestDetailViewModelTests
         await vm.SubmitReviewCommand.ExecuteAsync(null);
 
         Assert.False(posted);
+        vm.Dispose();
+    }
+
+    private static string CheckRunsJson(params (long Id, string Name, string Status, string? Conclusion)[] runs)
+    {
+        var items = string.Join(",", runs.Select(run =>
+            $"{{\"id\":{run.Id},\"name\":\"{run.Name}\",\"status\":\"{run.Status}\"," +
+            $"\"conclusion\":{(run.Conclusion is null ? "null" : $"\"{run.Conclusion}\"")}," +
+            $"\"html_url\":\"https://example/runs/{run.Id}\",\"head_sha\":\"abc123\"}}"));
+        return $"{{\"total_count\":{runs.Length},\"check_runs\":[{items}]}}";
+    }
+
+    private static string CombinedStatusJson(
+        string state, params (long Id, string State, string Context)[] statuses)
+    {
+        var items = string.Join(",", statuses.Select(status =>
+            $"{{\"id\":{status.Id},\"state\":\"{status.State}\",\"context\":\"{status.Context}\"," +
+            $"\"target_url\":\"https://ci/{status.Id}\"}}"));
+        return $"{{\"state\":\"{state}\",\"sha\":\"abc123\",\"total_count\":{statuses.Length},\"statuses\":[{items}]}}";
+    }
+
+    private static PullRequestDetailViewModel LoadWithGate(
+        MockHttpHandler handler)
+    {
+        var vm = new PullRequestDetailViewModel(
+            new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        return vm;
+    }
+
+    [Fact]
+    public async Task Load_ListsCheckRunsAndStatuses_SendsLatestFilter()
+    {
+        string? checkQuery = null;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs", req =>
+            {
+                checkQuery = req.RequestUri?.Query;
+                return new MockResponse(CheckRunsJson((1, "CI", "completed", "success")));
+            })
+            .When("/commits/abc123/status", CombinedStatusJson("success", (9, "success", "jenkins")));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Contains("filter=latest", checkQuery);
+        Assert.Single(vm.CheckRuns);
+        Assert.Equal("CI", vm.CheckRuns[0].Name);
+        Assert.Single(vm.CommitStatuses);
+        Assert.Equal("jenkins", vm.CommitStatuses[0].Context);
+        Assert.Equal("Success", vm.GateRollup.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_EmptyGate_IsNoChecks()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs", CheckRunsJson())
+            .When("/commits/abc123/status", CombinedStatusJson("pending"));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("No checks", vm.GateRollup.Value);
+        Assert.Empty(vm.CheckRuns);
+        Assert.Empty(vm.CommitStatuses);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_EmptyStatusesWithPassingRuns_IsSuccessNotPending()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs", CheckRunsJson((1, "CI", "completed", "success")))
+            .When("/commits/abc123/status", CombinedStatusJson("pending"));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("Success", vm.GateRollup.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_InProgressCheckRun_IsPending()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs", CheckRunsJson((1, "CI", "in_progress", null)))
+            .When("/commits/abc123/status", CombinedStatusJson("success"));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("Pending", vm.GateRollup.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_FailedConclusion_IsFailure()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs", CheckRunsJson((1, "CI", "completed", "failure")))
+            .When("/commits/abc123/status", CombinedStatusJson("success"));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("Failure", vm.GateRollup.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_SkippedAndNeutral_IsSuccess()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs",
+                CheckRunsJson((1, "lint", "completed", "skipped"), (2, "review", "completed", "neutral")))
+            .When("/commits/abc123/status", CombinedStatusJson("success"));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("Success", vm.GateRollup.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenGateEndpoints404_StillLoadsPullRequest()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs", HttpStatusCode.NotFound)
+            .When("/commits/abc123/status", HttpStatusCode.NotFound);
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.NotNull(vm.PullRequest.Value);
+        Assert.Equal("No checks", vm.GateRollup.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_MissingHeadSha_SkipsGateCalls()
+    {
+        var gateCalled = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/check-runs", req =>
+            {
+                gateCalled = true;
+                return new MockResponse(CheckRunsJson());
+            })
+            .When("/status", req =>
+            {
+                gateCalled = true;
+                return new MockResponse(CombinedStatusJson("pending"));
+            });
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(gateCalled);
+        Assert.Equal("No checks", vm.GateRollup.Value);
         vm.Dispose();
     }
 }
