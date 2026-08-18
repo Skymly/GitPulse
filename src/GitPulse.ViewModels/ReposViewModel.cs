@@ -14,6 +14,8 @@ namespace GitPulse.ViewModels;
 /// <see cref="IGitHubReposApi"/> (Observables.RestAPI.R3) and
 /// R3 <see cref="BindableReactiveProperty{T}"/> state management.
 /// Supports pagination via <see cref="PagedGitHubSession"/>.
+/// M17 adds a My repos / Starred hub switch via
+/// <see cref="IGitHubReposApi.ListStarredReposPaged"/>.
 /// </summary>
 public sealed partial class ReposViewModel : IDisposable
 {
@@ -42,6 +44,15 @@ public sealed partial class ReposViewModel : IDisposable
 
     /// <summary>Error message shown on failure; empty when no error.</summary>
     public BindableReactiveProperty<string> ErrorMessage { get; } = new(string.Empty);
+
+    public const string MyReposHub = "My repos";
+    public const string StarredHub = "Starred";
+
+    /// <summary>Hub options shown on the Repos tab.</summary>
+    public ObservableCollection<string> HubOptions { get; } = [MyReposHub, StarredHub];
+
+    /// <summary>Active hub: My repos (default) or Starred.</summary>
+    public BindableReactiveProperty<string> SelectedHub { get; } = new(MyReposHub);
 
     public ReposViewModel(IGitHubClientFactory clientFactory)
     {
@@ -114,7 +125,7 @@ public sealed partial class ReposViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(_session.Client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.ListMyReposPaged().FirstAsync(cts.Token);
+            var response = await ListCurrentAsync(api, cts.Token);
 
             _allRepos.AddRange(response.Content ?? []);
             ApplyFilter(SearchText.Value);
@@ -155,7 +166,7 @@ public sealed partial class ReposViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(_session.Client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.ListMyReposPaged().FirstAsync(cts.Token);
+            var response = await ListCurrentAsync(api, cts.Token);
 
             _allRepos.AddRange(response.Content ?? []);
             ApplyFilter(SearchText.Value);
@@ -177,6 +188,25 @@ public sealed partial class ReposViewModel : IDisposable
         }
     }
 
+    [RelayCommand]
+    private async Task SelectHubAsync(string? hub)
+    {
+        var next = string.IsNullOrWhiteSpace(hub) ? MyReposHub : hub;
+        if (string.Equals(SelectedHub.Value, next, StringComparison.Ordinal) && _session is not null)
+            return;
+
+        SelectedHub.Value = next;
+        await LoadAsync();
+    }
+
+    private Task<ApiResponse<Repo[]>> ListCurrentAsync(IGitHubReposApi api, CancellationToken cancellationToken)
+    {
+        var request = string.Equals(SelectedHub.Value, StarredHub, StringComparison.Ordinal)
+            ? api.ListStarredReposPaged()
+            : api.ListMyReposPaged();
+        return request.FirstAsync(cancellationToken);
+    }
+
     public void Dispose()
     {
         _disposables.Dispose();
@@ -185,6 +215,7 @@ public sealed partial class ReposViewModel : IDisposable
         IsAuthenticated.Dispose();
         CanLoadMore.Dispose();
         ErrorMessage.Dispose();
+        SelectedHub.Dispose();
         _session?.Dispose();
     }
 }
