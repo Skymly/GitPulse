@@ -61,6 +61,10 @@
                             StrokeShape="RoundRectangle 8"
                             Stroke="{StaticResource Gray200}">
                         <VerticalStackLayout Spacing="4">
+                            <VerticalStackLayout.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnCommitTapped"
+                                                      CommandParameter="{Binding .}" />
+                            </VerticalStackLayout.GestureRecognizers>
                             <Label Text="{Binding Commit.Message}"
                                    FontSize="15"
                                    FontAttributes="Bold"
