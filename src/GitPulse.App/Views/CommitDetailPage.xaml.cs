@@ -1,19 +1,19 @@
-using GitPulse.Core.Models;
 using GitPulse.ViewModels;
 
 namespace GitPulse.App.Views;
 
 /// <summary>
-/// Repository commit list — receives owner/repo via Shell query parameters.
+/// In-app Git Commit — receives owner/repo/sha via Shell query parameters.
 /// </summary>
 [QueryProperty(nameof(OwnerQuery), "owner")]
 [QueryProperty(nameof(RepoQuery), "repo")]
-public partial class CommitsPage : ContentPage
+[QueryProperty(nameof(ShaQuery), "sha")]
+public partial class CommitDetailPage : ContentPage
 {
-    private readonly CommitsViewModel _viewModel;
+    private readonly CommitDetailViewModel _viewModel;
     private bool _loaded;
 
-    public CommitsPage(CommitsViewModel viewModel)
+    public CommitDetailPage(CommitDetailViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;
@@ -22,6 +22,7 @@ public partial class CommitsPage : ContentPage
 
     public string OwnerQuery { get; set; } = string.Empty;
     public string RepoQuery { get; set; } = string.Empty;
+    public string ShaQuery { get; set; } = string.Empty;
 
     protected override void OnAppearing()
     {
@@ -32,25 +33,13 @@ public partial class CommitsPage : ContentPage
             _loaded = true;
             var owner = Uri.UnescapeDataString(OwnerQuery);
             var repo = Uri.UnescapeDataString(RepoQuery);
-            if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
+            var sha = Uri.UnescapeDataString(ShaQuery);
+            if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(sha))
             {
-                _viewModel.Initialize(owner, repo);
+                _viewModel.Initialize(owner, repo, sha);
                 _ = _viewModel.LoadCommand.ExecuteAsync(null);
             }
         }
-    }
-
-    private void OnCommitTapped(object? sender, TappedEventArgs e)
-    {
-        var commit = e.Parameter as GitCommit
-            ?? (sender as Element)?.BindingContext as GitCommit;
-        if (commit is null || string.IsNullOrEmpty(commit.Sha))
-            return;
-
-        _ = AppNavigation.GoToAsync(
-            $"CommitDetailPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
-            + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}"
-            + $"&sha={Uri.EscapeDataString(commit.Sha)}");
     }
 
     private void OnBackClicked(object? sender, EventArgs e)
@@ -61,5 +50,6 @@ public partial class CommitsPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
     }
 }
