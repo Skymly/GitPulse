@@ -7,6 +7,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added
+
+- Open a repository commit in-app from the Commits list: full message, stats,
+  and files, with the existing diff surface when a patch is present.
+- Roadmap M19 / v0.7.0: repo commit detail (docs).
+
 ## [0.6.0] - 2026-08-19
 
 ### Added
