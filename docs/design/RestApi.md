@@ -51,6 +51,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M16 ✅ | `GET /repos/{owner}/{repo}/commits/{ref}/check-runs` (`ListCheckRunsForRef`); `GET /repos/{owner}/{repo}/commits/{ref}/status` (`GetCombinedStatusForRef`) |
 | M17 ✅ | `GET /user/starred` (`ListStarredReposPaged`) |
 | M18 ✅ | `GET /repos/{owner}/{repo}/commits` (`ListCommitsPaged`) |
+| M19 ✅ | `GET /repos/{owner}/{repo}/commits/{ref}` (`GetCommit`, non-paged) |
 
 ## M9 Search
 
@@ -194,6 +195,17 @@ Read-only. Lives on `IGitHubReposApi` and reuses `Repo` — no new interface or 
 | `ListStarredReposPaged` | `GET /user/starred` | `Observable<ApiResponse<Repo[]>>`; page / `Link` via Paged GitHub Session. |
 
 Repos tab switches My repos (`ListMyReposPaged`) vs Starred. Each hub owns its own session. Local `SearchText` filters the active list. No star/unstar writes.
+
+### Repo commit detail (M19)
+
+Read-only. Lives on `IGitHubReposApi` — no fourth interface. List paging stays M18 (`ListCommitsPaged` + Paged GitHub Session). Get-a-commit is **non-paged** (`CreateClientAsync`, not `PagedGitHubSession`) so query-handler `page` / `per_page` cannot shrink the file list. First page of files only (GitHub cap ~300).
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GetCommit` | `GET /repos/{owner}/{repo}/commits/{ref}` | `Observable<GitCommit>` (not `ApiResponse`). Path `{ref}` is C# `@ref` (same as check-runs). |
+
+`GitCommit` reuses the list type with optional `stats` and `files`. Files use the existing diff-entry shape (`filename`, `status`, line counts, URLs, optional `patch`). Missing SHA skips the call. HTTP failure stays on the commit page; the Commits list is unchanged. A null `patch` is omitted from in-app DiffView and is not a page-level error.
+
 
 ## 设计权衡- **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续由 Handler 注入，并由 Paged GitHub Session 统一 cursor / Link / dispose。
 - **Paged GitHub Session vs 元组工厂**：列表 ViewModel 面向 session；`CreatePagedClientAsync` 仅为 Search（及未迁移调用方）保留，直至 follow-up。

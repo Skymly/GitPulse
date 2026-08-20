@@ -77,5 +77,5 @@ The authenticated user's starred repositories from `GET /user/starred`, shown as
 _Avoid_: watching / subscriptions, recently viewed, star toggle (write)
 
 **Git Commit**:
-A commit on a repository default branch from `GET /repos/{owner}/{repo}/commits` (SHA, message, author, date, `html_url`). Distinct from a Check Run, a FileCommitResponse (Contents API write), and a PR head SHA.
+A commit on a repository from `GET /repos/{owner}/{repo}/commits` and `GET /repos/{owner}/{repo}/commits/{ref}` (SHA, message, author, date, `html_url`). List payloads omit stats and files; Get-a-commit fills optional `stats` (additions / deletions / total) and `files` (diff-entry shape, optional patch). Distinct from a Check Run, a FileCommitResponse (Contents API write), and a PR head SHA.
 _Avoid_: commit comment, compare, blame
