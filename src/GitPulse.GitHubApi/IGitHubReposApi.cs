@@ -57,6 +57,14 @@ public interface IGitHubReposApi
     [Get("/repos/{owner}/{repo}/commits")]
     Observable<ApiResponse<GitCommit[]>> ListCommitsPaged(string owner, string repo);
 
+    /// <summary>
+    /// A single Git Commit (M19). Non-paged so query-handler
+    /// <c>page</c>/<c>per_page</c> cannot shrink the file list.
+    /// Path <c>{ref}</c> is the commit SHA (same <c>@ref</c> pattern as check-runs).
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/commits/{ref}")]
+    Observable<GitCommit> GetCommit(string owner, string repo, string @ref);
+
     // ── Repository detail (M7: repo detail page) ──────────────────
 
     /// <summary>
