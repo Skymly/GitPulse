@@ -7,6 +7,8 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-21
+
 ### Added
 
 - Open a repository commit in-app from the Commits list: full message, stats,
