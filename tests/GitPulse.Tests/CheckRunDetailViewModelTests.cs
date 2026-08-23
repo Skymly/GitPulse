@@ -180,4 +180,73 @@ public class CheckRunDetailViewModelTests
         Assert.Empty(vm.Annotations);
         Assert.Empty(vm.ErrorMessage.Value);
     }
+
+    [Fact]
+    public async Task Rerequest_WhenAllowed_StaysQuiet()
+    {
+        HttpRequestMessage? post = null;
+        var handler = new MockHttpHandler()
+            .When("/check-runs/4", CheckRunJson)
+            .When("/check-runs/4/rerequest", req =>
+            {
+                post = req;
+                return new MockResponse("", StatusCode: HttpStatusCode.Created, AttachRequest: true);
+            });
+        using var vm = new CheckRunDetailViewModel(
+            new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 4);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.RerequestCommand.ExecuteAsync(null);
+
+        Assert.NotNull(post);
+        Assert.Equal(HttpMethod.Post, post!.Method);
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("build", vm.Name.Value);
+        Assert.False(vm.IsRerequesting.Value);
+    }
+
+    [Fact]
+    public async Task Rerequest_WithoutToken_SetsErrorWithoutRequest()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/check-runs/4/rerequest", _ =>
+            {
+                called = true;
+                return new MockResponse("", StatusCode: HttpStatusCode.Created, AttachRequest: true);
+            });
+        using var vm = new CheckRunDetailViewModel(
+            new FakeGitHubClientFactory(handler, token: null), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 4);
+
+        await vm.RerequestCommand.ExecuteAsync(null);
+
+        Assert.Contains("No token", vm.ErrorMessage.Value);
+        Assert.False(called);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden, "Not allowed")]
+    [InlineData(HttpStatusCode.UnprocessableEntity, "cannot rerequest")]
+    [InlineData(HttpStatusCode.InternalServerError, "Rerequest failed")]
+    public async Task Rerequest_HttpFailure_StaysOnPage(
+        HttpStatusCode statusCode,
+        string expectedMessage)
+    {
+        var handler = new MockHttpHandler()
+            .When("/check-runs/4", CheckRunJson)
+            .When("/check-runs/4/rerequest", _ =>
+                new MockResponse("{}", StatusCode: statusCode, AttachRequest: true));
+        using var vm = new CheckRunDetailViewModel(
+            new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 4);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.RerequestCommand.ExecuteAsync(null);
+
+        Assert.Contains(expectedMessage, vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("build", vm.Name.Value);
+        Assert.False(vm.IsRerequesting.Value);
+    }
 }
