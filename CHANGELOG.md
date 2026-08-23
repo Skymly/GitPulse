@@ -7,6 +7,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Changed
+
+- Sort My repos by recently pushed (`sort=pushed`).
+- Roadmap M25 / v0.13.0: recently pushed My repos (docs).
+
+
 ### Added
 
 - Star or unstar a repository from repo detail.
