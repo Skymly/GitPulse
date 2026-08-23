@@ -100,6 +100,10 @@ _Avoid_: actions run, check-suite rerequest
 A Personal Access Token that Settings persisted only after `GET /user` returned an authenticated login. Distinct from a typed-but-unsaved token and from OAuth.
 _Avoid_: OAuth, GitHub App, device flow
 
+**Issue Assignee**:
+A user assigned to an issue from the issue payload and `POST/DELETE /issues/{number}/assignees`. Distinct from a requested reviewer and from the Assigned inbox (cross-repo Search).
+_Avoid_: suggested assignees, team assignees
+
 **Star Toggle**:
 Starring or unstarring a repository from repo detail via `PUT`/`DELETE /user/starred/{owner}/{repo}`. Distinct from the Starred Repo List (read-only hub).
 _Avoid_: sort=pushed, recents
