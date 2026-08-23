@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Models;
@@ -9,6 +10,7 @@ namespace GitPulse.ViewModels;
 
 /// <summary>
 /// In-app Check Run from Get-a-check-run (M22). Non-paged client.
+/// M27 loads the first page of annotations.
 /// </summary>
 public sealed partial class CheckRunDetailViewModel : IDisposable
 {
@@ -30,6 +32,8 @@ public sealed partial class CheckRunDetailViewModel : IDisposable
     public BindableReactiveProperty<string> ErrorMessage { get; } = new(string.Empty);
     public BindableReactiveProperty<bool> IsLoading { get; } = new(false);
     public BindableReactiveProperty<string> RepoFullName { get; } = new(string.Empty);
+
+    public ObservableCollection<CheckRunAnnotation> Annotations { get; } = [];
 
     public CheckRunDetailViewModel(
         IGitHubClientFactory clientFactory,
@@ -62,6 +66,7 @@ public sealed partial class CheckRunDetailViewModel : IDisposable
 
         IsLoading.Value = true;
         ErrorMessage.Value = string.Empty;
+        Annotations.Clear();
 
         try
         {
@@ -76,6 +81,7 @@ public sealed partial class CheckRunDetailViewModel : IDisposable
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var run = await api.GetCheckRun(_owner, _repo, _checkRunId).FirstAsync(cts.Token);
             Apply(run);
+            await LoadAnnotationsAsync(api, cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -88,6 +94,23 @@ public sealed partial class CheckRunDetailViewModel : IDisposable
         finally
         {
             IsLoading.Value = false;
+        }
+    }
+
+
+    private async Task LoadAnnotationsAsync(IGitHubReposApi api, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var items = await api.ListCheckRunAnnotations(_owner, _repo, _checkRunId)
+                .FirstAsync(cancellationToken);
+            Annotations.Clear();
+            foreach (var item in items ?? [])
+                Annotations.Add(item);
+        }
+        catch
+        {
+            Annotations.Clear();
         }
     }
 
