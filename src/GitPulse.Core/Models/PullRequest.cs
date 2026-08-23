@@ -18,6 +18,7 @@ public sealed class PullRequest
     public DateTime UpdatedAt { get; init; }
     public User? User { get; init; }
     public User? MergedBy { get; init; }
+    public User[] Assignees { get; init; } = [];
     public string HeadRef { get; init; } = string.Empty;
     public string BaseRef { get; init; } = string.Empty;
 
