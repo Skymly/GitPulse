@@ -101,7 +101,7 @@
                                    IsVisible="{Binding Repo.Value.Description, Converter={StaticResource StringToBoolConverter}}" />
 
                             <HorizontalStackLayout Spacing="16" Margin="0,4,0,0">
-                                <Label Text="{Binding Repo.Value.StargazersCount, StringFormat='★ {0}'}"
+                                <Label Text="{Binding StarCount.Value, StringFormat='★ {0}'}"
                                        FontSize="13"
                                        TextColor="{StaticResource Gray500}" />
                                 <Label Text="{Binding Repo.Value.ForksCount, StringFormat='⑂ {0}'}"
@@ -111,6 +111,22 @@
                                        FontSize="13"
                                        TextColor="{StaticResource Gray500}" />
                             </HorizontalStackLayout>
+                            <Button Text="Star"
+                                    Command="{Binding ToggleStarCommand}"
+                                    IsVisible="{Binding IsStarred.Value, Converter={StaticResource InvertedBoolConverter}}"
+                                    IsEnabled="{Binding IsTogglingStar.Value, Converter={StaticResource InvertedBoolConverter}}"
+                                    Padding="16,10"
+                                    FontSize="13"
+                                    HorizontalOptions="Fill"
+                                    AutomationId="RepoDetailStarButton" />
+                            <Button Text="Unstar"
+                                    Command="{Binding ToggleStarCommand}"
+                                    IsVisible="{Binding IsStarred.Value}"
+                                    IsEnabled="{Binding IsTogglingStar.Value, Converter={StaticResource InvertedBoolConverter}}"
+                                    Padding="16,10"
+                                    FontSize="13"
+                                    HorizontalOptions="Fill"
+                                    AutomationId="RepoDetailUnstarButton" />
 
                             <VerticalStackLayout Spacing="2" Margin="0,2,0,0">
                                 <Label Text="{Binding Repo.Value.DefaultBranch, StringFormat='Default: {0}'}"
