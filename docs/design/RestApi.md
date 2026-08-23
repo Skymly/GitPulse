@@ -71,6 +71,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M36 ✅ | PR assignees reuse issue assignee writes + `PullRequest.Assignees` |
 | M37 ✅ | Mentions inbox reuses `GET /search/issues` (`SearchIssues`, canned mentions:@me) |
 | M38 ✅ | PR labels reuse `ReplaceIssueLabels` + `PullRequest.Labels` |
+| M39 ✅ | Repo `language` / `license` on GET repo (no new method) |
 
 ## M9 Search
 
@@ -343,6 +344,11 @@ Read-only. Reuses `IGitHubSearchApi.SearchIssues`. Canned query: `is:open mentio
 ### PR labels (M38)
 
 Write + read. No new GitHubApi method. `PullRequest.Labels` comes from GET pull. Replace reuses `ReplaceIssueLabels`. Writes only when the PR is open and not merged. Creating repo labels is out of scope.
+
+### Repo language and license (M39)
+
+Read-only. No new GitHubApi method. `Repo.Language` and `Repo.License` (`key` / `name` / `spdx_id`) come from GET repo. Empty language or missing SPDX is omitted. Topics and license edits are out of scope.
+
 
 
 

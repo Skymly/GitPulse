@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Show repository language and SPDX license on repo detail.
+- Roadmap M39 / v0.27.0: repo language and license (docs).
+
+
+### Added
+
 - Edit pull request labels from PR Conversation.
 - Roadmap M38 / v0.26.0: PR labels (docs).
 
