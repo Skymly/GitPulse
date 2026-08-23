@@ -47,6 +47,16 @@ public partial class RepoDetailPage : ContentPage
         _ = AppNavigation.GoToAsync("..");
     }
 
+    private async void OnCopyCloneUrlClicked(object? sender, EventArgs e)
+    {
+        var url = _viewModel.Repo.Value?.CloneUrl;
+        if (string.IsNullOrEmpty(url))
+            return;
+
+        await Clipboard.Default.SetTextAsync(url);
+        CloneCopiedLabel.IsVisible = true;
+    }
+
     private async void OnIssuesClicked(object? sender, EventArgs e)
     {
         await AppNavigation.GoToAsync(
