@@ -22,6 +22,15 @@ public interface IGitHubActionsApi
     [Post("/repos/{owner}/{repo}/actions/runs/{runId}/rerun")]
     Observable<Unit> RerunWorkflow(string owner, string repo, long runId);
 
+    /// <summary>List repository workflows (M40).</summary>
+    [Get("/repos/{owner}/{repo}/actions/workflows")]
+    Observable<WorkflowsResult> ListWorkflows(string owner, string repo);
+
+    /// <summary>Create a workflow_dispatch event (204) (M40).</summary>
+    [Post("/repos/{owner}/{repo}/actions/workflows/{workflowId}/dispatches")]
+    Observable<ApiResponse<Unit>> DispatchWorkflow(
+        string owner, string repo, long workflowId, [Body] WorkflowDispatchRequest body);
+
     /// <summary>
     /// Returns a redirect to a short-lived plain-text log download URL.
     /// Callers should follow redirects or read the Location header.
