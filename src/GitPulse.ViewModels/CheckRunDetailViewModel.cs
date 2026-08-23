@@ -10,7 +10,7 @@ namespace GitPulse.ViewModels;
 
 /// <summary>
 /// In-app Check Run from Get-a-check-run (M22). Non-paged client.
-/// M27 loads the first page of annotations.
+/// M27 loads the first page of annotations. M32 can rerequest the run.
 /// </summary>
 public sealed partial class CheckRunDetailViewModel : IDisposable
 {
@@ -31,6 +31,7 @@ public sealed partial class CheckRunDetailViewModel : IDisposable
     public BindableReactiveProperty<string> HtmlUrl { get; } = new(string.Empty);
     public BindableReactiveProperty<string> ErrorMessage { get; } = new(string.Empty);
     public BindableReactiveProperty<bool> IsLoading { get; } = new(false);
+    public BindableReactiveProperty<bool> IsRerequesting { get; } = new(false);
     public BindableReactiveProperty<string> RepoFullName { get; } = new(string.Empty);
 
     public ObservableCollection<CheckRunAnnotation> Annotations { get; } = [];
@@ -98,6 +99,52 @@ public sealed partial class CheckRunDetailViewModel : IDisposable
     }
 
 
+    [RelayCommand]
+    private async Task RerequestAsync()
+    {
+        if (string.IsNullOrEmpty(_owner) || string.IsNullOrEmpty(_repo) || _checkRunId <= 0 || IsRerequesting.Value)
+            return;
+
+        IsRerequesting.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var response = await api.RerequestCheckRun(_owner, _repo, _checkRunId).FirstAsync(cts.Token);
+            var code = (int)(response.StatusCode ?? 0);
+            if (code is >= 200 and < 300)
+                return;
+
+            ErrorMessage.Value = code switch
+            {
+                403 => "Not allowed to rerequest this Check Run.",
+                422 => "GitHub cannot rerequest this Check Run.",
+                _ => $"Rerequest failed: {code}.",
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Rerequest failed: {ex.Message}";
+        }
+        finally
+        {
+            IsRerequesting.Value = false;
+        }
+    }
+
     private async Task LoadAnnotationsAsync(IGitHubReposApi api, CancellationToken cancellationToken)
     {
         try
@@ -138,6 +185,7 @@ public sealed partial class CheckRunDetailViewModel : IDisposable
         HtmlUrl.Dispose();
         ErrorMessage.Dispose();
         IsLoading.Dispose();
+        IsRerequesting.Dispose();
         RepoFullName.Dispose();
     }
 }
