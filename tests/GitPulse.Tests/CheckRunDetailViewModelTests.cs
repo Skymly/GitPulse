@@ -1,0 +1,134 @@
+using System.Net;
+using GitPulse.Tests.TestHelpers;
+using GitPulse.ViewModels;
+using Xunit;
+
+namespace GitPulse.Tests;
+
+public class CheckRunDetailViewModelTests
+{
+    private const string CheckRunJson = """
+        {
+          "id": 4,
+          "name": "build",
+          "status": "completed",
+          "conclusion": "failure",
+          "html_url": "https://github.com/owner/repo/runs/4",
+          "output": {
+            "title": "Build failed",
+            "summary": "1 error",
+            "text": "csc: error CS0001",
+            "annotations_count": 2
+          }
+        }
+        """;
+
+    [Fact]
+    public void Initialize_SetsRepoFullName()
+    {
+        using var vm = new CheckRunDetailViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()), new FakeBrowserLauncher());
+        vm.Initialize("Skymly", "GitPulse", 4);
+
+        Assert.Equal("Skymly/GitPulse", vm.RepoFullName.Value);
+    }
+
+    [Fact]
+    public async Task Load_WithoutId_DoesNothing()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/check-runs/4", _ =>
+            {
+                called = true;
+                return new MockResponse(CheckRunJson);
+            });
+        using var vm = new CheckRunDetailViewModel(
+            new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(called);
+        Assert.Null(vm.CheckRun.Value);
+    }
+
+    [Fact]
+    public async Task Load_WithoutToken_SetsErrorWithoutRequest()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/check-runs/4", _ =>
+            {
+                called = true;
+                return new MockResponse(CheckRunJson);
+            });
+        using var vm = new CheckRunDetailViewModel(
+            new FakeGitHubClientFactory(handler, token: null), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 4);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Contains("No token", vm.ErrorMessage.Value);
+        Assert.False(called);
+    }
+
+    [Fact]
+    public async Task Load_PopulatesOutputAndDoesNotSendPageQuery()
+    {
+        HttpRequestMessage? seen = null;
+        var handler = new MockHttpHandler()
+            .When("/check-runs/4", req =>
+            {
+                seen = req;
+                return new MockResponse(CheckRunJson);
+            });
+        using var vm = new CheckRunDetailViewModel(
+            new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 4);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("build", vm.Name.Value);
+        Assert.Equal("completed", vm.Status.Value);
+        Assert.Equal("failure", vm.Conclusion.Value);
+        Assert.Equal("Build failed", vm.OutputTitle.Value);
+        Assert.Equal("1 error", vm.OutputSummary.Value);
+        Assert.Equal("csc: error CS0001", vm.OutputText.Value);
+        Assert.NotNull(seen);
+        Assert.Equal("/repos/owner/repo/check-runs/4", seen!.RequestUri!.AbsolutePath);
+        Assert.DoesNotContain("page", seen.RequestUri.Query, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("per_page", seen.RequestUri.Query, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Load_NotFound_StaysOnPage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/check-runs/4", HttpStatusCode.NotFound);
+        using var vm = new CheckRunDetailViewModel(
+            new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 4);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Contains("Load failed", vm.ErrorMessage.Value);
+        Assert.Null(vm.CheckRun.Value);
+    }
+
+    [Fact]
+    public async Task OpenInBrowser_RecordsHtmlUrl()
+    {
+        var launcher = new FakeBrowserLauncher();
+        var handler = new MockHttpHandler()
+            .When("/check-runs/4", CheckRunJson);
+        using var vm = new CheckRunDetailViewModel(
+            new FakeGitHubClientFactory(handler), launcher);
+        vm.Initialize("owner", "repo", 4);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.OpenInBrowserCommand.ExecuteAsync(vm.HtmlUrl.Value);
+
+        Assert.Equal("https://github.com/owner/repo/runs/4", launcher.OpenedUrls.Single());
+    }
+}
