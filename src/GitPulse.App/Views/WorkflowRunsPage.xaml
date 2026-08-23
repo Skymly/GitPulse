@@ -8,7 +8,7 @@
              Title="Actions"
              AutomationId="WorkflowRunsPageRoot">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
 
         <!-- Back + repo name: Grid so long names truncate instead of clipping Back. -->
         <Grid Grid.Row="0"
@@ -50,7 +50,34 @@
                    LineBreakMode="WordWrap" />
         </Border>
 
-        <CollectionView Grid.Row="2"
+        <VerticalStackLayout Grid.Row="2"
+                             Spacing="8"
+                             Padding="16,8,16,0"
+                             IsVisible="{Binding Workflows.Count, Converter={StaticResource IntGreaterThanZeroConverter}}">
+            <Label Text="Dispatch"
+                   FontSize="14"
+                   FontAttributes="Bold" />
+            <Picker Title="Workflow"
+                    ItemsSource="{Binding Workflows}"
+                    ItemDisplayBinding="{Binding Name}"
+                    SelectedItem="{Binding SelectedWorkflow.Value}"
+                    AutomationId="WorkflowDispatchPicker" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Entry Text="{Binding DispatchRef.Value}"
+                       Placeholder="Branch or tag"
+                       FontSize="13"
+                       AutomationId="WorkflowDispatchRef" />
+                <Button Grid.Column="1"
+                        Text="Dispatch"
+                        Command="{Binding DispatchCommand}"
+                        IsEnabled="{Binding IsDispatching.Value, Converter={StaticResource InvertedBoolConverter}}"
+                        Padding="16,10"
+                        FontSize="13"
+                        AutomationId="WorkflowDispatchButton" />
+            </Grid>
+        </VerticalStackLayout>
+
+        <CollectionView Grid.Row="3"
                         ItemsSource="{Binding Runs}"
                         Margin="16,8,16,0"
                         SelectionMode="Single"
@@ -114,14 +141,14 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <ActivityIndicator Grid.Row="2"
+        <ActivityIndicator Grid.Row="3"
                            IsRunning="{Binding IsLoading.Value}"
                            IsVisible="{Binding IsLoading.Value}"
                            VerticalOptions="Start"
                            Margin="0,16,0,0" />
 
         <!-- Invisible Load more collapses the Auto row (no empty padded footer). -->
-        <Button Grid.Row="3"
+        <Button Grid.Row="4"
                 Text="Load more"
                 Command="{Binding LoadMoreCommand}"
                 IsVisible="{Binding CanLoadMore.Value}"
