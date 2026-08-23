@@ -166,6 +166,14 @@
                                 <Label Text="{Binding Repo.Value.UpdatedAt, StringFormat='Updated {0:yyyy-MM-dd}'}"
                                        FontSize="12"
                                        TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding Repo.Value.Language, StringFormat='Language: {0}'}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}"
+                                       IsVisible="{Binding Repo.Value.Language, Converter={StaticResource StringToBoolConverter}}" />
+                                <Label Text="{Binding Repo.Value.License.SpdxId, StringFormat='License: {0}'}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}"
+                                       IsVisible="{Binding Repo.Value.License.SpdxId, Converter={StaticResource StringToBoolConverter}}" />
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4"
                                                  Margin="0,8,0,0"
