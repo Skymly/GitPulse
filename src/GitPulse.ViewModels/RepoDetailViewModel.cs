@@ -74,6 +74,15 @@ public sealed partial class RepoDetailViewModel : IDisposable
     /// <summary>Full name for display (owner/repo).</summary>
     public BindableReactiveProperty<string> RepoFullName { get; } = new(string.Empty);
 
+    /// <summary>Whether the authenticated user has starred this repo.</summary>
+    public BindableReactiveProperty<bool> IsStarred { get; } = new(false);
+
+    /// <summary>Displayed star count (local after toggle).</summary>
+    public BindableReactiveProperty<int> StarCount { get; } = new(0);
+
+    /// <summary>True while a star/unstar write is in flight.</summary>
+    public BindableReactiveProperty<bool> IsTogglingStar { get; } = new(false);
+
     public RepoDetailViewModel(IGitHubClientFactory clientFactory, IBrowserLauncher browserLauncher)
     {
         _clientFactory = clientFactory;
@@ -117,6 +126,8 @@ public sealed partial class RepoDetailViewModel : IDisposable
 
             var repo = await api.GetRepo(_owner, _repo).FirstAsync(cts.Token);
             Repo.Value = repo;
+            StarCount.Value = repo.StargazersCount;
+            await LoadStarStateAsync(api, cts.Token);
 
             var readme = await TryGetReadmeAsync(api, cts.Token);
             if (readme is not null)
@@ -143,6 +154,80 @@ public sealed partial class RepoDetailViewModel : IDisposable
             IsLoading.Value = false;
         }
     }
+
+
+    private async Task LoadStarStateAsync(IGitHubReposApi api, CancellationToken ct)
+    {
+        try
+        {
+            var response = await api.GetStarredRepo(_owner, _repo).FirstAsync(ct);
+            var code = (int)(response.StatusCode ?? 0);
+            IsStarred.Value = code is >= 200 and < 300;
+        }
+        catch (Exception ex) when (IsNotFoundError(ex))
+        {
+            IsStarred.Value = false;
+        }
+        catch
+        {
+            // Keep last known star state; repo page stays usable.
+        }
+    }
+
+    /// <summary>Star or unstar the current repository.</summary>
+    [RelayCommand]
+    private async Task ToggleStarAsync()
+    {
+        if (string.IsNullOrEmpty(_owner) || string.IsNullOrEmpty(_repo) || IsTogglingStar.Value)
+            return;
+
+        IsTogglingStar.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var starring = !IsStarred.Value;
+            var response = starring
+                ? await api.StarRepo(_owner, _repo).FirstAsync(cts.Token)
+                : await api.UnstarRepo(_owner, _repo).FirstAsync(cts.Token);
+
+            var code = (int)(response.StatusCode ?? 0);
+            if (code is >= 200 and < 300 || (!starring && IsNotFoundStatus(response.StatusCode)))
+            {
+                IsStarred.Value = starring;
+                StarCount.Value = Math.Max(0, StarCount.Value + (starring ? 1 : -1));
+                return;
+            }
+
+            ErrorMessage.Value = code == 403
+                ? "Not allowed to change stars."
+                : $"Star update failed: {code}.";
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Star update failed: {ex.Message}";
+        }
+        finally
+        {
+            IsTogglingStar.Value = false;
+        }
+    }
+
+    private static bool IsNotFoundStatus(System.Net.HttpStatusCode? status) =>
+        status == System.Net.HttpStatusCode.NotFound;
 
     /// <summary>
     /// Attempt to fetch the README. Returns null when no README exists (404).
@@ -274,5 +359,8 @@ public sealed partial class RepoDetailViewModel : IDisposable
         Owner.Dispose();
         RepoName.Dispose();
         RepoFullName.Dispose();
+        IsStarred.Dispose();
+        StarCount.Dispose();
+        IsTogglingStar.Dispose();
     }
 }
