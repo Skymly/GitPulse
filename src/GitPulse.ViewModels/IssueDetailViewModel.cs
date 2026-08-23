@@ -14,7 +14,8 @@ namespace GitPulse.ViewModels;
 /// <see cref="IGitHubReposApi.ListIssueComments"/>, and M3 CRUD operations:
 /// <see cref="IGitHubReposApi.CreateIssueComment"/>,
 /// <see cref="IGitHubReposApi.UpdateIssue"/> (state toggle),
-/// <see cref="IGitHubReposApi.ReplaceIssueLabels"/>.
+/// <see cref="IGitHubReposApi.ReplaceIssueLabels"/>,
+/// <see cref="IGitHubReposApi.AddIssueAssignees"/>.
 /// </summary>
 public sealed partial class IssueDetailViewModel : IDisposable
 {
@@ -34,6 +35,9 @@ public sealed partial class IssueDetailViewModel : IDisposable
     /// <summary>Labels on the issue (editable via <see cref="SaveLabelsCommand"/>).</summary>
     public ObservableCollection<Label> Labels { get; } = [];
 
+    /// <summary>Users assigned to the issue.</summary>
+    public ObservableCollection<User> Assignees { get; } = [];
+
     /// <summary>Whether a load operation is in progress.</summary>
     public BindableReactiveProperty<bool> IsLoading { get; } = new(false);
 
@@ -51,6 +55,9 @@ public sealed partial class IssueDetailViewModel : IDisposable
 
     /// <summary>Comma-separated label names for editing (two-way bound to entry).</summary>
     public BindableReactiveProperty<string> LabelInput { get; } = new(string.Empty);
+
+    /// <summary>GitHub login to assign.</summary>
+    public BindableReactiveProperty<string> AssigneeLogin { get; } = new(string.Empty);
 
     public IssueDetailViewModel(IGitHubClientFactory clientFactory, IBrowserLauncher browserLauncher)
     {
@@ -102,6 +109,7 @@ public sealed partial class IssueDetailViewModel : IDisposable
             foreach (var label in issue.Labels)
                 Labels.Add(label);
             LabelInput.Value = string.Join(", ", issue.Labels.Select(l => l.Name));
+            ApplyAssignees(issue.Assignees);
 
             var comments = await api.ListIssueComments(_owner, _repo, _issueNumber).FirstAsync(cts.Token);
             Comments.Clear();
@@ -238,6 +246,99 @@ public sealed partial class IssueDetailViewModel : IDisposable
         }
     }
 
+    /// <summary>Assign the typed GitHub login.</summary>
+    [RelayCommand]
+    private async Task AddAssigneeAsync()
+    {
+        var login = AssigneeLogin.Value.Trim().TrimStart('@');
+        if (login.Length == 0 || Issue.Value is null || IsSaving.Value)
+            return;
+
+        if (Assignees.Any(user =>
+                string.Equals(user.Login, login, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        await WriteAssigneesAsync(
+            requesting: true,
+            login,
+            api => api.AddIssueAssignees(
+                _owner, _repo, _issueNumber, new AssigneesRequest { Assignees = [login] }));
+    }
+
+    /// <summary>Remove an assignee by login.</summary>
+    [RelayCommand]
+    private async Task RemoveAssigneeAsync(string? login)
+    {
+        login = login?.Trim();
+        if (string.IsNullOrEmpty(login) || Issue.Value is null || IsSaving.Value)
+            return;
+
+        await WriteAssigneesAsync(
+            requesting: false,
+            login,
+            api => api.RemoveIssueAssignees(
+                _owner, _repo, _issueNumber, new AssigneesRequest { Assignees = [login] }));
+    }
+
+    private async Task WriteAssigneesAsync(
+        bool requesting,
+        string login,
+        Func<IGitHubReposApi, R3.Observable<Observables.RestAPI.ApiResponse<Issue>>> call)
+    {
+        IsSaving.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var response = await call(api).FirstAsync(cts.Token);
+            var code = (int)(response.StatusCode ?? 0);
+            if (code is < 200 or >= 300)
+            {
+                ErrorMessage.Value = code switch
+                {
+                    403 => "Not allowed to change assignees.",
+                    422 => requesting
+                        ? "GitHub rejected that assignee login."
+                        : "GitHub could not remove that assignee.",
+                    _ => $"Assignee update failed: {code}.",
+                };
+                return;
+            }
+
+            if (requesting)
+                AssigneeLogin.Value = string.Empty;
+            ApplyAssignees(response.Content?.Assignees);
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Assignee update failed: {ex.Message}";
+        }
+        finally
+        {
+            IsSaving.Value = false;
+        }
+    }
+
+    private void ApplyAssignees(User[]? assignees)
+    {
+        Assignees.Clear();
+        foreach (var user in assignees ?? [])
+            Assignees.Add(user);
+    }
+
     public void Dispose()
     {
         Issue.Dispose();
@@ -247,5 +348,6 @@ public sealed partial class IssueDetailViewModel : IDisposable
         Title.Dispose();
         CommentInput.Dispose();
         LabelInput.Dispose();
+        AssigneeLogin.Dispose();
     }
 }
