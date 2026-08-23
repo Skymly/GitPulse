@@ -94,6 +94,12 @@ public partial class SearchPage : ContentPage
         UpdateHubStyles();
     }
 
+    private void OnMentionsHubClicked(object? sender, EventArgs e)
+    {
+        _ = _viewModel.SelectHubCommand.ExecuteAsync(SearchViewModel.MentionsHub);
+        UpdateHubStyles();
+    }
+
     private void SubmitSearch()
     {
         _viewModel.Query.Value = SearchBar.Text ?? string.Empty;
@@ -145,6 +151,7 @@ public partial class SearchPage : ContentPage
         StyleTab(SearchHubButton, _viewModel.IsSearchHub.Value, primary, gray);
         StyleTab(ReviewRequestedHubButton, _viewModel.IsReviewRequestedHub.Value, primary, gray);
         StyleTab(AssignedHubButton, _viewModel.IsAssignedHub.Value, primary, gray);
+        StyleTab(MentionsHubButton, _viewModel.IsMentionsHub.Value, primary, gray);
     }
 
     private static void StyleTab(Button button, bool active, Color? primary, Color? gray)
