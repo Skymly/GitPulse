@@ -518,6 +518,118 @@ public class SearchViewModelTests
     }
 
     [Fact]
+    public async Task DefaultHub_DoesNotLoadMentions()
+    {
+        var handler = new RecordingHandler((_, _, _) =>
+            Task.FromResult(JsonResponse(IssueResults("should-not-load"))));
+        using var vm = CreateViewModel(handler);
+
+        Assert.False(vm.IsMentionsHub.Value);
+        Assert.Empty(handler.Requests);
+        Assert.Empty(vm.Mentions);
+    }
+
+    [Fact]
+    public async Task SelectHub_Mentions_UsesCannedQueryWithoutThreeCharGate()
+    {
+        var handler = new RecordingHandler((_, _, _) =>
+            Task.FromResult(JsonResponse(IssueResults("Mentioned me", totalCount: 3))));
+        using var vm = CreateViewModel(handler);
+
+        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.MentionsHub);
+
+        var uri = Assert.Single(handler.Requests);
+        Assert.Equal("/search/issues", uri.AbsolutePath);
+        Assert.Contains(
+            "q=" + Uri.EscapeDataString(SearchViewModel.MentionsQuery),
+            uri.Query,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("false%20is%3Aissue", uri.Query, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(SearchViewModel.MentionsHub, vm.SelectedHub.Value);
+        Assert.True(vm.IsMentionsSelected.Value);
+        Assert.False(vm.IsAssignedSelected.Value);
+        var item = Assert.Single(vm.Mentions);
+        Assert.Equal("Mentioned me", item.Title);
+        Assert.Equal(3, vm.TotalCount.Value);
+        Assert.True(vm.HasSearched.Value);
+    }
+
+    [Fact]
+    public async Task SelectHub_Mentions_WithoutToken_SetsAuthenticationErrorWithoutRequest()
+    {
+        var handler = new RecordingHandler((_, _, _) =>
+            Task.FromResult(JsonResponse(IssueResults("unused"))));
+        using var vm = new SearchViewModel(new RecordingClientFactory(handler, token: null));
+
+        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.MentionsHub);
+
+        Assert.Contains("No token", vm.ErrorMessage.Value);
+        Assert.Empty(handler.Requests);
+        Assert.Empty(vm.Mentions);
+    }
+
+    [Fact]
+    public async Task LoadMore_Mentions_AppendsNextPage()
+    {
+        var nextLink =
+            "<https://api.github.com/search/issues?q=mentions&page=2>; rel=\"next\"";
+        var handler = new RecordingHandler((request, _, _) =>
+        {
+            var isSecondPage = request.RequestUri?.Query.Contains("page=2") == true;
+            return Task.FromResult(JsonResponse(
+                IssueResults(isSecondPage ? "Second" : "First", totalCount: 2),
+                isSecondPage ? null : nextLink));
+        });
+        using var vm = CreateViewModel(handler);
+
+        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.MentionsHub);
+        Assert.True(vm.CanLoadMore.Value);
+
+        await vm.LoadMoreCommand.ExecuteAsync(null);
+
+        Assert.Equal(["First", "Second"], vm.Mentions.Select(item => item.Title));
+        Assert.Contains("page=2", handler.Requests.Last().Query);
+    }
+
+    [Fact]
+    public async Task SelectHub_DoesNotMixMentionsAndAssigned()
+    {
+        var handler = new RecordingHandler((request, _, _) =>
+        {
+            var q = request.RequestUri?.Query ?? string.Empty;
+            var title = q.Contains("mentions", StringComparison.OrdinalIgnoreCase)
+                ? "Mentioned item"
+                : "Assigned item";
+            return Task.FromResult(JsonResponse(IssueResults(title)));
+        });
+        using var vm = CreateViewModel(handler);
+
+        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.AssignedHub);
+        Assert.Equal("Assigned item", Assert.Single(vm.Assigned).Title);
+
+        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.MentionsHub);
+        Assert.Equal("Mentioned item", Assert.Single(vm.Mentions).Title);
+        Assert.Equal("Assigned item", Assert.Single(vm.Assigned).Title);
+        Assert.True(vm.IsMentionsHub.Value);
+        Assert.False(vm.IsAssignedSelected.Value);
+    }
+
+    [Fact]
+    public async Task SelectHub_EmptyMentions_IsQuiet()
+    {
+        var handler = new RecordingHandler((_, _, _) =>
+            Task.FromResult(JsonResponse(EmptyResults())));
+        using var vm = CreateViewModel(handler);
+
+        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.MentionsHub);
+
+        Assert.True(vm.HasSearched.Value);
+        Assert.True(vm.IsEmpty.Value);
+        Assert.Empty(vm.Mentions);
+        Assert.Empty(vm.ErrorMessage.Value);
+    }
+
+    [Fact]
     public async Task Search_StillRequiresThreeCharactersOnSearchHub()
     {
         var handler = new RecordingHandler((_, _, _) =>
