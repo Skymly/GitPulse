@@ -92,3 +92,7 @@ _Avoid_: review event, submitted review, review inbox
 The in-app page for one Check Run from `GET /repos/{owner}/{repo}/check-runs/{check_run_id}` (name, status, conclusion, output). Opened from the PR Gate Rollup. Distinct from a Workflow Run detail and from Gate Rollup (the list summary).
 _Avoid_: annotation view, rerequest, actions run
 
+**Verified PAT**:
+A Personal Access Token that Settings persisted only after `GET /user` returned an authenticated login. Distinct from a typed-but-unsaved token and from OAuth.
+_Avoid_: OAuth, GitHub App, device flow
+

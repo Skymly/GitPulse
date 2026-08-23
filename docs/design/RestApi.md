@@ -55,6 +55,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M20 ✅ | Review inbox reuses `GET /search/issues` (`SearchPullRequests`, canned review-requested:@me) |
 | M21 ✅ | `GET/POST/DELETE /repos/{owner}/{repo}/pulls/{number}/requested_reviewers` |
 | M22 ✅ | `GET /repos/{owner}/{repo}/check-runs/{checkRunId}` (`GetCheckRun`, non-paged) |
+| M23 ✅ | Settings reuses `GET /user` (`GetAuthenticatedUser`) to verify a PAT before persist |
 
 ## M9 Search
 
@@ -236,6 +237,11 @@ Read-only. Lives on `IGitHubReposApi` — no `IGitHubChecksApi`. Non-paged `Crea
 | `GetCheckRun` | `GET /repos/{owner}/{repo}/check-runs/{checkRunId}` | `Observable<CheckRun>` with optional `output` (title / summary / text). |
 
 PR Gate Rollup Open navigates in-app. Annotations / rerequest / commit-page rollup are out.
+
+### Verify PAT (M23)
+
+Settings does not add an API method. Save calls existing `GetAuthenticatedUser` with the typed token (Authorization overwritten on a one-off client). 401/403 do not persist. Viewer login is shown when GET /user succeeds.
+
 
 
 
