@@ -89,6 +89,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
     public ObservableCollection<PullRequestReview> Reviews { get; } = [];
 
     /// <summary>Users currently requested to review (not yet submitted).</summary>
+    public ObservableCollection<User> Assignees { get; } = [];
+
     public ObservableCollection<User> RequestedReviewers { get; } = [];
 
     /// <summary>Teams currently requested to review (display-only).</summary>
@@ -96,6 +98,9 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
     /// <summary>Login typed when requesting a reviewer.</summary>
     public BindableReactiveProperty<string> ReviewerLogin { get; } = new(string.Empty);
+
+    /// <summary>GitHub login to assign.</summary>
+    public BindableReactiveProperty<string> AssigneeLogin { get; } = new(string.Empty);
 
     /// <summary>True when the PR is open and not merged.</summary>
     public BindableReactiveProperty<bool> CanManageReviewers { get; } = new(false);
@@ -353,6 +358,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         UpdateMergeStatus(pr);
         UpdateReviewPermissions(pr);
         CanManageReviewers.Value = pr.State == "open" && !pr.Merged;
+        ApplyAssignees(pr.Assignees);
     }
 
     private void UpdateReviewPermissions(PullRequest pr)
@@ -848,6 +854,96 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         }
     }
 
+    /// <summary>Assign the typed GitHub login.</summary>
+    [RelayCommand]
+    private async Task AddAssigneeAsync()
+    {
+        var login = AssigneeLogin.Value.Trim().TrimStart('@');
+        if (login.Length == 0 || PullRequest.Value is null || IsSaving.Value || !CanManageReviewers.Value)
+            return;
+
+        if (Assignees.Any(user =>
+                string.Equals(user.Login, login, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        await WriteAssigneesAsync(
+            requesting: true,
+            api => api.AddIssueAssignees(
+                _owner, _repo, _prNumber, new AssigneesRequest { Assignees = [login] }));
+    }
+
+    /// <summary>Remove an assignee by login.</summary>
+    [RelayCommand]
+    private async Task RemoveAssigneeAsync(string? login)
+    {
+        login = login?.Trim();
+        if (string.IsNullOrEmpty(login) || PullRequest.Value is null || IsSaving.Value || !CanManageReviewers.Value)
+            return;
+
+        await WriteAssigneesAsync(
+            requesting: false,
+            api => api.RemoveIssueAssignees(
+                _owner, _repo, _prNumber, new AssigneesRequest { Assignees = [login] }));
+    }
+
+    private async Task WriteAssigneesAsync(
+        bool requesting,
+        Func<IGitHubReposApi, R3.Observable<Observables.RestAPI.ApiResponse<Issue>>> call)
+    {
+        IsSaving.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var response = await call(api).FirstAsync(cts.Token);
+            var code = (int)(response.StatusCode ?? 0);
+            if (code is < 200 or >= 300)
+            {
+                ErrorMessage.Value = code switch
+                {
+                    403 => "Not allowed to change assignees.",
+                    422 => requesting
+                        ? "GitHub rejected that assignee login."
+                        : "GitHub could not remove that assignee.",
+                    _ => $"Assignee update failed: {code}.",
+                };
+                return;
+            }
+
+            if (requesting)
+                AssigneeLogin.Value = string.Empty;
+            ApplyAssignees(response.Content?.Assignees);
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Assignee update failed: {ex.Message}";
+        }
+        finally
+        {
+            IsSaving.Value = false;
+        }
+    }
+
+    private void ApplyAssignees(User[]? assignees)
+    {
+        Assignees.Clear();
+        foreach (var user in assignees ?? [])
+            Assignees.Add(user);
+    }
+
     public void Dispose()
     {
         PullRequest.Dispose();
@@ -872,6 +968,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         ReviewerLogin.Dispose();
         CanManageReviewers.Dispose();
         HasRequestedReviewers.Dispose();
+        AssigneeLogin.Dispose();
         GateRollup.Dispose();
     }
 }
