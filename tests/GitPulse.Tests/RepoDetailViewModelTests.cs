@@ -343,4 +343,150 @@ public class RepoDetailViewModelTests
         Assert.NotNull(vm.Repo.Value);
         vm.Dispose();
     }
+    [Fact]
+    public async Task Load_WhenWatching_SetsIsWatching()
+    {
+        var handler = WatchingHandler(watching: true);
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.True(vm.IsWatching.Value);
+        Assert.Empty(vm.ErrorMessage.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenNotWatching_SetsIsWatchingFalse()
+    {
+        var handler = WatchingHandler(watching: false);
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.IsWatching.Value);
+        Assert.Empty(vm.ErrorMessage.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenIgnoring_SetsIsWatchingFalse()
+    {
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/repos/{Owner}/{Repo}/subscription", _ =>
+                new MockResponse(
+                    "{\"subscribed\":false,\"ignored\":true}",
+                    StatusCode: HttpStatusCode.OK,
+                    AttachRequest: true));
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.IsWatching.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task ToggleWatch_WatchesRepo()
+    {
+        HttpRequestMessage? put = null;
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/repos/{Owner}/{Repo}/subscription", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                {
+                    put = req;
+                    return new MockResponse(
+                        "{\"subscribed\":true,\"ignored\":false}",
+                        StatusCode: HttpStatusCode.OK,
+                        AttachRequest: true);
+                }
+
+                return new MockResponse("", StatusCode: HttpStatusCode.NotFound, AttachRequest: true);
+            });
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ToggleWatchCommand.ExecuteAsync(null);
+
+        Assert.NotNull(put);
+        Assert.True(vm.IsWatching.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task ToggleWatch_UnwatchesRepo()
+    {
+        HttpRequestMessage? delete = null;
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/repos/{Owner}/{Repo}/subscription", req =>
+            {
+                if (req.Method == HttpMethod.Delete)
+                {
+                    delete = req;
+                    return new MockResponse("", StatusCode: HttpStatusCode.NoContent, AttachRequest: true);
+                }
+
+                return new MockResponse(
+                    "{\"subscribed\":true,\"ignored\":false}",
+                    StatusCode: HttpStatusCode.OK,
+                    AttachRequest: true);
+            });
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ToggleWatchCommand.ExecuteAsync(null);
+
+        Assert.NotNull(delete);
+        Assert.False(vm.IsWatching.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task ToggleWatch_Forbidden_StaysOnPage()
+    {
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/repos/{Owner}/{Repo}/subscription", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                    return new MockResponse("{}", StatusCode: HttpStatusCode.Forbidden, AttachRequest: true);
+                return new MockResponse("", StatusCode: HttpStatusCode.NotFound, AttachRequest: true);
+            });
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ToggleWatchCommand.ExecuteAsync(null);
+
+        Assert.Contains("Not allowed", vm.ErrorMessage.Value);
+        Assert.False(vm.IsWatching.Value);
+        Assert.NotNull(vm.Repo.Value);
+        vm.Dispose();
+    }
+
+    private static MockHttpHandler WatchingHandler(bool watching)
+    {
+        return new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/repos/{Owner}/{Repo}/subscription", _ => watching
+                ? new MockResponse(
+                    "{\"subscribed\":true,\"ignored\":false}",
+                    StatusCode: HttpStatusCode.OK,
+                    AttachRequest: true)
+                : new MockResponse("", StatusCode: HttpStatusCode.NotFound, AttachRequest: true));
+    }
 }
