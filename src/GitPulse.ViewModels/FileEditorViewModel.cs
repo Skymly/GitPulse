@@ -36,6 +36,7 @@ public sealed partial class FileEditorViewModel : IDisposable
     private string _repo = string.Empty;
     private string _path = string.Empty;
     private string _sha = string.Empty;
+    private string _gitRef = string.Empty;
 
     /// <summary>Decoded file content for display/editing.</summary>
     public BindableReactiveProperty<string> FileContent { get; } = new(string.Empty);
@@ -70,6 +71,13 @@ public sealed partial class FileEditorViewModel : IDisposable
     /// <summary>Title for the page header.</summary>
     public BindableReactiveProperty<string> Title { get; } = new(string.Empty);
 
+    /// <summary>
+    /// True when the file was opened at a historical git ref. Save and
+    /// delete stay disabled so a commit SHA is never written back as a
+    /// Contents blob SHA.
+    /// </summary>
+    public BindableReactiveProperty<bool> IsReadOnly { get; } = new(false);
+
     public FileEditorViewModel(IGitHubClientFactory clientFactory, IBrowserLauncher browserLauncher)
     {
         _clientFactory = clientFactory;
@@ -80,17 +88,24 @@ public sealed partial class FileEditorViewModel : IDisposable
     /// Initialize with repository coordinates and file path. Called by
     /// the page when navigated to via Shell query parameters.
     /// </summary>
-    public void Initialize(string owner, string repo, string path, string? sha = null)
+    public void Initialize(
+        string owner,
+        string repo,
+        string path,
+        string? sha = null,
+        string? gitRef = null)
     {
         _owner = owner;
         _repo = repo;
         _path = path;
         _sha = sha ?? string.Empty;
+        _gitRef = gitRef ?? string.Empty;
 
         RepoFullName.Value = $"{owner}/{repo}";
         FilePath.Value = path;
         FileName.Value = path.Contains('/') ? path[(path.LastIndexOf('/') + 1)..] : path;
-        IsNewFile.Value = string.IsNullOrEmpty(_sha);
+        IsReadOnly.Value = _gitRef.Length > 0;
+        IsNewFile.Value = string.IsNullOrEmpty(_sha) && string.IsNullOrEmpty(_gitRef);
         Title.Value = IsNewFile.Value ? $"New: {FileName.Value}" : FileName.Value;
     }
 
@@ -122,7 +137,9 @@ public sealed partial class FileEditorViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var content = await api.GetFileContent(_owner, _repo, _path).FirstAsync(cts.Token);
+            var content = string.IsNullOrEmpty(_gitRef)
+                ? await api.GetFileContent(_owner, _repo, _path).FirstAsync(cts.Token)
+                : await api.GetFileContentAtRef(_owner, _repo, _path, _gitRef).FirstAsync(cts.Token);
 
             _sha = content.Sha;
             IsNewFile.Value = false;
@@ -161,7 +178,7 @@ public sealed partial class FileEditorViewModel : IDisposable
     [RelayCommand]
     private void ToggleEdit()
     {
-        if (IsBinary.Value)
+        if (IsBinary.Value || IsReadOnly.Value)
             return;
         IsEditing.Value = !IsEditing.Value;
     }
@@ -170,7 +187,7 @@ public sealed partial class FileEditorViewModel : IDisposable
     [RelayCommand]
     private async Task SaveAsync()
     {
-        if (IsBusy.Value || IsBinary.Value)
+        if (IsBusy.Value || IsBinary.Value || IsReadOnly.Value)
             return;
 
         if (string.IsNullOrWhiteSpace(CommitMessage.Value))
@@ -237,7 +254,7 @@ public sealed partial class FileEditorViewModel : IDisposable
     [RelayCommand]
     private async Task DeleteAsync()
     {
-        if (IsBusy.Value || IsNewFile.Value)
+        if (IsBusy.Value || IsNewFile.Value || IsReadOnly.Value)
             return;
 
         if (string.IsNullOrWhiteSpace(CommitMessage.Value))
@@ -308,5 +325,6 @@ public sealed partial class FileEditorViewModel : IDisposable
         IsBinary.Dispose();
         RepoFullName.Dispose();
         Title.Dispose();
+        IsReadOnly.Dispose();
     }
 }
