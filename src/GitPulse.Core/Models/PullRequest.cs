@@ -19,6 +19,7 @@ public sealed class PullRequest
     public User? User { get; init; }
     public User? MergedBy { get; init; }
     public User[] Assignees { get; init; } = [];
+    public Label[] Labels { get; init; } = [];
     public string HeadRef { get; init; } = string.Empty;
     public string BaseRef { get; init; } = string.Empty;
 
