@@ -254,6 +254,95 @@ public class FileEditorViewModelTests
         Assert.Equal("New: new-file.txt", vm.Title.Value);
         vm.Dispose();
     }
+
+    [Fact]
+    public void Initialize_WithGitRef_SetsReadOnlyAndNotNew()
+    {
+        var handler = new MockHttpHandler();
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+
+        vm.Initialize("owner", "repo", "src/Program.cs", sha: null, gitRef: "abc123");
+
+        Assert.True(vm.IsReadOnly.Value);
+        Assert.False(vm.IsNewFile.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WithGitRef_RequestsContentsAtRef()
+    {
+        HttpRequestMessage? seen = null;
+        var content = B64("at commit");
+        var handler = new MockHttpHandler()
+            .When("/contents/README.md", req =>
+            {
+                seen = req;
+                return new MockResponse(FileJson("README.md", "README.md", "blob-sha", content));
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "README.md", sha: null, gitRef: "abc123");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.NotNull(seen);
+        Assert.Contains("ref=abc123", seen!.RequestUri!.Query, StringComparison.Ordinal);
+        Assert.Equal("at commit", vm.FileContent.Value);
+        Assert.True(vm.IsReadOnly.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Save_WhenReadOnly_IsNoOp()
+    {
+        var handler = new MockHttpHandler()
+            .When("/contents/file.txt", FileJson("file.txt", "file.txt", "blob", B64("x")));
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "file.txt", sha: null, gitRef: "abc123");
+        await vm.LoadCommand.ExecuteAsync(null);
+        vm.CommitMessage.Value = "should not save";
+        vm.FileContent.Value = "changed";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.False(vm.IsEditing.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Delete_WhenReadOnly_IsNoOp()
+    {
+        var handler = new MockHttpHandler()
+            .When("/contents/file.txt", FileJson("file.txt", "file.txt", "blob", B64("x")));
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "file.txt", sha: null, gitRef: "abc123");
+        await vm.LoadCommand.ExecuteAsync(null);
+        vm.CommitMessage.Value = "should not delete";
+
+        await vm.DeleteCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("x", vm.FileContent.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public void ToggleEdit_WhenReadOnly_StaysViewMode()
+    {
+        var handler = new MockHttpHandler();
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "file.txt", sha: null, gitRef: "abc123");
+
+        vm.ToggleEditCommand.Execute(null);
+
+        Assert.False(vm.IsEditing.Value);
+        vm.Dispose();
+    }
 }
 
 public class ContentModelTests
