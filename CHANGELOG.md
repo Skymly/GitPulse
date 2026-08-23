@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Open a Check Run annotation file at the head SHA (Contents ?ref=, read-only).
+- Roadmap M31 / v0.19.0: annotation file at head SHA (docs).
+
+
+### Added
+
 - Watch or unwatch a repository from repo detail.
 - Roadmap M30 / v0.18.0: Watch toggle (docs).
 
