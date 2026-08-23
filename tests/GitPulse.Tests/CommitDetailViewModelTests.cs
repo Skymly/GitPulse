@@ -229,4 +229,51 @@ public class CommitDetailViewModelTests
 
         Assert.Equal("https://github.com/o/r/commit/abc", browser.OpenedUrls.Single());
     }
+
+    private static string CheckRunsJson(params (long Id, string Name, string Status, string? Conclusion)[] runs)
+    {
+        var items = string.Join(",", runs.Select(run =>
+            "{\"id\":" + run.Id + ",\"name\":\"" + run.Name + "\",\"status\":\"" + run.Status + "\"," +
+            "\"conclusion\":" + (run.Conclusion is null ? "null" : "\"" + run.Conclusion + "\"") + "," +
+            "\"html_url\":\"https://example/runs/" + run.Id + "\",\"head_sha\":\"" + Sha + "\"}"));
+        return "{\"total_count\":" + runs.Length + ",\"check_runs\":[" + items + "]}";
+    }
+
+    private static string CombinedStatusJson(string state) =>
+        "{\"state\":\"" + state + "\",\"sha\":\"" + Sha + "\",\"total_count\":0,\"statuses\":[]}";
+
+    [Fact]
+    public async Task Load_ListsCheckRunsAndSetsGateRollup()
+    {
+        var handler = new MockHttpHandler()
+            .When($"/repos/owner/repo/commits/{Sha}", CommitJson)
+            .When($"/commits/{Sha}/check-runs", CheckRunsJson((1, "CI", "completed", "success")))
+            .When($"/commits/{Sha}/status", CombinedStatusJson("success"));
+        using var vm = new CommitDetailViewModel(
+            new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", Sha);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("Success", vm.GateRollup.Value);
+        Assert.Equal("CI", Assert.Single(vm.CheckRuns).Name);
+    }
+
+    [Fact]
+    public async Task Load_WhenChecksMissing_KeepsCommitAndNoChecks()
+    {
+        using var vm = new CommitDetailViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()
+                .When($"/repos/owner/repo/commits/{Sha}", CommitJson)),
+            new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", Sha);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.NotNull(vm.Commit.Value);
+        Assert.Equal("No checks", vm.GateRollup.Value);
+        Assert.Empty(vm.CheckRuns);
+    }
 }
