@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Add or remove pull request assignees from PR Conversation.
+- Roadmap M36 / v0.24.0: PR assignees (docs).
+
+
+### Added
+
 - Fork a repository from repo detail and open the new fork in-app.
 - Roadmap M35 / v0.23.0: fork repository (docs).
 

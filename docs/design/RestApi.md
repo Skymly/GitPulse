@@ -68,6 +68,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M33 ✅ | `POST/DELETE /repos/{owner}/{repo}/issues/{number}/assignees` (`AddIssueAssignees`, `RemoveIssueAssignees`) |
 | M34 ✅ | Repo `clone_url` / `ssh_url` on GET repo (no new method) |
 | M35 ✅ | `POST /repos/{owner}/{repo}/forks` (`ForkRepo`) |
+| M36 ✅ | PR assignees reuse issue assignee writes + `PullRequest.Assignees` |
 
 ## M9 Search
 
@@ -328,6 +329,11 @@ Read-only. No new GitHubApi method. `Repo.CloneUrl` / `Repo.SshUrl` come from GE
 ### Fork repository (M35)
 
 Write. Lives on `IGitHubReposApi`. `ForkRepo` is `POST /repos/{owner}/{repo}/forks` returning `ApiResponse<Repo>` (202). 403/422 stay on the page. Success records `full_name` and can open that repo in-app. Organization destination and `default_branch_only` are out of scope.
+
+### PR assignees (M36)
+
+Write + read. No new GitHubApi method. `PullRequest.Assignees` comes from GET pull. Add/remove reuse `AddIssueAssignees` / `RemoveIssueAssignees` (same number space). Writes only when the PR is open and not merged. 403/422 stay on the page.
+
 
 
 
