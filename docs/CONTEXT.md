@@ -120,6 +120,10 @@ _Avoid_: label color editor, new-label creation
 A user-owned copy of a repository created with `POST /repos/{owner}/{repo}/forks`. Distinct from starring and from watching.
 _Avoid_: organization destination, fork network, default_branch_only
 
+**Repo License**:
+The SPDX/name pair from GET repository (`Repo.License`). Distinct from changing a license file.
+_Avoid_: license picker, topics
+
 **Clone URL**:
 The HTTPS `clone_url` from GET repository, shown on repo detail and copied with the platform clipboard. Distinct from `html_url` and from SSH `ssh_url`.
 _Avoid_: fork, zipball, git protocol

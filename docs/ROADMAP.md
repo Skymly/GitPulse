@@ -1,6 +1,6 @@
 # GitPulse 路线图
 
-功能与技术 backlog 的滚动清单。里程碑编号 **M0–M38**；完成项移入「已完成（归档）」章节。
+功能与技术 backlog 的滚动清单。里程碑编号 **M0–M39**；完成项移入「已完成（归档）」章节。
 
 - **文档标准**：[DOCUMENTATION.md](DOCUMENTATION.md)
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
@@ -46,6 +46,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
+| **M39** ✅ | v0.27.0 Repo language and license：Repo detail 显示 language / SPDX（[#342](https://github.com/Skymly/GitPulse/issues/342)） | RestAPI |
 | **M38** ✅ | v0.26.0 PR labels：PR Conversation 列出/替换 labels（[#335](https://github.com/Skymly/GitPulse/issues/335)） | RestAPI |
 | **M37** ✅ | v0.25.0 Mentions inbox：Search 页 Mentions，分页 GET /search/issues canned mentions:@me（[#329](https://github.com/Skymly/GitPulse/issues/329)） | RestAPI |
 | **M36** ✅ | v0.24.0 PR assignees：PR Conversation 列出/添加/移除 assignees（[#322](https://github.com/Skymly/GitPulse/issues/322)） | RestAPI |
