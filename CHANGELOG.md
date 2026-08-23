@@ -7,6 +7,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added
+
+- Switch the Search tab between Search and Review requested (open PRs waiting
+  for your review via review-requested:@me).
+- Roadmap M20 / v0.8.0: Review inbox on the Search tab (docs).
+
 ## [0.7.0] - 2026-08-21
 
 ### Added
@@ -463,3 +469,5 @@ First public GitHub Release (ADR-013): Windows self-contained publish-folder zip
   path parameters on API methods; pagination/filtering will use a custom
   `HttpMessageHandler` until the upstream validation is relaxed. Tracked
   for upstream feedback.
+
+

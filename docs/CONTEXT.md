@@ -79,3 +79,8 @@ _Avoid_: watching / subscriptions, recently viewed, star toggle (write)
 **Git Commit**:
 A commit on a repository from `GET /repos/{owner}/{repo}/commits` and `GET /repos/{owner}/{repo}/commits/{ref}` (SHA, message, author, date, `html_url`). List payloads omit stats and files; Get-a-commit fills optional `stats` (additions / deletions / total) and `files` (diff-entry shape, optional patch). Distinct from a Check Run, a FileCommitResponse (Contents API write), and a PR head SHA.
 _Avoid_: commit comment, compare, blame
+
+**Review Inbox**:
+Open pull requests whose review is requested from the authenticated user (directly or via a team), listed from GitHub Search review-requested:@me on the Search tab. Distinct from the Notifications feed (reason=review_requested is mixed and not the full open set) and from requesting reviewers on a single PR.
+_Avoid_: notification reason filter, review request (the write), assigned/mentioned hub
+
