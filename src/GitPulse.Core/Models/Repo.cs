@@ -40,4 +40,19 @@ public sealed class Repo
 
     [JsonPropertyName("updated_at")]
     public DateTime UpdatedAt { get; init; }
+
+    public string? Language { get; init; }
+
+    public RepoLicense? License { get; init; }
+}
+
+/// <summary>License summary from GET repository.</summary>
+public sealed class RepoLicense
+{
+    public string Key { get; init; } = string.Empty;
+
+    public string Name { get; init; } = string.Empty;
+
+    [JsonPropertyName("spdx_id")]
+    public string? SpdxId { get; init; }
 }
