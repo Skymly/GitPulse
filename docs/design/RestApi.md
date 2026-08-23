@@ -56,6 +56,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M21 ✅ | `GET/POST/DELETE /repos/{owner}/{repo}/pulls/{number}/requested_reviewers` |
 | M22 ✅ | `GET /repos/{owner}/{repo}/check-runs/{checkRunId}` (`GetCheckRun`, non-paged) |
 | M23 ✅ | Settings reuses `GET /user` (`GetAuthenticatedUser`) to verify a PAT before persist |
+| M24 ✅ | `GET/PUT/DELETE /user/starred/{owner}/{repo}` (`GetStarredRepo`, `StarRepo`, `UnstarRepo`) |
 
 ## M9 Search
 
@@ -241,6 +242,19 @@ PR Gate Rollup Open navigates in-app. Annotations / rerequest / commit-page roll
 ### Verify PAT (M23)
 
 Settings does not add an API method. Save calls existing `GetAuthenticatedUser` with the typed token (Authorization overwritten on a one-off client). 401/403 do not persist. Viewer login is shown when GET /user succeeds.
+
+### Star toggle (M24)
+
+Write + read on `IGitHubReposApi`. No new Core model.
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GetStarredRepo` | `GET /user/starred/{owner}/{repo}` | 204 starred, 404 not starred. `ApiResponse<Unit>`. |
+| `StarRepo` | `PUT /user/starred/{owner}/{repo}` | 204. |
+| `UnstarRepo` | `DELETE /user/starred/{owner}/{repo}` | 204. |
+
+Check failure does not fail repo detail. 403 stays on the page.
+
 
 
 
