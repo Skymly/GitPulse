@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Switch the Search tab to Mentions (open issues and PRs that mention you).
+- Roadmap M37 / v0.25.0: Mentions inbox on the Search tab (docs).
+
+
+### Added
+
 - Add or remove pull request assignees from PR Conversation.
 - Roadmap M36 / v0.24.0: PR assignees (docs).
 

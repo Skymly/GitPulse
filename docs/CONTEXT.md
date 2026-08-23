@@ -86,7 +86,11 @@ _Avoid_: notification reason filter, review request (the write), mentioned hub
 
 **Assigned Inbox**:
 Open issues and pull requests assigned to the authenticated user, listed from GitHub Search assignee:@me on the Search tab. Distinct from the Review Inbox and from the Notifications feed.
-_Avoid_: mentioned hub, created hub, notification reason filter
+_Avoid_: created hub, notification reason filter
+
+**Mentions Inbox**:
+Open issues and pull requests that mention the authenticated user, listed from GitHub Search mentions:@me on the Search tab. Distinct from Assigned and Review requested.
+_Avoid_: created hub, notification reason filter
 
 **Review Request**:
 A pending request for a user or team to review a pull request, from `GET/POST/DELETE .../requested_reviewers`. Distinct from a submitted Pull Request Review and from the Review Inbox (cross-repo Search).
