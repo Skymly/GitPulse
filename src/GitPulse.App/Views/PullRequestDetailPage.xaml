@@ -228,6 +228,28 @@
                     </Grid>
                 </VerticalStackLayout>
 
+                <!-- M38: PR labels -->
+                <VerticalStackLayout Spacing="8"
+                                     IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
+                    <Label Text="Labels"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           Margin="0,8,0,4" />
+                    <Entry Text="{Binding LabelInput.Value}"
+                           Placeholder="bug, enhancement, ..."
+                           FontSize="13"
+                           HorizontalOptions="Fill"
+                           IsEnabled="{Binding CanManageReviewers.Value}"
+                           AutomationId="PrLabelInput" />
+                    <Button Text="Save labels"
+                            Command="{Binding SaveLabelsCommand}"
+                            IsVisible="{Binding CanManageReviewers.Value}"
+                            Padding="16,12"
+                            FontSize="13"
+                            HorizontalOptions="Fill"
+                            AutomationId="PrSaveLabelsButton" />
+                </VerticalStackLayout>
+
                 <!-- M21: pending review requests -->
                 <VerticalStackLayout Spacing="8"
                                      IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
