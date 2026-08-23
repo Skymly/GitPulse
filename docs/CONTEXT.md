@@ -94,7 +94,7 @@ _Avoid_: review event, submitted review, review inbox
 
 **Check Run Detail**:
 The in-app page for one Check Run from `GET /repos/{owner}/{repo}/check-runs/{check_run_id}` (name, status, conclusion, output). Opened from the PR Gate Rollup. Distinct from a Workflow Run detail and from Gate Rollup (the list summary).
-_Avoid_: annotation view, rerequest, actions run
+_Avoid_: actions run, check-suite rerequest
 
 **Verified PAT**:
 A Personal Access Token that Settings persisted only after `GET /user` returned an authenticated login. Distinct from a typed-but-unsaved token and from OAuth.
@@ -114,7 +114,7 @@ _Avoid_: affiliation change, recently viewed
 
 **Check Run Annotation**:
 A file/line note on a Check Run (`path`, `start_line`, `annotation_level`, `message`) from the annotations endpoint. Distinct from a Review Comment and from Check Run output summary. Tapping opens the file at the Check Run head SHA via Contents `?ref=` (read-only).
-_Avoid_: review comment, rerequest, line scroll
+_Avoid_: review comment, line scroll
 
 **Contents Ref**:
 The GitHub Contents `ref` query (commit SHA / branch / tag) used to read a file blob at that revision. Distinct from the Contents blob SHA required to update a file.
