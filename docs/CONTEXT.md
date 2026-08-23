@@ -104,6 +104,10 @@ _Avoid_: OAuth, GitHub App, device flow
 A user assigned to an issue from the issue payload and `POST/DELETE /issues/{number}/assignees`. Distinct from a requested reviewer and from the Assigned inbox (cross-repo Search).
 _Avoid_: suggested assignees, team assignees
 
+**PR Assignee**:
+A user assigned to a pull request from GET pull (`PullRequest.Assignees`) and the same issue assignee write endpoints. Distinct from a requested reviewer.
+_Avoid_: suggested assignees, team assignees
+
 **Fork**:
 A user-owned copy of a repository created with `POST /repos/{owner}/{repo}/forks`. Distinct from starring and from watching.
 _Avoid_: organization destination, fork network, default_branch_only
