@@ -10,6 +10,9 @@ using R3;
 
 namespace GitPulse.ViewModels;
 
+/// <summary>
+/// GitHub Search and Review inbox. Paging uses <see cref="PagedGitHubSession"/> (M28).
+/// </summary>
 public sealed partial class SearchViewModel : IDisposable
 {
     private const int MinimumQueryLength = 3;
@@ -79,7 +82,7 @@ public sealed partial class SearchViewModel : IDisposable
     {
         var next = string.IsNullOrWhiteSpace(hub) ? SearchHub : hub;
         var alreadyOnHub = string.Equals(SelectedHub.Value, next, StringComparison.Ordinal);
-        if (alreadyOnHub && (IsSearchHub.Value || _reviewInboxSession.Client is not null))
+        if (alreadyOnHub && (IsSearchHub.Value || _reviewInboxSession.Paged is not null))
             return;
 
         ApplyHub(next);
@@ -107,7 +110,7 @@ public sealed partial class SearchViewModel : IDisposable
 
         var type = SelectedType.Value;
         var session = _sessions[type];
-        session.DisposeClient();
+        session.DisposePaged();
 
         var (version, requestCts) = BeginRequest();
         IsLoading.Value = true;
@@ -115,30 +118,11 @@ public sealed partial class SearchViewModel : IDisposable
 
         try
         {
-            var (client, queryHandler) =
-                await _clientFactory.CreatePagedClientAsync(requestCts.Token);
-
-            if (!IsCurrent(version))
-            {
-                client.Dispose();
+            var paged = await StartPagedAsync(session, query, version, requestCts.Token);
+            if (paged is null)
                 return;
-            }
 
-            if (client.DefaultRequestHeaders.Authorization is null)
-            {
-                client.Dispose();
-                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
-                return;
-            }
-
-            session.Client = client;
-            session.QueryHandler = queryHandler;
-            session.Query = query;
-            session.CurrentPage = 1;
-            queryHandler.Page = 1;
-            queryHandler.PerPage = 30;
-
-            var api = RestService.For<IGitHubSearchApi>(client);
+            var api = RestService.For<IGitHubSearchApi>(paged.Client);
             await SearchPageAsync(
                 api, type, query, session, replace: true, version, requestCts.Token);
 
@@ -195,9 +179,8 @@ public sealed partial class SearchViewModel : IDisposable
 
         var type = SelectedType.Value;
         var session = _sessions[type];
-        if (!session.HasNextPage
-            || session.Client is null
-            || session.QueryHandler is null
+        if (session.Paged is null
+            || !session.HasNextPage
             || IsLoading.Value)
         {
             return;
@@ -209,15 +192,17 @@ public sealed partial class SearchViewModel : IDisposable
 
         try
         {
-            session.QueryHandler.Page = session.CurrentPage + 1;
-            var api = RestService.For<IGitHubSearchApi>(session.Client);
+            if (!session.Paged.Advance())
+                return;
+
+            session.Paged.PrepareRequest();
+            var api = RestService.For<IGitHubSearchApi>(session.Paged.Client);
             await SearchPageAsync(
                 api, type, session.Query, session, replace: false, version, requestCts.Token);
 
             if (!IsCurrent(version))
                 return;
 
-            session.CurrentPage++;
             RefreshSelectedState();
         }
         catch (OperationCanceledException)
@@ -259,7 +244,7 @@ public sealed partial class SearchViewModel : IDisposable
     private async Task LoadReviewRequestedAsync()
     {
         var session = _reviewInboxSession;
-        session.DisposeClient();
+        session.DisposePaged();
         ReviewRequested.Clear();
 
         var (version, requestCts) = BeginRequest();
@@ -268,31 +253,14 @@ public sealed partial class SearchViewModel : IDisposable
 
         try
         {
-            var (client, queryHandler) =
-                await _clientFactory.CreatePagedClientAsync(requestCts.Token);
-
-            if (!IsCurrent(version))
+            var paged = await StartPagedAsync(session, ReviewRequestedQuery, version, requestCts.Token);
+            if (paged is null)
             {
-                client.Dispose();
-                return;
-            }
-
-            if (client.DefaultRequestHeaders.Authorization is null)
-            {
-                client.Dispose();
-                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
                 RefreshSelectedState();
                 return;
             }
 
-            session.Client = client;
-            session.QueryHandler = queryHandler;
-            session.Query = ReviewRequestedQuery;
-            session.CurrentPage = 1;
-            queryHandler.Page = 1;
-            queryHandler.PerPage = 30;
-
-            var api = RestService.For<IGitHubSearchApi>(client);
+            var api = RestService.For<IGitHubSearchApi>(paged.Client);
             await SearchReviewRequestedPageAsync(
                 api, session, replace: true, version, requestCts.Token);
 
@@ -341,9 +309,8 @@ public sealed partial class SearchViewModel : IDisposable
     private async Task LoadMoreReviewRequestedAsync()
     {
         var session = _reviewInboxSession;
-        if (!session.HasNextPage
-            || session.Client is null
-            || session.QueryHandler is null
+        if (session.Paged is null
+            || !session.HasNextPage
             || IsLoading.Value)
         {
             return;
@@ -355,15 +322,17 @@ public sealed partial class SearchViewModel : IDisposable
 
         try
         {
-            session.QueryHandler.Page = session.CurrentPage + 1;
-            var api = RestService.For<IGitHubSearchApi>(session.Client);
+            if (!session.Paged.Advance())
+                return;
+
+            session.Paged.PrepareRequest();
+            var api = RestService.For<IGitHubSearchApi>(session.Paged.Client);
             await SearchReviewRequestedPageAsync(
                 api, session, replace: false, version, requestCts.Token);
 
             if (!IsCurrent(version))
                 return;
 
-            session.CurrentPage++;
             RefreshSelectedState();
         }
         catch (OperationCanceledException)
@@ -565,7 +534,7 @@ public sealed partial class SearchViewModel : IDisposable
         System.Net.Http.Headers.HttpResponseHeaders? headers)
     {
         session.TotalCount = result?.TotalCount ?? 0;
-        session.HasNextPage = LinkHeaderParser.GetNextUrl(headers) is not null;
+        session.Paged?.ApplyLink(headers);
     }
 
     private static string EncodeQuery(string query)
@@ -578,6 +547,34 @@ public sealed partial class SearchViewModel : IDisposable
         if (!response.IsSuccessStatusCode)
             throw new SearchRequestException(
                 response.StatusCode ?? HttpStatusCode.ServiceUnavailable);
+    }
+
+
+    private async Task<PagedGitHubSession?> StartPagedAsync(
+        SearchSession session,
+        string query,
+        int version,
+        CancellationToken cancellationToken)
+    {
+        var paged = await _clientFactory.CreatePagedSessionAsync(cancellationToken);
+        if (!IsCurrent(version))
+        {
+            paged.Dispose();
+            return null;
+        }
+
+        if (paged.Client.DefaultRequestHeaders.Authorization is null)
+        {
+            paged.Dispose();
+            ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+            return null;
+        }
+
+        session.Paged = paged;
+        session.Query = query;
+        paged.Reset();
+        paged.PrepareRequest();
+        return paged;
     }
 
     private (int Version, CancellationTokenSource RequestCts) BeginRequest()
@@ -617,8 +614,8 @@ public sealed partial class SearchViewModel : IDisposable
         CancelActiveRequest();
         _disposables.Dispose();
         foreach (var session in _sessions.Values)
-            session.DisposeClient();
-        _reviewInboxSession.DisposeClient();
+            session.DisposePaged();
+        _reviewInboxSession.DisposePaged();
 
         Query.Dispose();
         SelectedType.Dispose();
@@ -640,20 +637,16 @@ public sealed partial class SearchViewModel : IDisposable
 
     private sealed class SearchSession
     {
-        public HttpClient? Client { get; set; }
-        public GitHubQueryHandler? QueryHandler { get; set; }
+        public PagedGitHubSession? Paged { get; set; }
         public string Query { get; set; } = string.Empty;
-        public int CurrentPage { get; set; }
         public int TotalCount { get; set; }
-        public bool HasNextPage { get; set; }
         public bool HasSearched { get; set; }
+        public bool HasNextPage => Paged?.HasNextPage == true;
 
-        public void DisposeClient()
+        public void DisposePaged()
         {
-            Client?.Dispose();
-            Client = null;
-            QueryHandler = null;
-            HasNextPage = false;
+            Paged?.Dispose();
+            Paged = null;
         }
     }
 
