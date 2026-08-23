@@ -47,6 +47,18 @@ public partial class RepoDetailPage : ContentPage
         _ = AppNavigation.GoToAsync("..");
     }
 
+    private async void OnOpenForkClicked(object? sender, EventArgs e)
+    {
+        var fullName = _viewModel.ForkedFullName.Value;
+        var parts = fullName.Split('/', 2);
+        if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0)
+            return;
+
+        await AppNavigation.GoToAsync(
+            $"RepoDetailPage?owner={Uri.EscapeDataString(parts[0])}"
+            + $"&repo={Uri.EscapeDataString(parts[1])}");
+    }
+
     private async void OnCopyCloneUrlClicked(object? sender, EventArgs e)
     {
         var url = _viewModel.Repo.Value?.CloneUrl;
