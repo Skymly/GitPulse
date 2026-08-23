@@ -21,7 +21,8 @@
                    VerticalOptions="Center"
                    LineBreakMode="TailTruncation"
                    MaxLines="1" />
-            <Button Text="Edit"
+            <Button x:Name="EditButton"
+                    Text="Edit"
                     Command="{Binding ToggleEditCommand}"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
@@ -101,7 +102,8 @@
                     TextColor="Black"
                     Padding="24,8"
                     FontSize="13" />
-            <Button Text="Delete"
+            <Button x:Name="DeleteButton"
+                    Text="Delete"
                     Command="{Binding DeleteCommand}"
                     IsVisible="{Binding IsEditing.Value, Converter={StaticResource InvertedBoolConverter}}"
                     BackgroundColor="{StaticResource Red900}"

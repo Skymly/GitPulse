@@ -12,6 +12,7 @@ namespace GitPulse.App.Views;
 [QueryProperty("RepoQuery", "repo")]
 [QueryProperty("PathQuery", "path")]
 [QueryProperty("ShaQuery", "sha")]
+[QueryProperty("RefQuery", "ref")]
 public partial class FileEditorPage : ContentPage
 {
     private readonly FileEditorViewModel _viewModel;
@@ -28,6 +29,7 @@ public partial class FileEditorPage : ContentPage
     public string RepoQuery { get; set; } = string.Empty;
     public string PathQuery { get; set; } = string.Empty;
     public string ShaQuery { get; set; } = string.Empty;
+    public string RefQuery { get; set; } = string.Empty;
 
     protected override void OnAppearing()
     {
@@ -40,10 +42,21 @@ public partial class FileEditorPage : ContentPage
             var repo = Uri.UnescapeDataString(RepoQuery);
             var path = Uri.UnescapeDataString(PathQuery);
             var sha = Uri.UnescapeDataString(ShaQuery);
+            var gitRef = Uri.UnescapeDataString(RefQuery);
             if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(path))
             {
-                _viewModel.Initialize(owner, repo, path, string.IsNullOrEmpty(sha) ? null : sha);
+                _viewModel.Initialize(
+                    owner,
+                    repo,
+                    path,
+                    string.IsNullOrEmpty(sha) ? null : sha,
+                    string.IsNullOrEmpty(gitRef) ? null : gitRef);
                 _ = _viewModel.LoadCommand.ExecuteAsync(null);
+                if (!string.IsNullOrEmpty(gitRef))
+                {
+                    EditButton.IsVisible = false;
+                    DeleteButton.IsVisible = false;
+                }
             }
         }
     }

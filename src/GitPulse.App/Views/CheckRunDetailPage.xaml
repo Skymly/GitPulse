@@ -77,6 +77,9 @@
                             <Border Padding="14"
                                     StrokeShape="RoundRectangle 8"
                                     Stroke="{StaticResource Gray200}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnAnnotationTapped" />
+                                </Border.GestureRecognizers>
                                 <VerticalStackLayout Spacing="4">
                                     <Label Text="{Binding Path}"
                                            FontSize="13"

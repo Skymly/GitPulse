@@ -1,3 +1,4 @@
+using GitPulse.Core.Models;
 using GitPulse.ViewModels;
 
 namespace GitPulse.App.Views;
@@ -44,5 +45,27 @@ public partial class CheckRunDetailPage : ContentPage
     private void OnBackClicked(object? sender, EventArgs e)
     {
         _ = AppNavigation.GoToAsync("..");
+    }
+
+    private async void OnAnnotationTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is not BindableObject bindable
+            || bindable.BindingContext is not CheckRunAnnotation annotation
+            || string.IsNullOrEmpty(annotation.Path))
+        {
+            return;
+        }
+
+        var headSha = _viewModel.CheckRun.Value?.HeadSha;
+        if (string.IsNullOrEmpty(headSha))
+            return;
+
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        await AppNavigation.GoToAsync(
+            $"FileEditorPage?owner={Uri.EscapeDataString(owner)}"
+            + $"&repo={Uri.EscapeDataString(repo)}"
+            + $"&path={Uri.EscapeDataString(annotation.Path)}"
+            + $"&ref={Uri.EscapeDataString(headSha)}");
     }
 }
