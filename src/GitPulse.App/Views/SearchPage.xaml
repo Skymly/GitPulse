@@ -8,9 +8,30 @@
              Title="Search"
              AutomationId="SearchPageRoot">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="16,12">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Padding="16,12">
+        <!-- M20: Search / Review requested hub (not a fifth Shell tab). -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="*,*"
+              ColumnSpacing="8"
+              Margin="0,0,0,8">
+            <Button x:Name="SearchHubButton"
+                    Text="Search"
+                    Clicked="OnSearchHubClicked"
+                    Padding="12,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill"
+                    AutomationId="SearchSearchHub" />
+            <Button x:Name="ReviewRequestedHubButton"
+                    Grid.Column="1"
+                    Text="Review requested"
+                    Clicked="OnReviewRequestedHubClicked"
+                    Padding="12,10"
+                    FontSize="13"
+                    HorizontalOptions="Fill"
+                    AutomationId="SearchReviewRequestedHub" />
+        </Grid>
         <!-- Search field + button share the row; long queries truncate in the bar. -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding IsSearchHub.Value}">
             <SearchBar x:Name="SearchBar"
                        Grid.Column="0"
                        Placeholder="Search GitHub..."
@@ -25,10 +46,11 @@
         </Grid>
 
         <!-- Equal-width type tabs stay tappable on narrow portrait widths. -->
-        <Grid Grid.Row="1"
+        <Grid Grid.Row="2"
               ColumnDefinitions="*,*,*,*"
               ColumnSpacing="6"
-              Margin="0,8">
+              Margin="0,8"
+              IsVisible="{Binding IsSearchHub.Value}">
             <Button x:Name="RepositoriesTab"
                     Grid.Column="0"
                     Text="Repos"
@@ -59,7 +81,7 @@
                     HorizontalOptions="Fill" />
         </Grid>
 
-        <VerticalStackLayout Grid.Row="2" Spacing="6">
+        <VerticalStackLayout Grid.Row="3" Spacing="6">
             <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
                     BackgroundColor="{StaticResource Red100}"
                     StrokeShape="RoundRectangle 8"
@@ -80,7 +102,7 @@
                    TextColor="{StaticResource Gray500}" />
         </VerticalStackLayout>
 
-        <CollectionView Grid.Row="3"
+        <CollectionView Grid.Row="4"
                         ItemsSource="{Binding Repositories}"
                         IsVisible="{Binding IsRepositoriesSelected.Value}"
                         SelectionMode="Single"
@@ -112,7 +134,7 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <CollectionView Grid.Row="3"
+        <CollectionView Grid.Row="4"
                         ItemsSource="{Binding Issues}"
                         IsVisible="{Binding IsIssuesSelected.Value}"
                         SelectionMode="Single"
@@ -156,7 +178,7 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <CollectionView Grid.Row="3"
+        <CollectionView Grid.Row="4"
                         ItemsSource="{Binding PullRequests}"
                         IsVisible="{Binding IsPullRequestsSelected.Value}"
                         SelectionMode="Single"
@@ -200,7 +222,7 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <CollectionView Grid.Row="3"
+        <CollectionView Grid.Row="4"
                         ItemsSource="{Binding CodeResults}"
                         IsVisible="{Binding IsCodeSelected.Value}"
                         SelectionMode="Single"
@@ -233,7 +255,55 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <VerticalStackLayout Grid.Row="4" Spacing="8" Padding="0,8,0,0">
+        <CollectionView Grid.Row="4"
+                        ItemsSource="{Binding ReviewRequested}"
+                        IsVisible="{Binding IsReviewRequestedSelected.Value}"
+                        SelectionMode="Single"
+                        SelectionChanged="OnReviewRequestedSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:SearchIssueItem">
+                    <Border Margin="0,0,0,8"
+                            Padding="14,16"
+                            MinimumHeightRequest="56"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="{StaticResource Gray200}">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding RepositoryFullName}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
+                            <Label Text="{Binding Title}"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   MaxLines="2"
+                                   LineBreakMode="TailTruncation" />
+                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                                <Label Grid.Column="0"
+                                       Text="{Binding Number, StringFormat='#{0}'}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding State}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding User.Login}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="End" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <VerticalStackLayout Grid.Row="5" Spacing="8" Padding="0,8,0,0">
             <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
                                IsVisible="{Binding IsLoading.Value}" />
             <Button Text="Load more"
@@ -245,3 +315,5 @@
         </VerticalStackLayout>
     </Grid>
 </ContentPage>
+
+

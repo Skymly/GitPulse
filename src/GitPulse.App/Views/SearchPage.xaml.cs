@@ -24,6 +24,7 @@ public partial class SearchPage : ContentPage
         SearchBar.Text = _viewModel.Query.Value;
         StartSearchBridge();
         UpdateTabStyles(_viewModel.SelectedType.Value);
+        UpdateHubStyles();
     }
 
     protected override void OnDisappearing()
@@ -74,6 +75,19 @@ public partial class SearchPage : ContentPage
         SubmitSearch();
     }
 
+    private void OnSearchHubClicked(object? sender, EventArgs e)
+    {
+        _ = _viewModel.SelectHubCommand.ExecuteAsync(SearchViewModel.SearchHub);
+        UpdateHubStyles();
+        UpdateTabStyles(_viewModel.SelectedType.Value);
+    }
+
+    private void OnReviewRequestedHubClicked(object? sender, EventArgs e)
+    {
+        _ = _viewModel.SelectHubCommand.ExecuteAsync(SearchViewModel.ReviewRequestedHub);
+        UpdateHubStyles();
+    }
+
     private void SubmitSearch()
     {
         _viewModel.Query.Value = SearchBar.Text ?? string.Empty;
@@ -102,7 +116,8 @@ public partial class SearchPage : ContentPage
 
     private void SelectType(SearchType type)
     {
-        _viewModel.SelectedType.Value = type;
+        _viewModel.SelectTypeCommand.Execute(type);
+        UpdateHubStyles();
         UpdateTabStyles(type);
     }
 
@@ -115,6 +130,15 @@ public partial class SearchPage : ContentPage
         StyleTab(IssuesTab, active == SearchType.Issues, primary, gray);
         StyleTab(PullRequestsTab, active == SearchType.PullRequests, primary, gray);
         StyleTab(CodeTab, active == SearchType.Code, primary, gray);
+    }
+
+    private void UpdateHubStyles()
+    {
+        var primary = Application.Current?.Resources["Primary"] as Color;
+        var gray = Application.Current?.Resources["Gray200"] as Color;
+        var inbox = _viewModel.IsReviewRequestedHub.Value;
+        StyleTab(SearchHubButton, !inbox, primary, gray);
+        StyleTab(ReviewRequestedHubButton, inbox, primary, gray);
     }
 
     private static void StyleTab(Button button, bool active, Color? primary, Color? gray)
@@ -153,6 +177,16 @@ public partial class SearchPage : ContentPage
     }
 
     private async void OnPullRequestSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        await OpenPullRequestAsync(sender, e);
+    }
+
+    private async void OnReviewRequestedSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        await OpenPullRequestAsync(sender, e);
+    }
+
+    private static async Task OpenPullRequestAsync(object? sender, SelectionChangedEventArgs e)
     {
         if (e.CurrentSelection.FirstOrDefault() is not SearchIssueItem pullRequest)
             return;
@@ -223,3 +257,4 @@ public partial class SearchPage : ContentPage
         return true;
     }
 }
+
