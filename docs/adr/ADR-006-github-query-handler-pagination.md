@@ -20,7 +20,7 @@
 
 - **正面**：分页与 Link 检测无需改动生成器契约；CRUD 仍可在接口上声明 `[Body]`。
 - **负面**：查询参数不在接口签名中显式可见，须读 Design Doc。
-- **演进（不推翻本决策）**：列表分页（Repos / Issues / PRs / WorkflowRuns）经 **Paged GitHub Session**（`PagedGitHubSession`，由 `IGitHubClientFactory.CreatePagedSessionAsync` 创建）消费。`GitHubQueryHandler` 仍是 HTTP 层注入机制，但是 **session 内部细节**，不是 ViewModel 面向的契约；ViewModel 通过 session 的 `Reset` / `PrepareRequest` / `ApplyLink` / `Advance` / `HasNextPage`（及可选 `State`）驱动 Load / LoadMore。Search 仍使用元组 `CreatePagedClientAsync`（迁移与删除该 API 为 follow-up，不在本切片声称完成）。术语见 [CONTEXT.md](../CONTEXT.md)；实现概览见 [design/RestApi.md](../design/RestApi.md)。
+- **演进（不推翻本决策）**：列表分页（Repos / Issues / PRs / WorkflowRuns）经 **Paged GitHub Session**（`PagedGitHubSession`，由 `IGitHubClientFactory.CreatePagedSessionAsync` 创建）消费。`GitHubQueryHandler` 仍是 HTTP 层注入机制，但是 **session 内部细节**，不是 ViewModel 面向的契约；ViewModel 通过 session 的 `Reset` / `PrepareRequest` / `ApplyLink` / `Advance` / `HasNextPage`（及可选 `State`）驱动 Load / LoadMore。Search / Review inbox 亦经 session 消费（M28）。删除 `CreatePagedClientAsync` 仍为 follow-up。术语见 [CONTEXT.md](../CONTEXT.md)；实现概览见 [design/RestApi.md](../design/RestApi.md)。
 
 ## 参考
 
