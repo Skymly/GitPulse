@@ -1,3 +1,4 @@
+using GitPulse.Core.Models;
 using GitPulse.ViewModels;
 
 namespace GitPulse.App.Views;
@@ -145,5 +146,16 @@ public partial class PullRequestDetailPage : ContentPage
     {
         base.OnDisappearing();
         // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
+    }
+
+    private async void OnCheckRunOpened(object? sender, EventArgs e)
+    {
+        if (sender is not Button { BindingContext: CheckRun run } || run.Id <= 0)
+            return;
+
+        var owner = Uri.EscapeDataString(_viewModel.Owner.Value);
+        var repo = Uri.EscapeDataString(_viewModel.RepoName.Value);
+        await AppNavigation.GoToAsync(
+            $"CheckRunDetailPage?owner={owner}&repo={repo}&checkRunId={run.Id}");
     }
 }

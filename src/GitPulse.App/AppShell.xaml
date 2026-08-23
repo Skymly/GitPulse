@@ -93,6 +93,11 @@
         Route="CommitDetailPage" />
 
     <ShellContent
+        Title="Check Run"
+        ContentTemplate="{DataTemplate views:CheckRunDetailPage}"
+        Route="CheckRunDetailPage" />
+
+    <ShellContent
         Title="Actions"
         ContentTemplate="{DataTemplate views:WorkflowRunsPage}"
         Route="WorkflowRunsPage" />
