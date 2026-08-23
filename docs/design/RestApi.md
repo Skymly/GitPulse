@@ -60,6 +60,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M25 ✅ | `GET /user/repos?sort=pushed` (`ListMyReposSortedPaged`) |
 | M26 ✅ | Commit detail reuses check-runs + combined status (no new method) |
 | M27 ✅ | `GET /repos/{owner}/{repo}/check-runs/{checkRunId}/annotations` (`ListCheckRunAnnotations`) |
+| M28 ✅ | Search / Review inbox use `PagedGitHubSession` |
 
 ## M9 Search
 
@@ -96,7 +97,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 2. Session 内部用 `GitHubQueryHandler` 注入 `page` / `per_page`（及 Issues/PRs 的 `state`）；handler 不是 ViewModel 面向契约
 3. Session 用 `LinkHeaderParser` 解析 `rel="next"` → `HasNextPage`
 
-Search 仍通过元组 `CreatePagedClientAsync` 自行管理 handler + Link（迁移为 follow-up，不在本切片范围）。
+Search / Review inbox 使用 `PagedGitHubSession`（M28）。
 
 ### CRUD（M3+）
 
@@ -216,7 +217,7 @@ Read-only. Lives on `IGitHubReposApi` — no fourth interface. List paging stays
 
 ### Review inbox (M20)
 
-Read-only. Reuses `IGitHubSearchApi.SearchPullRequests` — no new method or interface. Canned query is GitHub.com Review requested: `is:open is:pr review-requested:@me archived:false`. Does **not** append a second `is:pr`. Does **not** apply the typed-Search 3-character minimum. Own session so typed PR search is not mixed. Still `CreatePagedClientAsync` (not `PagedGitHubSession`).
+Read-only. Reuses `IGitHubSearchApi.SearchPullRequests` — no new method or interface. Canned query is GitHub.com Review requested: `is:open is:pr review-requested:@me archived:false`. Does **not** append a second `is:pr`. Does **not** apply the typed-Search 3-character minimum. Own session so typed PR search is not mixed. Uses `PagedGitHubSession` (M28).
 
 Search tab switches Search (existing) vs Review requested. Rows show `SearchIssueItem.RepositoryFullName` plus title / number / state / author. Tap opens existing PR detail. Empty inbox is quiet. Notifications are not the source of truth.
 
@@ -286,7 +287,7 @@ Load failure is a quiet empty list; the Check Run page stays intact.
 
 
 ## 设计权衡- **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续由 Handler 注入，并由 Paged GitHub Session 统一 cursor / Link / dispose。
-- **Paged GitHub Session vs 元组工厂**：列表 ViewModel 面向 session；`CreatePagedClientAsync` 仅为 Search（及未迁移调用方）保留，直至 follow-up。
+- **Paged GitHub Session vs 元组工厂**：列表与 Search ViewModel 面向 session；`CreatePagedClientAsync` 仍留在工厂上，删除为 follow-up。
 - **404 处理**：README 等可选资源在 ViewModel 层吞掉 NotFound，不失败整页加载。
 
 ## 已知局限

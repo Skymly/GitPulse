@@ -7,6 +7,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Changed
+
+- Search and Review inbox paging now use Paged GitHub Session.
+- Roadmap M28 / v0.16.0: Search PagedGitHubSession (docs).
+
+
 ### Added
 
 - Show the first page of Check Run annotations on the Check Run page.
