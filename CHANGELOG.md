@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Copy the HTTPS clone URL from repo detail.
+- Roadmap M34 / v0.22.0: copy clone URL (docs).
+
+
+### Added
+
 - Add or remove issue assignees from issue detail.
 - Roadmap M33 / v0.21.0: Issue assignees (docs).
 

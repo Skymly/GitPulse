@@ -104,6 +104,10 @@ _Avoid_: OAuth, GitHub App, device flow
 A user assigned to an issue from the issue payload and `POST/DELETE /issues/{number}/assignees`. Distinct from a requested reviewer and from the Assigned inbox (cross-repo Search).
 _Avoid_: suggested assignees, team assignees
 
+**Clone URL**:
+The HTTPS `clone_url` from GET repository, shown on repo detail and copied with the platform clipboard. Distinct from `html_url` and from SSH `ssh_url`.
+_Avoid_: fork, zipball, git protocol
+
 **Star Toggle**:
 Starring or unstarring a repository from repo detail via `PUT`/`DELETE /user/starred/{owner}/{repo}`. Distinct from the Starred Repo List (read-only hub).
 _Avoid_: sort=pushed, recents
