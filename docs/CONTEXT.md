@@ -45,7 +45,7 @@ The non-Shell `UiTestHostPage` (TabbedPage + NavigationPage) enabled by `GITPULS
 _Avoid_: production Shell, test-only navigation as user-facing design
 
 **Paged GitHub Session**:
-A Core type (`PagedGitHubSession`) that owns one paged GitHub HTTP client cycle: `GitHubQueryHandler` page/state injection, current page cursor, `Link`-header `HasNextPage`, and client dispose. List ViewModels call `RestService.For` on its `Client` and map domain items; they do not reassemble handler + Link parsing. Created via `IGitHubClientFactory.CreatePagedSessionAsync`. Does not own auth-timeout error envelope or Search-specific TotalCount / multi-type tables. Search and Review inbox use the same session (M28).
+A Core type (`PagedGitHubSession`) that owns one paged GitHub HTTP client cycle: `GitHubQueryHandler` page/state injection, current page cursor, `Link`-header `HasNextPage`, and client dispose. List ViewModels call `RestService.For` on its `Client` and map domain items; they do not reassemble handler + Link parsing. Created via `IGitHubClientFactory.CreatePagedSessionAsync`. Does not own auth-timeout error envelope or Search-specific TotalCount / multi-type tables. Search, Review inbox, and Assigned inbox use the same session.
 _Avoid_: generic HTTP session, repository, paging service, call envelope
 
 **Draft PR**:
@@ -82,7 +82,11 @@ _Avoid_: commit comment, compare, blame
 
 **Review Inbox**:
 Open pull requests whose review is requested from the authenticated user (directly or via a team), listed from GitHub Search review-requested:@me on the Search tab. Distinct from the Notifications feed (reason=review_requested is mixed and not the full open set) and from requesting reviewers on a single PR.
-_Avoid_: notification reason filter, review request (the write), assigned/mentioned hub
+_Avoid_: notification reason filter, review request (the write), mentioned hub
+
+**Assigned Inbox**:
+Open issues and pull requests assigned to the authenticated user, listed from GitHub Search assignee:@me on the Search tab. Distinct from the Review Inbox and from the Notifications feed.
+_Avoid_: mentioned hub, created hub, notification reason filter
 
 **Review Request**:
 A pending request for a user or team to review a pull request, from `GET/POST/DELETE .../requested_reviewers`. Distinct from a submitted Pull Request Review and from the Review Inbox (cross-repo Search).

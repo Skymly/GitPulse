@@ -7,6 +7,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added
+
+- Switch the Search tab to Assigned (open issues and PRs assigned to you via assignee:@me).
+- Roadmap M29 / v0.17.0: Assigned inbox on the Search tab (docs).
+
+
 ### Changed
 
 - Search and Review inbox paging now use Paged GitHub Session.

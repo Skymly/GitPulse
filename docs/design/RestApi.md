@@ -61,6 +61,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M26 ✅ | Commit detail reuses check-runs + combined status (no new method) |
 | M27 ✅ | `GET /repos/{owner}/{repo}/check-runs/{checkRunId}/annotations` (`ListCheckRunAnnotations`) |
 | M28 ✅ | Search / Review inbox use `PagedGitHubSession` |
+| M29 ✅ | Assigned inbox reuses `GET /search/issues` (`SearchIssues`, canned assignee:@me) |
 
 ## M9 Search
 
@@ -97,7 +98,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 2. Session 内部用 `GitHubQueryHandler` 注入 `page` / `per_page`（及 Issues/PRs 的 `state`）；handler 不是 ViewModel 面向契约
 3. Session 用 `LinkHeaderParser` 解析 `rel="next"` → `HasNextPage`
 
-Search / Review inbox 使用 `PagedGitHubSession`（M28）。
+Search / Review inbox / Assigned inbox 使用 `PagedGitHubSession`。
 
 ### CRUD（M3+）
 
@@ -220,6 +221,12 @@ Read-only. Lives on `IGitHubReposApi` — no fourth interface. List paging stays
 Read-only. Reuses `IGitHubSearchApi.SearchPullRequests` — no new method or interface. Canned query is GitHub.com Review requested: `is:open is:pr review-requested:@me archived:false`. Does **not** append a second `is:pr`. Does **not** apply the typed-Search 3-character minimum. Own session so typed PR search is not mixed. Uses `PagedGitHubSession` (M28).
 
 Search tab switches Search (existing) vs Review requested. Rows show `SearchIssueItem.RepositoryFullName` plus title / number / state / author. Tap opens existing PR detail. Empty inbox is quiet. Notifications are not the source of truth.
+
+### Assigned inbox (M29)
+
+Read-only. Reuses `IGitHubSearchApi.SearchIssues` — no new method or interface. Canned query is GitHub.com Assigned: `is:open assignee:@me archived:false`. Does **not** append `is:issue`. Does **not** apply the typed-Search 3-character minimum. Own session so typed Issue search and Review requested are not mixed. Uses `PagedGitHubSession`.
+
+Search tab switches Search / Review requested / Assigned. Rows show `SearchIssueItem.RepositoryFullName` plus title / number / state / author. Tap opens Issue detail, or PR detail when `pull_request` is present. Empty inbox is quiet. Notifications are not the source of truth.
 
 ### Request reviewers (M21)
 
