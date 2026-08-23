@@ -1,16 +1,20 @@
+using System.Net;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
+using GitPulse.GitHubApi;
+using Observables.RestAPI;
 using R3;
 
 namespace GitPulse.ViewModels;
 
 /// <summary>
 /// Settings page view model — manages GitHub PAT entry, validation, and storage.
-/// State is exposed via R3 <see cref="BindableReactiveProperty{T}"/> for XAML binding.
+/// M23 verifies the token with GET /user before persisting.
 /// </summary>
 public sealed partial class SettingsViewModel : IDisposable
 {
     private readonly ICredentialStore _credentialStore;
+    private readonly IGitHubClientFactory? _clientFactory;
 
     /// <summary>Current PAT input text (two-way bound to Entry).</summary>
     public BindableReactiveProperty<string> TokenInput { get; } = new(string.Empty);
@@ -18,15 +22,19 @@ public sealed partial class SettingsViewModel : IDisposable
     /// <summary>Whether a token is currently stored.</summary>
     public BindableReactiveProperty<bool> HasToken { get; } = new(false);
 
+    /// <summary>Authenticated login from GET /user; empty when unknown.</summary>
+    public BindableReactiveProperty<string> ViewerLogin { get; } = new(string.Empty);
+
     /// <summary>Status message shown after save/clear.</summary>
     public BindableReactiveProperty<string> StatusMessage { get; } = new(string.Empty);
 
     /// <summary>Whether an async operation is in progress.</summary>
     public BindableReactiveProperty<bool> IsBusy { get; } = new(false);
 
-    public SettingsViewModel(ICredentialStore credentialStore)
+    public SettingsViewModel(ICredentialStore credentialStore, IGitHubClientFactory? clientFactory = null)
     {
         _credentialStore = credentialStore;
+        _clientFactory = clientFactory;
         _ = LoadStatusAsync();
     }
 
@@ -34,6 +42,13 @@ public sealed partial class SettingsViewModel : IDisposable
     {
         var token = await _credentialStore.GetTokenAsync();
         HasToken.Value = !string.IsNullOrEmpty(token);
+        if (string.IsNullOrEmpty(token))
+        {
+            ViewerLogin.Value = string.Empty;
+            return;
+        }
+
+        await TryLoadViewerAsync(token);
     }
 
     [RelayCommand]
@@ -49,10 +64,24 @@ public sealed partial class SettingsViewModel : IDisposable
         IsBusy.Value = true;
         try
         {
+            if (_clientFactory is null)
+            {
+                await _credentialStore.SetTokenAsync(token);
+                TokenInput.Value = string.Empty;
+                HasToken.Value = true;
+                StatusMessage.Value = "Token saved.";
+                return;
+            }
+
+            var login = await ProbeLoginAsync(token);
+            if (string.IsNullOrEmpty(login))
+                return;
+
             await _credentialStore.SetTokenAsync(token);
             TokenInput.Value = string.Empty;
             HasToken.Value = true;
-            StatusMessage.Value = "Token saved.";
+            ViewerLogin.Value = login;
+            StatusMessage.Value = $"Token saved. Signed in as {login}.";
         }
         catch (Exception ex)
         {
@@ -72,6 +101,7 @@ public sealed partial class SettingsViewModel : IDisposable
         {
             await _credentialStore.ClearTokenAsync();
             HasToken.Value = false;
+            ViewerLogin.Value = string.Empty;
             StatusMessage.Value = "Token cleared.";
         }
         catch (Exception ex)
@@ -84,10 +114,77 @@ public sealed partial class SettingsViewModel : IDisposable
         }
     }
 
+    private async Task TryLoadViewerAsync(string token)
+    {
+        if (_clientFactory is null)
+            return;
+
+        try
+        {
+            ViewerLogin.Value = await ProbeLoginAsync(token) ?? string.Empty;
+        }
+        catch
+        {
+            ViewerLogin.Value = string.Empty;
+        }
+    }
+
+    private async Task<string?> ProbeLoginAsync(string token)
+    {
+        var factory = _clientFactory ?? throw new InvalidOperationException("Client factory required.");
+        using var client = await factory.CreateClientAsync();
+        try
+        {
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var user = await api.GetAuthenticatedUser().FirstAsync(cts.Token);
+            var login = user.Login?.Trim();
+            if (string.IsNullOrEmpty(login))
+            {
+                StatusMessage.Value = "GitHub did not return a login for this token.";
+                return null;
+            }
+
+            return login;
+        }
+        catch (Exception ex) when (IsRejectedToken(ex))
+        {
+            StatusMessage.Value = "GitHub rejected this token.";
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage.Value = "Request timed out.";
+            return null;
+        }
+    }
+
+
+    private static bool IsRejectedToken(Exception ex)
+    {
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is HttpRequestException http
+                && http.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                return true;
+
+            if (current.Message.Contains("401", StringComparison.Ordinal)
+                || current.Message.Contains("403", StringComparison.Ordinal)
+                || current.Message.Contains("Unauthorized", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("Forbidden", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
     public void Dispose()
     {
         TokenInput.Dispose();
         HasToken.Dispose();
+        ViewerLogin.Dispose();
         StatusMessage.Dispose();
         IsBusy.Dispose();
     }
