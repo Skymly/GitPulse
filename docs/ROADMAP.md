@@ -1,6 +1,6 @@
 # GitPulse 路线图
 
-功能与技术 backlog 的滚动清单。里程碑编号 **M0–M19**；完成项移入「已完成（归档）」章节。
+功能与技术 backlog 的滚动清单。里程碑编号 **M0–M20**；完成项移入「已完成（归档）」章节。
 
 - **文档标准**：[DOCUMENTATION.md](DOCUMENTATION.md)
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
@@ -46,6 +46,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
+| **M20** ✅ | v0.8.0 Review inbox：Search 页 Search / Review requested，分页 GET /search/issues canned review-requested:@me（[#204](https://github.com/Skymly/GitPulse/issues/204)；[#205](https://github.com/Skymly/GitPulse/issues/205)–[#209](https://github.com/Skymly/GitPulse/issues/209)） | RestAPI |
 | **M19** ✅ | v0.7.0 repo commit detail：Commits 列表 → 应用内 commit（全文 message、stats、files；有 patch 时 DiffView）（[#186](https://github.com/Skymly/GitPulse/issues/186)；[#187](https://github.com/Skymly/GitPulse/issues/187)–[#192](https://github.com/Skymly/GitPulse/issues/192)） | RestAPI |
 | **M18** ✅ | v0.6.0 repo commit history：Repo detail → 分页 Commits 列表并打开 GitHub（[#167](https://github.com/Skymly/GitPulse/issues/167)；[#168](https://github.com/Skymly/GitPulse/issues/168)–[#173](https://github.com/Skymly/GitPulse/issues/173)） | RestAPI |
 | **M17** ✅ | v0.5.0 Starred repos：Repos 页 My repos / Starred 切换，分页 `GET /user/starred`（[#150](https://github.com/Skymly/GitPulse/issues/150)；[#151](https://github.com/Skymly/GitPulse/issues/151)–[#155](https://github.com/Skymly/GitPulse/issues/155)） | RestAPI |
@@ -66,3 +67,4 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 | **M9** ✅ | Search（仓库 / Issue / PR / 代码）+ 可选实网 Integration 测试 | RestAPI |
 | **M10** ✅ | GitHub Actions（workflow runs、状态、重跑、日志）+ Windows 系统托盘与 Toast（ADR-010） | RestAPI + Events + platform |
 | **M11** ✅ | Android 日用可用（竖屏手机就地 XAML；软键盘不阻断发送；`CiAndroid`；ADR-011 / [#30](https://github.com/Skymly/GitPulse/issues/30)） | platform abstraction |
+

@@ -52,6 +52,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M17 ✅ | `GET /user/starred` (`ListStarredReposPaged`) |
 | M18 ✅ | `GET /repos/{owner}/{repo}/commits` (`ListCommitsPaged`) |
 | M19 ✅ | `GET /repos/{owner}/{repo}/commits/{ref}` (`GetCommit`, non-paged) |
+| M20 ✅ | Review inbox reuses `GET /search/issues` (`SearchPullRequests`, canned review-requested:@me) |
 
 ## M9 Search
 
@@ -65,7 +66,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 - 方法返回 `Observable<ApiResponse<SearchResult<T>>>`；`SearchResult<T>` 提供 `total_count`、`incomplete_results` 和 `items`。
 - `q` 在 `IGitHubSearchApi` 上显式声明；`page` / `per_page` 由 `GitHubQueryHandler` 注入，并从 `Link` 头判断下一页。
 - `SearchViewModel` 在传入接口前对完整查询表达式做 URI 编码，避免 `#` 等保留字符被解释为 URI 片段。
-- Issue/PR 项保留 `repository_url`，由消费方提取 owner/repo；代码项使用嵌套 repository 的 `full_name`，并保留 `path` 与 `sha`。
+- Issue/PR 项保留 `repository_url`，由消费方提取 owner/repo；`SearchIssueItem.RepositoryFullName` 为计算属性。代码项使用嵌套 repository 的 `full_name`，并保留 `path` 与 `sha`。
 - Search 与仓库 API 共用工厂创建的认证 `HttpClient`，但遵守 GitHub Search 独立限流。
 - 输入防抖只同步查询状态；至少 3 个字符并显式按 Enter 或 Search 后才请求。切换类型不请求 API。
 - 新搜索会取消前一请求并递增请求版本；只有当前版本可写入结果，避免过期响应覆盖。
@@ -206,6 +207,13 @@ Read-only. Lives on `IGitHubReposApi` — no fourth interface. List paging stays
 
 `GitCommit` reuses the list type with optional `stats` and `files`. Files use the existing diff-entry shape (`filename`, `status`, line counts, URLs, optional `patch`). Missing SHA skips the call. HTTP failure stays on the commit page; the Commits list is unchanged. A null `patch` is omitted from in-app DiffView and is not a page-level error.
 
+### Review inbox (M20)
+
+Read-only. Reuses `IGitHubSearchApi.SearchPullRequests` — no new method or interface. Canned query is GitHub.com Review requested: `is:open is:pr review-requested:@me archived:false`. Does **not** append a second `is:pr`. Does **not** apply the typed-Search 3-character minimum. Own session so typed PR search is not mixed. Still `CreatePagedClientAsync` (not `PagedGitHubSession`).
+
+Search tab switches Search (existing) vs Review requested. Rows show `SearchIssueItem.RepositoryFullName` plus title / number / state / author. Tap opens existing PR detail. Empty inbox is quiet. Notifications are not the source of truth.
+
+
 
 ## 设计权衡- **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续由 Handler 注入，并由 Paged GitHub Session 统一 cursor / Link / dispose。
 - **Paged GitHub Session vs 元组工厂**：列表 ViewModel 面向 session；`CreatePagedClientAsync` 仅为 Search（及未迁移调用方）保留，直至 follow-up。
@@ -231,3 +239,4 @@ Read-only. Lives on `IGitHubReposApi` — no fourth interface. List paging stays
 - `src/GitPulse.Core/Http/PagedGitHubSession.cs`
 - `src/GitPulse.Core/Http/GitHubQueryHandler.cs`
 - `src/GitPulse.Core/Abstractions/IGitHubClientFactory.cs`
+

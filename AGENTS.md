@@ -8,7 +8,7 @@
 |----|------|
 | **类型** | 个人项目（Skymly workspace） |
 | **远程** | https://github.com/Skymly/GitPulse |
-| **阶段** | **v0.7.0 已发布**；M19 已完成（Commits 列表 → 应用内 commit；Win zip + 签名 APK；见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
+| **阶段** | **v0.7.0 已发布**；M20 已完成（Search 页 Review inbox；见 [docs/ROADMAP.md](docs/ROADMAP.md)）。下一刀为 v0.8.0 cut |
 | **目的** | [Observables](https://github.com/Skymly/Observables) 的真实世界展示应用（声明式 RestAPI + R3）。非玩具 demo，作者日常使用的 GitHub 客户端。 |
 
 ## 技术栈
@@ -85,7 +85,7 @@ build/                  — Nuke
 
 ## 路线图
 
-里程碑 **M0–M19** 见 [docs/ROADMAP.md](docs/ROADMAP.md)。**不要在本文件重复完整表格**——以 ROADMAP 为唯一 backlog 源。
+里程碑 **M0–M20** 见 [docs/ROADMAP.md](docs/ROADMAP.md)。**不要在本文件重复完整表格**——以 ROADMAP 为唯一 backlog 源。
 
 ## 文档体系
 
@@ -166,3 +166,4 @@ Agent 行为准则——与「与用户沟通」并行生效：
 - Android 出应用通知是否纳入后续版本（ADR-011：v0.1.0 未做）。
 - 商店上架 / Windows Authenticode / AAB 是否纳入后续版本（ADR-014：仍仅 GitHub Releases；v0.1.1 起可挂签名 APK）。
 - 真机抽查 / IME 自动化是否在 M13 之后加强（ADR-014：非 cut 必过）。
+
