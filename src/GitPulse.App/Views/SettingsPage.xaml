@@ -58,10 +58,19 @@
                     Padding="16"
                     HorizontalOptions="Fill"
                     AutomationId="SettingsTokenStoredBanner">
-                <Label Text="A token is currently stored."
-                       TextColor="{StaticResource Green900}"
-                       FontSize="14"
-                       LineBreakMode="WordWrap" />
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="A token is currently stored."
+                           TextColor="{StaticResource Green900}"
+                           FontSize="14"
+                           LineBreakMode="WordWrap" />
+                    <Label Text="{Binding ViewerLogin.Value, StringFormat='Signed in as {0}'}"
+                           TextColor="{StaticResource Green900}"
+                           FontSize="14"
+                           LineBreakMode="TailTruncation"
+                           MaxLines="1"
+                           IsVisible="{Binding ViewerLogin.Value, Converter={StaticResource StringToBoolConverter}}"
+                           AutomationId="SettingsViewerLogin" />
+                </VerticalStackLayout>
             </Border>
 
             <ActivityIndicator IsRunning="{Binding IsBusy.Value}"
