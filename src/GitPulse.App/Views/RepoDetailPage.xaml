@@ -153,6 +153,29 @@
                                        FontSize="12"
                                        TextColor="{StaticResource Gray500}" />
                             </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4"
+                                                 Margin="0,8,0,0"
+                                                 IsVisible="{Binding Repo.Value.CloneUrl, Converter={StaticResource StringToBoolConverter}}">
+                                <Label Text="Clone"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding Repo.Value.CloneUrl}"
+                                       FontSize="12"
+                                       LineBreakMode="MiddleTruncation"
+                                       MaxLines="2" />
+                                <Button Text="Copy HTTPS"
+                                        Clicked="OnCopyCloneUrlClicked"
+                                        Padding="16,10"
+                                        FontSize="13"
+                                        HorizontalOptions="Fill"
+                                        AutomationId="RepoDetailCopyCloneUrl" />
+                                <Label x:Name="CloneCopiedLabel"
+                                       Text="Copied."
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}"
+                                       IsVisible="False" />
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>
 
