@@ -1000,6 +1000,219 @@ public class PullRequestDetailViewModelTests
         Assert.Equal("No checks", vm.GateRollup.Value);
         vm.Dispose();
     }
+    private static string RequestedReviewersJson(string usersJson = "[]", string teamsJson = "[]") =>
+        $"{{\"users\":{usersJson},\"teams\":{teamsJson}}}";
+
+    [Fact]
+    public async Task Load_ListsRequestedReviewersAndTeams()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/pulls/42/requested_reviewers",
+                RequestedReviewersJson(
+                    "[{\"login\":\"carol\"}]",
+                    "[{\"slug\":\"docs\",\"name\":\"Docs\"}]"));
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("carol", Assert.Single(vm.RequestedReviewers).Login);
+        Assert.Equal("docs", Assert.Single(vm.RequestedTeams).Slug);
+        Assert.True(vm.CanManageReviewers.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenRequestedReviewersMissing_StillLoadsPullRequest()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.NotNull(vm.PullRequest.Value);
+        Assert.Empty(vm.RequestedReviewers);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task RequestReviewer_PostsLoginAndRefreshesList()
+    {
+        string? posted = null;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/pulls/42/requested_reviewers", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                {
+                    posted = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return new MockResponse(PrJson(42), StatusCode: HttpStatusCode.Created);
+                }
+
+                if (posted is null)
+                    return new MockResponse(RequestedReviewersJson());
+                return new MockResponse(RequestedReviewersJson("[{\"login\":\"carol\"}]"));
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.ReviewerLogin.Value = "@carol";
+        await vm.RequestReviewerCommand.ExecuteAsync(null);
+
+        Assert.Contains("carol", posted, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(string.Empty, vm.ReviewerLogin.Value);
+        Assert.Equal("carol", Assert.Single(vm.RequestedReviewers).Login);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task RequestReviewer_EmptyLogin_DoesNothing()
+    {
+        var posts = 0;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/requested_reviewers", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                {
+                    posts++;
+                    return new MockResponse(PrJson(42), StatusCode: HttpStatusCode.Created);
+                }
+
+                return new MockResponse(RequestedReviewersJson());
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.ReviewerLogin.Value = "  ";
+        await vm.RequestReviewerCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, posts);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task RequestReviewer_Unprocessable_StaysOnPage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/requested_reviewers", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    return new MockResponse("{}", StatusCode: HttpStatusCode.UnprocessableEntity, AttachRequest: true);
+                return new MockResponse(RequestedReviewersJson());
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.ReviewerLogin.Value = "not-a-collaborator";
+        await vm.RequestReviewerCommand.ExecuteAsync(null);
+
+        Assert.Contains("collaborator", vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(vm.PullRequest.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task RequestReviewer_Forbidden_StaysOnPage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/requested_reviewers", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    return new MockResponse("{}", StatusCode: HttpStatusCode.Forbidden, AttachRequest: true);
+                return new MockResponse(RequestedReviewersJson());
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.ReviewerLogin.Value = "carol";
+        await vm.RequestReviewerCommand.ExecuteAsync(null);
+
+        Assert.Contains("Not allowed", vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(vm.PullRequest.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task RemoveRequestedReviewer_DeletesLoginAndRefreshesList()
+    {
+        string? deleted = null;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/requested_reviewers", req =>
+            {
+                if (req.Method == HttpMethod.Delete)
+                {
+                    deleted = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return new MockResponse(PrJson(42));
+                }
+
+                if (deleted is null)
+                    return new MockResponse(RequestedReviewersJson("[{\"login\":\"carol\"}]"));
+                return new MockResponse(RequestedReviewersJson());
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.RemoveRequestedReviewerCommand.ExecuteAsync("carol");
+
+        Assert.Contains("carol", deleted, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(vm.RequestedReviewers);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task RequestReviewer_ClosedPullRequest_DoesNothing()
+    {
+        var posts = 0;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed"))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/requested_reviewers", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                {
+                    posts++;
+                    return new MockResponse(PrJson(42), StatusCode: HttpStatusCode.Created);
+                }
+
+                return new MockResponse(RequestedReviewersJson());
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanManageReviewers.Value);
+        vm.ReviewerLogin.Value = "carol";
+        await vm.RequestReviewerCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, posts);
+        vm.Dispose();
+    }
+
 }
 
 public class PullRequestModelTests
@@ -1083,5 +1296,6 @@ public class PullRequestModelTests
         Assert.True(resp.Merged);
         Assert.Equal("Successfully merged", resp.Message);
     }
+
 
 }
