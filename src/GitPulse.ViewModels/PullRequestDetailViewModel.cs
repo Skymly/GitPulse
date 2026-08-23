@@ -91,6 +91,9 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
     /// <summary>Users currently requested to review (not yet submitted).</summary>
     public ObservableCollection<User> Assignees { get; } = [];
 
+    /// <summary>Labels on the pull request.</summary>
+    public ObservableCollection<Label> Labels { get; } = [];
+
     public ObservableCollection<User> RequestedReviewers { get; } = [];
 
     /// <summary>Teams currently requested to review (display-only).</summary>
@@ -101,6 +104,9 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
     /// <summary>GitHub login to assign.</summary>
     public BindableReactiveProperty<string> AssigneeLogin { get; } = new(string.Empty);
+
+    /// <summary>Comma-separated label names for editing.</summary>
+    public BindableReactiveProperty<string> LabelInput { get; } = new(string.Empty);
 
     /// <summary>True when the PR is open and not merged.</summary>
     public BindableReactiveProperty<bool> CanManageReviewers { get; } = new(false);
@@ -359,6 +365,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         UpdateReviewPermissions(pr);
         CanManageReviewers.Value = pr.State == "open" && !pr.Merged;
         ApplyAssignees(pr.Assignees);
+        ApplyLabels(pr.Labels);
     }
 
     private void UpdateReviewPermissions(PullRequest pr)
@@ -944,6 +951,56 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
             Assignees.Add(user);
     }
 
+    /// <summary>Replace PR labels with the comma-separated names in <see cref="LabelInput"/>.</summary>
+    [RelayCommand]
+    private async Task SaveLabelsAsync()
+    {
+        if (PullRequest.Value is null || IsSaving.Value || !CanManageReviewers.Value)
+            return;
+
+        IsSaving.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var names = LabelInput.Value
+                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .ToArray();
+            var updated = await api.ReplaceIssueLabels(_owner, _repo, _prNumber, new LabelsReplaceRequest { Labels = names })
+                .FirstAsync(cts.Token);
+            ApplyLabels(updated);
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Labels save failed: {ex.Message}";
+        }
+        finally
+        {
+            IsSaving.Value = false;
+        }
+    }
+
+    private void ApplyLabels(Label[]? labels)
+    {
+        Labels.Clear();
+        foreach (var label in labels ?? [])
+            Labels.Add(label);
+        LabelInput.Value = string.Join(", ", Labels.Select(l => l.Name));
+    }
+
     public void Dispose()
     {
         PullRequest.Dispose();
@@ -969,6 +1026,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         CanManageReviewers.Dispose();
         HasRequestedReviewers.Dispose();
         AssigneeLogin.Dispose();
+        LabelInput.Dispose();
         GateRollup.Dispose();
     }
 }
