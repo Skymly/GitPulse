@@ -335,4 +335,23 @@ public class ReposViewModelTests
         Assert.Equal("observables", vm.Repos[0].Name);
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task Load_MyRepos_SendsSortPushed()
+    {
+        HttpRequestMessage? seen = null;
+        var handler = new MockHttpHandler()
+            .When("/user/repos", req =>
+            {
+                seen = req;
+                return new MockResponse(ReposJson(("gitpulse", null)), LinkNoNext);
+            });
+        using var vm = new ReposViewModel(new FakeGitHubClientFactory(handler));
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.NotNull(seen);
+        Assert.Contains("sort=pushed", seen!.RequestUri!.Query, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(ReposViewModel.MyReposSort, "pushed");
+    }
 }
