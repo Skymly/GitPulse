@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Open a Check Run in-app from the PR Gate Rollup (output title, summary, text).
+- Roadmap M22 / v0.10.0: Check Run detail (docs).
+
+
+### Added
+
 - Request and remove pending pull request reviewers from PR detail Conversation.
 - Roadmap M21 / v0.9.0: request reviewers (docs).
 

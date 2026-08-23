@@ -1,6 +1,6 @@
 # GitPulse 路线图
 
-功能与技术 backlog 的滚动清单。里程碑编号 **M0–M21**；完成项移入「已完成（归档）」章节。
+功能与技术 backlog 的滚动清单。里程碑编号 **M0–M22**；完成项移入「已完成（归档）」章节。
 
 - **文档标准**：[DOCUMENTATION.md](DOCUMENTATION.md)
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
@@ -46,6 +46,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
+| **M22** ✅ | v0.10.0 Check Run detail：PR Gate Rollup → 应用内 Check Run（output title/summary/text）（[#227](https://github.com/Skymly/GitPulse/issues/227)） | RestAPI |
 | **M21** ✅ | v0.9.0 request reviewers：PR detail Conversation 列出/添加/移除 pending requested reviewers（[#222](https://github.com/Skymly/GitPulse/issues/222)；[#219](https://github.com/Skymly/GitPulse/pull/219)–[#220](https://github.com/Skymly/GitPulse/pull/220)） | RestAPI |
 | **M20** ✅ | v0.8.0 Review inbox：Search 页 Search / Review requested，分页 GET /search/issues canned review-requested:@me（[#204](https://github.com/Skymly/GitPulse/issues/204)；[#205](https://github.com/Skymly/GitPulse/issues/205)–[#209](https://github.com/Skymly/GitPulse/issues/209)） | RestAPI |
 | **M19** ✅ | v0.7.0 repo commit detail：Commits 列表 → 应用内 commit（全文 message、stats、files；有 patch 时 DiffView）（[#186](https://github.com/Skymly/GitPulse/issues/186)；[#187](https://github.com/Skymly/GitPulse/issues/187)–[#192](https://github.com/Skymly/GitPulse/issues/192)） | RestAPI |

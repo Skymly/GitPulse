@@ -54,6 +54,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M19 ✅ | `GET /repos/{owner}/{repo}/commits/{ref}` (`GetCommit`, non-paged) |
 | M20 ✅ | Review inbox reuses `GET /search/issues` (`SearchPullRequests`, canned review-requested:@me) |
 | M21 ✅ | `GET/POST/DELETE /repos/{owner}/{repo}/pulls/{number}/requested_reviewers` |
+| M22 ✅ | `GET /repos/{owner}/{repo}/check-runs/{checkRunId}` (`GetCheckRun`, non-paged) |
 
 ## M9 Search
 
@@ -225,6 +226,17 @@ Write + read. Lives on `IGitHubReposApi` — no fourth interface. Distinct from 
 | `RemoveRequestedReviewers` | `DELETE .../requested_reviewers` | Same body shape. Teams are display-only in v0.9.0. |
 
 Load failure of this call does not fail PR detail. Closed/merged PRs cannot manage reviewers.
+
+### Check Run detail (M22)
+
+Read-only. Lives on `IGitHubReposApi` — no `IGitHubChecksApi`. Non-paged `CreateClientAsync`.
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GetCheckRun` | `GET /repos/{owner}/{repo}/check-runs/{checkRunId}` | `Observable<CheckRun>` with optional `output` (title / summary / text). |
+
+PR Gate Rollup Open navigates in-app. Annotations / rerequest / commit-page rollup are out.
+
 
 
 
