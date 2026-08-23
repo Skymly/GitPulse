@@ -88,6 +88,12 @@ public partial class SearchPage : ContentPage
         UpdateHubStyles();
     }
 
+    private void OnAssignedHubClicked(object? sender, EventArgs e)
+    {
+        _ = _viewModel.SelectHubCommand.ExecuteAsync(SearchViewModel.AssignedHub);
+        UpdateHubStyles();
+    }
+
     private void SubmitSearch()
     {
         _viewModel.Query.Value = SearchBar.Text ?? string.Empty;
@@ -136,9 +142,9 @@ public partial class SearchPage : ContentPage
     {
         var primary = Application.Current?.Resources["Primary"] as Color;
         var gray = Application.Current?.Resources["Gray200"] as Color;
-        var inbox = _viewModel.IsReviewRequestedHub.Value;
-        StyleTab(SearchHubButton, !inbox, primary, gray);
-        StyleTab(ReviewRequestedHubButton, inbox, primary, gray);
+        StyleTab(SearchHubButton, _viewModel.IsSearchHub.Value, primary, gray);
+        StyleTab(ReviewRequestedHubButton, _viewModel.IsReviewRequestedHub.Value, primary, gray);
+        StyleTab(AssignedHubButton, _viewModel.IsAssignedHub.Value, primary, gray);
     }
 
     private static void StyleTab(Button button, bool active, Color? primary, Color? gray)
@@ -184,6 +190,22 @@ public partial class SearchPage : ContentPage
     private async void OnReviewRequestedSelected(object? sender, SelectionChangedEventArgs e)
     {
         await OpenPullRequestAsync(sender, e);
+    }
+
+    private async void OnAssignedSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is not SearchIssueItem item)
+            return;
+
+        ((CollectionView)sender!).SelectedItem = null;
+        if (!TryParseRepositoryUrl(item.RepositoryUrl, out var owner, out var repo))
+            return;
+
+        var page = item.PullRequest is null ? "IssueDetailPage" : "PullRequestDetailPage";
+        await AppNavigation.GoToAsync(
+            $"{page}?owner={Uri.EscapeDataString(owner)}"
+            + $"&repo={Uri.EscapeDataString(repo)}"
+            + $"&number={item.Number}");
     }
 
     private static async Task OpenPullRequestAsync(object? sender, SelectionChangedEventArgs e)
