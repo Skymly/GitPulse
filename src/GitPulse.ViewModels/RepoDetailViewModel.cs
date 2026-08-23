@@ -89,6 +89,12 @@ public sealed partial class RepoDetailViewModel : IDisposable
     /// <summary>True while a watch/unwatch write is in flight.</summary>
     public BindableReactiveProperty<bool> IsTogglingWatch { get; } = new(false);
 
+    /// <summary>True while a fork write is in flight.</summary>
+    public BindableReactiveProperty<bool> IsForking { get; } = new(false);
+
+    /// <summary>Full name of the created (or existing) fork after a successful fork.</summary>
+    public BindableReactiveProperty<string> ForkedFullName { get; } = new(string.Empty);
+
     public RepoDetailViewModel(IGitHubClientFactory clientFactory, IBrowserLauncher browserLauncher)
     {
         _clientFactory = clientFactory;
@@ -309,6 +315,56 @@ public sealed partial class RepoDetailViewModel : IDisposable
         }
     }
 
+    /// <summary>Fork the current repository into the authenticated account.</summary>
+    [RelayCommand]
+    private async Task ForkAsync()
+    {
+        if (string.IsNullOrEmpty(_owner) || string.IsNullOrEmpty(_repo) || IsForking.Value)
+            return;
+
+        IsForking.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var response = await api.ForkRepo(_owner, _repo).FirstAsync(cts.Token);
+            var code = (int)(response.StatusCode ?? 0);
+            if (code is >= 200 and < 300)
+            {
+                ForkedFullName.Value = response.Content?.FullName ?? string.Empty;
+                return;
+            }
+
+            ErrorMessage.Value = code switch
+            {
+                403 => "Not allowed to fork this repository.",
+                422 => "GitHub could not fork this repository.",
+                _ => $"Fork failed: {code}.",
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Fork failed: {ex.Message}";
+        }
+        finally
+        {
+            IsForking.Value = false;
+        }
+    }
+
     private static bool IsNotFoundStatus(System.Net.HttpStatusCode? status) =>
         status == System.Net.HttpStatusCode.NotFound;
 
@@ -447,5 +503,7 @@ public sealed partial class RepoDetailViewModel : IDisposable
         IsTogglingStar.Dispose();
         IsWatching.Dispose();
         IsTogglingWatch.Dispose();
+        IsForking.Dispose();
+        ForkedFullName.Dispose();
     }
 }
