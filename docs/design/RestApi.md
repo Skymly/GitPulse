@@ -66,6 +66,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M31 ✅ | `GET /repos/{owner}/{repo}/contents/{path}?ref=` (`GetFileContentAtRef`) |
 | M32 ✅ | `POST /repos/{owner}/{repo}/check-runs/{checkRunId}/rerequest` (`RerequestCheckRun`) |
 | M33 ✅ | `POST/DELETE /repos/{owner}/{repo}/issues/{number}/assignees` (`AddIssueAssignees`, `RemoveIssueAssignees`) |
+| M34 ✅ | Repo `clone_url` / `ssh_url` on GET repo (no new method) |
 
 ## M9 Search
 
@@ -318,6 +319,11 @@ Write + read. Lives on `IGitHubReposApi`. Current assignees come from GET issue 
 | `RemoveIssueAssignees` | `DELETE .../assignees` | Same body. |
 
 Suggested assignees and team assignees are out of scope.
+
+### Copy clone URL (M34)
+
+Read-only. No new GitHubApi method. `Repo.CloneUrl` / `Repo.SshUrl` come from GET repo. Repo detail copies the HTTPS URL via the platform clipboard in App code-behind. ViewModels stay MAUI-free. Fork / ZIP / git:// are out of scope.
+
 
 
 
