@@ -1213,6 +1213,122 @@ public class PullRequestDetailViewModelTests
         vm.Dispose();
     }
 
+    private static string PrJsonWithAssignees(string assigneesJson) =>
+        PrJson(42, "open")[..^1] + $",\"assignees\":{assigneesJson}}}";
+
+    [Fact]
+    public async Task Load_PopulatesAssigneesFromPullPayload()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJsonWithAssignees("[{\"login\":\"carol\"}]"))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("carol", Assert.Single(vm.Assignees).Login);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task AddAssignee_PostsLoginAndRefreshesList()
+    {
+        string? posted = null;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/assignees", req =>
+            {
+                posted = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                return new MockResponse(
+                    "{\"number\":42,\"assignees\":[{\"login\":\"carol\"}]}",
+                    StatusCode: HttpStatusCode.Created,
+                    AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.AssigneeLogin.Value = "@carol";
+        await vm.AddAssigneeCommand.ExecuteAsync(null);
+
+        Assert.Contains("carol", posted, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(string.Empty, vm.AssigneeLogin.Value);
+        Assert.Equal("carol", Assert.Single(vm.Assignees).Login);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task AddAssignee_ClosedPullRequest_DoesNothing()
+    {
+        var posts = 0;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed"))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/assignees", _ =>
+            {
+                posts++;
+                return new MockResponse("{}", StatusCode: HttpStatusCode.Created, AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.AssigneeLogin.Value = "carol";
+        await vm.AddAssigneeCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, posts);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task AddAssignee_Forbidden_StaysOnPage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/assignees", _ =>
+                new MockResponse("{}", StatusCode: HttpStatusCode.Forbidden, AttachRequest: true));
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.AssigneeLogin.Value = "carol";
+        await vm.AddAssigneeCommand.ExecuteAsync(null);
+
+        Assert.Contains("Not allowed", vm.ErrorMessage.Value);
+        Assert.NotNull(vm.PullRequest.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task RemoveAssignee_DeletesLoginAndRefreshesList()
+    {
+        HttpRequestMessage? delete = null;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJsonWithAssignees("[{\"login\":\"carol\"}]"))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/assignees", req =>
+            {
+                delete = req;
+                return new MockResponse(
+                    "{\"number\":42,\"assignees\":[]}",
+                    StatusCode: HttpStatusCode.OK,
+                    AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.RemoveAssigneeCommand.ExecuteAsync("carol");
+
+        Assert.NotNull(delete);
+        Assert.Equal(HttpMethod.Delete, delete!.Method);
+        Assert.Empty(vm.Assignees);
+        vm.Dispose();
+    }
+
 }
 
 public class PullRequestModelTests
