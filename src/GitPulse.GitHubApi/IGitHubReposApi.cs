@@ -48,6 +48,18 @@ public interface IGitHubReposApi
     [Get("/user/starred")]
     Observable<ApiResponse<Repo[]>> ListStarredReposPaged();
 
+    /// <summary>204 if starred, 404 if not (M24).</summary>
+    [Get("/user/starred/{owner}/{repo}")]
+    Observable<ApiResponse<Unit>> GetStarredRepo(string owner, string repo);
+
+    /// <summary>Star a repository (204).</summary>
+    [Put("/user/starred/{owner}/{repo}")]
+    Observable<ApiResponse<Unit>> StarRepo(string owner, string repo);
+
+    /// <summary>Unstar a repository (204).</summary>
+    [Delete("/user/starred/{owner}/{repo}")]
+    Observable<ApiResponse<Unit>> UnstarRepo(string owner, string repo);
+
     [Get("/repos/{owner}/{repo}")]
     Observable<Repo> GetRepo(string owner, string repo);
 
