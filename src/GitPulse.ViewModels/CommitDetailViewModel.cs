@@ -10,6 +10,7 @@ namespace GitPulse.ViewModels;
 
 /// <summary>
 /// In-app Git Commit from Get-a-commit (M19). Loaded on a non-paged client.
+/// M26 adds a Gate Rollup for the commit SHA.
 /// </summary>
 public sealed partial class CommitDetailViewModel : IDisposable
 {
@@ -34,6 +35,10 @@ public sealed partial class CommitDetailViewModel : IDisposable
     public BindableReactiveProperty<string> RepoFullName { get; } = new(string.Empty);
 
     public ObservableCollection<DiffEntry> Files { get; } = [];
+
+    public ObservableCollection<CheckRun> CheckRuns { get; } = [];
+    public ObservableCollection<CommitStatus> CommitStatuses { get; } = [];
+    public BindableReactiveProperty<string> GateRollup { get; } = new("No checks");
 
     public CommitDetailViewModel(
         IGitHubClientFactory clientFactory,
@@ -83,6 +88,7 @@ public sealed partial class CommitDetailViewModel : IDisposable
             var commit = await api.GetCommit(_owner, _repo, _sha).FirstAsync(cts.Token);
 
             ApplyCommit(commit);
+            await LoadGateAsync(api, cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -114,6 +120,62 @@ public sealed partial class CommitDetailViewModel : IDisposable
             Files.Add(file);
     }
 
+
+    private async Task LoadGateAsync(IGitHubReposApi api, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_sha))
+        {
+            CheckRuns.Clear();
+            CommitStatuses.Clear();
+            GateRollup.Value = "No checks";
+            return;
+        }
+
+        CheckRun[] runs = [];
+        CombinedCommitStatus? combined = null;
+
+        try
+        {
+            var result = await api.ListCheckRunsForRef(_owner, _repo, _sha, "latest")
+                .FirstAsync(cancellationToken);
+            runs = result.CheckRuns ?? [];
+            ReplaceCheckRuns(runs);
+        }
+        catch
+        {
+            CheckRuns.Clear();
+            runs = [];
+        }
+
+        try
+        {
+            combined = await api.GetCombinedStatusForRef(_owner, _repo, _sha)
+                .FirstAsync(cancellationToken);
+            ReplaceCommitStatuses(combined.Statuses ?? []);
+        }
+        catch
+        {
+            CommitStatuses.Clear();
+            combined = null;
+        }
+
+        GateRollup.Value = PullRequestDetailViewModel.ComputeGateRollup(runs, combined);
+    }
+
+    private void ReplaceCheckRuns(IEnumerable<CheckRun> runs)
+    {
+        CheckRuns.Clear();
+        foreach (var run in runs)
+            CheckRuns.Add(run);
+    }
+
+    private void ReplaceCommitStatuses(IEnumerable<CommitStatus> statuses)
+    {
+        CommitStatuses.Clear();
+        foreach (var status in statuses)
+            CommitStatuses.Add(status);
+    }
+
     public void Dispose()
     {
         Commit.Dispose();
@@ -128,5 +190,6 @@ public sealed partial class CommitDetailViewModel : IDisposable
         ErrorMessage.Dispose();
         IsLoading.Dispose();
         RepoFullName.Dispose();
+        GateRollup.Dispose();
     }
 }
