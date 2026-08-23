@@ -67,6 +67,19 @@ public interface IGitHubReposApi
     [Delete("/user/starred/{owner}/{repo}")]
     Observable<ApiResponse<Unit>> UnstarRepo(string owner, string repo);
 
+    /// <summary>200 if a subscription exists, 404 if not watching (M30).</summary>
+    [Get("/repos/{owner}/{repo}/subscription")]
+    Observable<ApiResponse<RepoSubscription>> GetRepoSubscription(string owner, string repo);
+
+    /// <summary>Set watching / ignoring (200).</summary>
+    [Put("/repos/{owner}/{repo}/subscription")]
+    Observable<ApiResponse<RepoSubscription>> SetRepoSubscription(
+        string owner, string repo, [Body] RepoSubscriptionRequest body);
+
+    /// <summary>Stop watching a repository (204).</summary>
+    [Delete("/repos/{owner}/{repo}/subscription")]
+    Observable<ApiResponse<Unit>> DeleteRepoSubscription(string owner, string repo);
+
     [Get("/repos/{owner}/{repo}")]
     Observable<Repo> GetRepo(string owner, string repo);
 
