@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Show repository topics on repo detail.
+- Roadmap M41 / v0.29.0: repo topics (docs).
+
+
+### Added
+
 - Dispatch a repository workflow from the Actions page.
 - Roadmap M40 / v0.28.0: workflow dispatch (docs).
 

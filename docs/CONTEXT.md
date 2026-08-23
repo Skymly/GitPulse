@@ -124,9 +124,13 @@ _Avoid_: organization destination, fork network, default_branch_only
 A manual Actions run created with `POST /repos/{owner}/{repo}/actions/workflows/{id}/dispatches` and a git `ref`. Distinct from rerunning an existing Workflow Run.
 _Avoid_: workflow inputs, enable/disable workflow
 
+**Repo Topics**:
+Repository topic strings from GET repository (`Repo.Topics`). Distinct from searching by topic.
+_Avoid_: topic editor, topic search
+
 **Repo License**:
 The SPDX/name pair from GET repository (`Repo.License`). Distinct from changing a license file.
-_Avoid_: license picker, topics
+_Avoid_: license picker, visibility editor
 
 **Clone URL**:
 The HTTPS `clone_url` from GET repository, shown on repo detail and copied with the platform clipboard. Distinct from `html_url` and from SSH `ssh_url`.

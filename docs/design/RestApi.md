@@ -73,6 +73,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M38 ✅ | PR labels reuse `ReplaceIssueLabels` + `PullRequest.Labels` |
 | M39 ✅ | Repo `language` / `license` on GET repo (no new method) |
 | M40 ✅ | `GET /actions/workflows`, `POST /actions/workflows/{id}/dispatches` |
+| M41 ✅ | Repo `topics` on GET repo (no new method) |
 
 ## M9 Search
 
@@ -353,6 +354,10 @@ Read-only. No new GitHubApi method. `Repo.Language` and `Repo.License` (`key` / 
 ### Workflow dispatch (M40)
 
 Write + read on `IGitHubActionsApi`. `ListWorkflows` is first page only. `DispatchWorkflow` is `POST .../workflows/{id}/dispatches` with `{ref}` (`ApiResponse<Unit>`, 204). Only `state=active` workflows are offered. 422 stays on the page. Inputs JSON and branch pickers are out of scope.
+
+### Repo topics (M41)
+
+Read-only. No new GitHubApi method. `Repo.Topics` comes from GET repo. An empty topics list is omitted. Editing topics and topic search are out of scope.
 
 
 
