@@ -88,3 +88,7 @@ _Avoid_: notification reason filter, review request (the write), assigned/mentio
 A pending request for a user or team to review a pull request, from `GET/POST/DELETE .../requested_reviewers`. Distinct from a submitted Pull Request Review and from the Review Inbox (cross-repo Search).
 _Avoid_: review event, submitted review, review inbox
 
+**Check Run Detail**:
+The in-app page for one Check Run from `GET /repos/{owner}/{repo}/check-runs/{check_run_id}` (name, status, conclusion, output). Opened from the PR Gate Rollup. Distinct from a Workflow Run detail and from Gate Rollup (the list summary).
+_Avoid_: annotation view, rerequest, actions run
+
