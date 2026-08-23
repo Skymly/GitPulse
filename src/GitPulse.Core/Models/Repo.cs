@@ -18,6 +18,12 @@ public sealed class Repo
     [JsonPropertyName("html_url")]
     public string HtmlUrl { get; init; } = string.Empty;
 
+    [JsonPropertyName("clone_url")]
+    public string CloneUrl { get; init; } = string.Empty;
+
+    [JsonPropertyName("ssh_url")]
+    public string SshUrl { get; init; } = string.Empty;
+
     public bool Private { get; init; }
 
     [JsonPropertyName("default_branch")]
