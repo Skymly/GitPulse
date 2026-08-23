@@ -62,6 +62,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M27 ✅ | `GET /repos/{owner}/{repo}/check-runs/{checkRunId}/annotations` (`ListCheckRunAnnotations`) |
 | M28 ✅ | Search / Review inbox use `PagedGitHubSession` |
 | M29 ✅ | Assigned inbox reuses `GET /search/issues` (`SearchIssues`, canned assignee:@me) |
+| M30 ✅ | `GET/PUT/DELETE /repos/{owner}/{repo}/subscription` (`GetRepoSubscription`, `SetRepoSubscription`, `DeleteRepoSubscription`) |
 
 ## M9 Search
 
@@ -265,6 +266,18 @@ Write + read on `IGitHubReposApi`. No new Core model.
 | `UnstarRepo` | `DELETE /user/starred/{owner}/{repo}` | 204. |
 
 Check failure does not fail repo detail. 403 stays on the page.
+
+### Watch toggle (M30)
+
+Write + read on `IGitHubReposApi`. Core models: `RepoSubscription`, `RepoSubscriptionRequest`.
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GetRepoSubscription` | `GET /repos/{owner}/{repo}/subscription` | 200 watching payload, 404 not watching. Watching means `subscribed=true` and `ignored=false`. |
+| `SetRepoSubscription` | `PUT /repos/{owner}/{repo}/subscription` | Body `{subscribed:true, ignored:false}` to watch. |
+| `DeleteRepoSubscription` | `DELETE /repos/{owner}/{repo}/subscription` | 204 unwatch. |
+
+Check failure does not fail repo detail. 403 stays on the page. Ignore / releases-only / watching list are out of scope.
 
 ### Recently pushed repos (M25)
 

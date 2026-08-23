@@ -102,7 +102,11 @@ _Avoid_: OAuth, GitHub App, device flow
 
 **Star Toggle**:
 Starring or unstarring a repository from repo detail via `PUT`/`DELETE /user/starred/{owner}/{repo}`. Distinct from the Starred Repo List (read-only hub).
-_Avoid_: watching, sort=pushed, recents
+_Avoid_: sort=pushed, recents
+
+**Watch Toggle**:
+Watching or unwatching a repository from repo detail via `GET`/`PUT`/`DELETE /repos/{owner}/{repo}/subscription`. Watching is subscribed and not ignored. Distinct from starring and from a notification thread subscription.
+_Avoid_: watching list, ignore, releases-only
 
 **Recently Pushed Repo List**:
 The My repos hub ordered by GitHub `sort=pushed` on `GET /user/repos`. Distinct from Starred and from a local recents store.

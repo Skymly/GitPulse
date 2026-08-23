@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Watch or unwatch a repository from repo detail.
+- Roadmap M30 / v0.18.0: Watch toggle (docs).
+
+
+### Added
+
 - Switch the Search tab to Assigned (open issues and PRs assigned to you via assignee:@me).
 - Roadmap M29 / v0.17.0: Assigned inbox on the Search tab (docs).
 
