@@ -79,6 +79,7 @@ public static class MauiProgram
         builder.Services.AddTransient<FileEditorViewModel>();
         builder.Services.AddTransient<CommitsViewModel>();
         builder.Services.AddTransient<CommitDetailViewModel>();
+        builder.Services.AddTransient<CheckRunDetailViewModel>();
         builder.Services.AddTransient<WorkflowRunsViewModel>();
         builder.Services.AddTransient<WorkflowRunDetailViewModel>();
 
@@ -98,6 +99,7 @@ public static class MauiProgram
         builder.Services.AddTransient<FileEditorPage>();
         builder.Services.AddTransient<CommitsPage>();
         builder.Services.AddTransient<CommitDetailPage>();
+        builder.Services.AddTransient<CheckRunDetailPage>();
         builder.Services.AddTransient<WorkflowRunsPage>();
         builder.Services.AddTransient<WorkflowRunDetailPage>();
 

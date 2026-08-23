@@ -357,9 +357,7 @@
                                                 Padding="10,6"
                                                 BackgroundColor="Transparent"
                                                 TextColor="{StaticResource Primary}"
-                                                Command="{Binding Source={x:Reference _pageRoot}, Path=BindingContext.OpenInBrowserCommand}"
-                                                CommandParameter="{Binding HtmlUrl}"
-                                                IsVisible="{Binding HtmlUrl, Converter={StaticResource StringToBoolConverter}}" />
+                                                Clicked="OnCheckRunOpened" />
                                     </Grid>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>

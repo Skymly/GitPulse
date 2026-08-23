@@ -68,6 +68,7 @@ public static class AppNavigation
         "FileEditorPage" => _services!.GetRequiredService<FileEditorPage>(),
         "CommitsPage" => _services!.GetRequiredService<CommitsPage>(),
         "CommitDetailPage" => _services!.GetRequiredService<CommitDetailPage>(),
+        "CheckRunDetailPage" => _services!.GetRequiredService<CheckRunDetailPage>(),
         "WorkflowRunsPage" => _services!.GetRequiredService<WorkflowRunsPage>(),
         "WorkflowRunDetailPage" => _services!.GetRequiredService<WorkflowRunDetailPage>(),
         _ => throw new InvalidOperationException($"Unknown UiTestHost route '{pageName}'."),

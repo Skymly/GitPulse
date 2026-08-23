@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
+             xmlns:idk="clr-namespace:Indiko.Maui.Controls.Markdown;assembly=Indiko.Maui.Controls.Markdown"
+             x:Class="GitPulse.App.Views.CheckRunDetailPage"
+             x:DataType="vm:CheckRunDetailViewModel"
+             Title="Check Run"
+             AutomationId="CheckRunDetailPageRoot">
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="16,12,16,4">
+            <Button Grid.Column="0"
+                    Text="Back"
+                    Clicked="OnBackClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    Padding="8,4"
+                    VerticalOptions="Center" />
+            <Label Grid.Column="1"
+                   Text="{Binding Name.Value}"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1" />
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16" Spacing="12">
+                <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                        BackgroundColor="{StaticResource Red100}"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="12">
+                    <Label Text="{Binding ErrorMessage.Value}"
+                           TextColor="{StaticResource Red900}"
+                           FontSize="13"
+                           LineBreakMode="WordWrap" />
+                </Border>
+
+                <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
+                                   IsVisible="{Binding IsLoading.Value}"
+                                   HorizontalOptions="Center" />
+
+                <Label Text="{Binding RepoFullName.Value}"
+                       FontSize="13"
+                       TextColor="{StaticResource Gray500}" />
+                <Label Text="{Binding Status.Value, StringFormat='Status: {0}'}"
+                       FontSize="13" />
+                <Label Text="{Binding Conclusion.Value, StringFormat='Conclusion: {0}'}"
+                       FontSize="13"
+                       IsVisible="{Binding Conclusion.Value, Converter={StaticResource StringToBoolConverter}}" />
+                <Label Text="{Binding OutputTitle.Value}"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       IsVisible="{Binding OutputTitle.Value, Converter={StaticResource StringToBoolConverter}}" />
+                <idk:MarkdownView MarkdownText="{Binding OutputSummary.Value}"
+                                  UseAppTheme="True"
+                                  TextFontSize="13"
+                                  IsVisible="{Binding OutputSummary.Value, Converter={StaticResource StringToBoolConverter}}" />
+                <idk:MarkdownView MarkdownText="{Binding OutputText.Value}"
+                                  UseAppTheme="True"
+                                  TextFontSize="13"
+                                  IsVisible="{Binding OutputText.Value, Converter={StaticResource StringToBoolConverter}}" />
+                <Button Text="Open GitHub"
+                        Command="{Binding OpenInBrowserCommand}"
+                        CommandParameter="{Binding HtmlUrl.Value}"
+                        IsVisible="{Binding HtmlUrl.Value, Converter={StaticResource StringToBoolConverter}}"
+                        Padding="16,12"
+                        FontSize="13" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>
