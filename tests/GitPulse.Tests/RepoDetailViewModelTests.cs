@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using GitPulse.Core.Models;
 using GitPulse.Tests.TestHelpers;
@@ -222,6 +223,124 @@ public class RepoDetailViewModelTests
         await vm.LoadReleasesCommand.ExecuteAsync(null); // Should be a no-op.
 
         Assert.Equal(1, callCount);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenStarred_SetsIsStarred()
+    {
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/user/starred/{Owner}/{Repo}", _ =>
+                new MockResponse("", StatusCode: HttpStatusCode.NoContent, AttachRequest: true));
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.True(vm.IsStarred.Value);
+        Assert.Equal(42, vm.StarCount.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenNotStarred_SetsIsStarredFalse()
+    {
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/user/starred/{Owner}/{Repo}", _ =>
+                new MockResponse("", StatusCode: HttpStatusCode.NotFound, AttachRequest: true));
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.IsStarred.Value);
+        Assert.Empty(vm.ErrorMessage.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task ToggleStar_StarsAndIncrementsCount()
+    {
+        HttpRequestMessage? put = null;
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/user/starred/{Owner}/{Repo}", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                {
+                    put = req;
+                    return new MockResponse("", StatusCode: HttpStatusCode.NoContent, AttachRequest: true);
+                }
+
+                return new MockResponse("", StatusCode: HttpStatusCode.NotFound, AttachRequest: true);
+            });
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ToggleStarCommand.ExecuteAsync(null);
+
+        Assert.NotNull(put);
+        Assert.True(vm.IsStarred.Value);
+        Assert.Equal(43, vm.StarCount.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task ToggleStar_UnstarsAndDecrementsCount()
+    {
+        HttpRequestMessage? delete = null;
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/user/starred/{Owner}/{Repo}", req =>
+            {
+                if (req.Method == HttpMethod.Delete)
+                {
+                    delete = req;
+                    return new MockResponse("", StatusCode: HttpStatusCode.NoContent, AttachRequest: true);
+                }
+
+                return new MockResponse("", StatusCode: HttpStatusCode.NoContent, AttachRequest: true);
+            });
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ToggleStarCommand.ExecuteAsync(null);
+
+        Assert.NotNull(delete);
+        Assert.False(vm.IsStarred.Value);
+        Assert.Equal(41, vm.StarCount.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task ToggleStar_Forbidden_StaysOnPage()
+    {
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/user/starred/{Owner}/{Repo}", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                    return new MockResponse("{}", StatusCode: HttpStatusCode.Forbidden, AttachRequest: true);
+                return new MockResponse("", StatusCode: HttpStatusCode.NotFound, AttachRequest: true);
+            });
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ToggleStarCommand.ExecuteAsync(null);
+
+        Assert.Contains("Not allowed", vm.ErrorMessage.Value);
+        Assert.False(vm.IsStarred.Value);
+        Assert.NotNull(vm.Repo.Value);
         vm.Dispose();
     }
 }
