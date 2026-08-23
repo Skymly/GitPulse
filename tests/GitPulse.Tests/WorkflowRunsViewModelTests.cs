@@ -1,3 +1,4 @@
+using System.Net;
 using GitPulse.Tests.TestHelpers;
 using GitPulse.ViewModels;
 using Xunit;
@@ -126,5 +127,72 @@ public class WorkflowRunsViewModelTests
         Assert.Equal(3, vm.Runs.Count);
         Assert.Equal(103, vm.Runs[2].Id);
         Assert.False(vm.CanLoadMore.Value);
+    }
+    private const string WorkflowsJson = """
+        {
+          "total_count": 2,
+          "workflows": [
+            { "id": 11, "name": "CI", "path": ".github/workflows/ci.yml", "state": "active" },
+            { "id": 12, "name": "Old", "path": ".github/workflows/old.yml", "state": "disabled" }
+          ]
+        }
+        """;
+
+    [Fact]
+    public async Task Load_ListsActiveWorkflowsAndSelectsFirst()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/actions/runs", RunsJson)
+            .When("/repos/owner/repo/actions/workflows", WorkflowsJson);
+        using var vm = new WorkflowRunsViewModel(new FakeGitHubClientFactory(handler));
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("CI", Assert.Single(vm.Workflows).Name);
+        Assert.Equal(11, vm.SelectedWorkflow.Value!.Id);
+    }
+
+    [Fact]
+    public async Task Dispatch_WhenAllowed_StaysQuiet()
+    {
+        HttpRequestMessage? post = null;
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/actions/runs", RunsJson)
+            .When("/repos/owner/repo/actions/workflows", WorkflowsJson)
+            .When("/repos/owner/repo/actions/workflows/11/dispatches", req =>
+            {
+                post = req;
+                return new MockResponse("", StatusCode: HttpStatusCode.NoContent, AttachRequest: true);
+            });
+        using var vm = new WorkflowRunsViewModel(new FakeGitHubClientFactory(handler));
+        vm.Initialize("owner", "repo");
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.DispatchRef.Value = "main";
+        await vm.DispatchCommand.ExecuteAsync(null);
+
+        Assert.NotNull(post);
+        Assert.Equal(HttpMethod.Post, post!.Method);
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.False(vm.IsDispatching.Value);
+    }
+
+    [Fact]
+    public async Task Dispatch_Unprocessable_StaysOnPage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/actions/runs", RunsJson)
+            .When("/repos/owner/repo/actions/workflows", WorkflowsJson)
+            .When("/repos/owner/repo/actions/workflows/11/dispatches", _ =>
+                new MockResponse("{}", StatusCode: HttpStatusCode.UnprocessableEntity, AttachRequest: true));
+        using var vm = new WorkflowRunsViewModel(new FakeGitHubClientFactory(handler));
+        vm.Initialize("owner", "repo");
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.DispatchCommand.ExecuteAsync(null);
+
+        Assert.Contains("workflow_dispatch", vm.ErrorMessage.Value);
+        Assert.Equal(2, vm.Runs.Count);
     }
 }
