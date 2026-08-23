@@ -21,6 +21,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
     private PagedGitHubSession? _session;
 
     public ObservableCollection<WorkflowRun> Runs { get; } = [];
+    public ObservableCollection<Workflow> Workflows { get; } = [];
 
     public BindableReactiveProperty<bool> IsLoading { get; } = new(false);
     public BindableReactiveProperty<bool> CanLoadMore { get; } = new(false);
@@ -28,6 +29,9 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
     public BindableReactiveProperty<string> RepoFullName { get; } = new(string.Empty);
     public BindableReactiveProperty<string> Owner { get; } = new(string.Empty);
     public BindableReactiveProperty<string> RepoName { get; } = new(string.Empty);
+    public BindableReactiveProperty<Workflow?> SelectedWorkflow { get; } = new(null);
+    public BindableReactiveProperty<string> DispatchRef { get; } = new("main");
+    public BindableReactiveProperty<bool> IsDispatching { get; } = new(false);
 
     public WorkflowRunsViewModel(IGitHubClientFactory clientFactory)
     {
@@ -79,6 +83,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
 
             _session.ApplyLink(response.Headers);
             CanLoadMore.Value = _session.HasNextPage;
+            await LoadWorkflowsAsync(api, cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -134,6 +139,80 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
         }
     }
 
+    [RelayCommand]
+    private async Task DispatchAsync()
+    {
+        var workflow = SelectedWorkflow.Value;
+        var gitRef = DispatchRef.Value.Trim();
+        if (string.IsNullOrEmpty(_owner) || string.IsNullOrEmpty(_repo)
+            || workflow is null || gitRef.Length == 0 || IsDispatching.Value)
+        {
+            return;
+        }
+
+        IsDispatching.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubActionsApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var response = await api.DispatchWorkflow(
+                    _owner, _repo, workflow.Id, new WorkflowDispatchRequest { Ref = gitRef })
+                .FirstAsync(cts.Token);
+            var code = (int)(response.StatusCode ?? 0);
+            if (code is >= 200 and < 300)
+                return;
+
+            ErrorMessage.Value = code switch
+            {
+                403 => "Not allowed to dispatch this workflow.",
+                422 => "GitHub rejected the dispatch. The workflow may not support workflow_dispatch.",
+                _ => $"Dispatch failed: {code}.",
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Dispatch failed: {ex.Message}";
+        }
+        finally
+        {
+            IsDispatching.Value = false;
+        }
+    }
+
+    private async Task LoadWorkflowsAsync(IGitHubActionsApi api, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await api.ListWorkflows(_owner, _repo).FirstAsync(cancellationToken);
+            Workflows.Clear();
+            foreach (var workflow in result.Workflows ?? [])
+            {
+                if (string.Equals(workflow.State, "active", StringComparison.OrdinalIgnoreCase))
+                    Workflows.Add(workflow);
+            }
+
+            if (SelectedWorkflow.Value is null)
+                SelectedWorkflow.Value = Workflows.FirstOrDefault();
+        }
+        catch
+        {
+            Workflows.Clear();
+        }
+    }
+
     public void Dispose()
     {
         IsLoading.Dispose();
@@ -142,6 +221,9 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
         RepoFullName.Dispose();
         Owner.Dispose();
         RepoName.Dispose();
+        SelectedWorkflow.Dispose();
+        DispatchRef.Dispose();
+        IsDispatching.Dispose();
         _session?.Dispose();
     }
 }
