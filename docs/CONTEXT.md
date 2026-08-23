@@ -96,3 +96,7 @@ _Avoid_: annotation view, rerequest, actions run
 A Personal Access Token that Settings persisted only after `GET /user` returned an authenticated login. Distinct from a typed-but-unsaved token and from OAuth.
 _Avoid_: OAuth, GitHub App, device flow
 
+**Star Toggle**:
+Starring or unstarring a repository from repo detail via `PUT`/`DELETE /user/starred/{owner}/{repo}`. Distinct from the Starred Repo List (read-only hub).
+_Avoid_: watching, sort=pushed, recents
+

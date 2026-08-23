@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Star or unstar a repository from repo detail.
+- Roadmap M24 / v0.12.0: Star toggle (docs).
+
+
+### Added
+
 - Verify a PAT with GET /user before saving it, and show the signed-in login.
 - Roadmap M23 / v0.11.0: Verify PAT on save (docs).
 
