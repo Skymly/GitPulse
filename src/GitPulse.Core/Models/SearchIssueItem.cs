@@ -16,6 +16,32 @@ public sealed class SearchIssueItem
     [JsonPropertyName("repository_url")]
     public string RepositoryUrl { get; init; } = string.Empty;
 
+    /// <summary>
+    /// owner/repo parsed from <see cref="RepositoryUrl"/>
+    /// (https://api.github.com/repos/{owner}/{repo}). Empty when the
+    /// URL is missing or not a repos path. Display-only — not a JSON field.
+    /// </summary>
+    [JsonIgnore]
+    public string RepositoryFullName
+    {
+        get
+        {
+            if (!Uri.TryCreate(RepositoryUrl, UriKind.Absolute, out var uri))
+                return string.Empty;
+
+            var segments = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length < 3
+                || !segments[0].Equals("repos", StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+
+            var owner = Uri.UnescapeDataString(segments[1]);
+            var repo = Uri.UnescapeDataString(segments[2]);
+            return owner.Length == 0 || repo.Length == 0 ? string.Empty : owner + "/" + repo;
+        }
+    }
+
     [JsonPropertyName("created_at")]
     public DateTime CreatedAt { get; init; }
 
