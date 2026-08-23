@@ -70,6 +70,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M35 ✅ | `POST /repos/{owner}/{repo}/forks` (`ForkRepo`) |
 | M36 ✅ | PR assignees reuse issue assignee writes + `PullRequest.Assignees` |
 | M37 ✅ | Mentions inbox reuses `GET /search/issues` (`SearchIssues`, canned mentions:@me) |
+| M38 ✅ | PR labels reuse `ReplaceIssueLabels` + `PullRequest.Labels` |
 
 ## M9 Search
 
@@ -338,6 +339,11 @@ Write + read. No new GitHubApi method. `PullRequest.Assignees` comes from GET pu
 ### Mentions inbox (M37)
 
 Read-only. Reuses `IGitHubSearchApi.SearchIssues`. Canned query: `is:open mentions:@me archived:false`. Does **not** append `is:issue`. Does **not** apply the typed-Search 3-character minimum. Own `PagedGitHubSession`. Search tab uses a 2x2 hub: Search / Review requested / Assigned / Mentions. Tap opens Issue or PR detail from `pull_request`. Empty is quiet.
+
+### PR labels (M38)
+
+Write + read. No new GitHubApi method. `PullRequest.Labels` comes from GET pull. Replace reuses `ReplaceIssueLabels`. Writes only when the PR is open and not merged. Creating repo labels is out of scope.
+
 
 
 

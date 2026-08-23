@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Edit pull request labels from PR Conversation.
+- Roadmap M38 / v0.26.0: PR labels (docs).
+
+
+### Added
+
 - Switch the Search tab to Mentions (open issues and PRs that mention you).
 - Roadmap M37 / v0.25.0: Mentions inbox on the Search tab (docs).
 

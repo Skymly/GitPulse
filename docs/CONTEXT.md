@@ -112,6 +112,10 @@ _Avoid_: suggested assignees, team assignees
 A user assigned to a pull request from GET pull (`PullRequest.Assignees`) and the same issue assignee write endpoints. Distinct from a requested reviewer.
 _Avoid_: suggested assignees, team assignees
 
+**PR Label**:
+A repository label on a pull request from GET pull (`PullRequest.Labels`), replaced via the issue labels endpoint. Distinct from creating labels in the repository.
+_Avoid_: label color editor, new-label creation
+
 **Fork**:
 A user-owned copy of a repository created with `POST /repos/{owner}/{repo}/forks`. Distinct from starring and from watching.
 _Avoid_: organization destination, fork network, default_branch_only
