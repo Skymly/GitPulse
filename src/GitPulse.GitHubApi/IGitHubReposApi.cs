@@ -83,6 +83,10 @@ public interface IGitHubReposApi
     [Get("/repos/{owner}/{repo}")]
     Observable<Repo> GetRepo(string owner, string repo);
 
+    /// <summary>Fork a repository (202) (M35). 403/422 stay on the page.</summary>
+    [Post("/repos/{owner}/{repo}/forks")]
+    Observable<ApiResponse<Repo>> ForkRepo(string owner, string repo);
+
     /// <summary>
     /// List commits on the default branch (M18). Paged via <c>Link</c>.
     /// </summary>
