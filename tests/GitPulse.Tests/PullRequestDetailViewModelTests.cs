@@ -1329,6 +1329,72 @@ public class PullRequestDetailViewModelTests
         vm.Dispose();
     }
 
+    private static string PrJsonWithLabels(string labelsJson) =>
+        PrJson(42, "open")[..^1] + $",\"labels\":{labelsJson}}}";
+
+    [Fact]
+    public async Task Load_PopulatesLabelsFromPullPayload()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJsonWithLabels("[{\"name\":\"bug\",\"color\":\"ff0000\"}]"))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("bug", Assert.Single(vm.Labels).Name);
+        Assert.Equal("bug", vm.LabelInput.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SaveLabels_ReplacesLabelsCollection()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/labels", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                    return new MockResponse("[{\"name\":\"bug\"},{\"name\":\"wontfix\"}]");
+                return new MockResponse("[]");
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.LabelInput.Value = "bug, wontfix";
+        await vm.SaveLabelsCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(["bug", "wontfix"], vm.Labels.Select(l => l.Name));
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task SaveLabels_ClosedPullRequest_DoesNothing()
+    {
+        var puts = 0;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed"))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/labels", _ =>
+            {
+                puts++;
+                return new MockResponse("[]");
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.LabelInput.Value = "bug";
+        await vm.SaveLabelsCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, puts);
+        vm.Dispose();
+    }
+
 }
 
 public class PullRequestModelTests
