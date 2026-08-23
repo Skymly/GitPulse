@@ -73,6 +73,8 @@ public sealed class MockHttpHandler : HttpMessageHandler
             };
             if (!string.IsNullOrEmpty(mock.LinkHeader))
                 response.Headers.Add("Link", mock.LinkHeader);
+            if (mock.AttachRequest)
+                response.RequestMessage = request;
             return Task.FromResult(response);
         }
 
@@ -87,4 +89,5 @@ public sealed class MockHttpHandler : HttpMessageHandler
 public sealed record MockResponse(
     string Body,
     string? LinkHeader = null,
-    HttpStatusCode StatusCode = HttpStatusCode.OK);
+    HttpStatusCode StatusCode = HttpStatusCode.OK,
+    bool AttachRequest = false);
