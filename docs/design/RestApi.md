@@ -72,6 +72,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M37 ✅ | Mentions inbox reuses `GET /search/issues` (`SearchIssues`, canned mentions:@me) |
 | M38 ✅ | PR labels reuse `ReplaceIssueLabels` + `PullRequest.Labels` |
 | M39 ✅ | Repo `language` / `license` on GET repo (no new method) |
+| M40 ✅ | `GET /actions/workflows`, `POST /actions/workflows/{id}/dispatches` |
 
 ## M9 Search
 
@@ -348,6 +349,10 @@ Write + read. No new GitHubApi method. `PullRequest.Labels` comes from GET pull.
 ### Repo language and license (M39)
 
 Read-only. No new GitHubApi method. `Repo.Language` and `Repo.License` (`key` / `name` / `spdx_id`) come from GET repo. Empty language or missing SPDX is omitted. Topics and license edits are out of scope.
+
+### Workflow dispatch (M40)
+
+Write + read on `IGitHubActionsApi`. `ListWorkflows` is first page only. `DispatchWorkflow` is `POST .../workflows/{id}/dispatches` with `{ref}` (`ApiResponse<Unit>`, 204). Only `state=active` workflows are offered. 422 stays on the page. Inputs JSON and branch pickers are out of scope.
 
 
 

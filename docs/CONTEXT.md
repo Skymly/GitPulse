@@ -120,6 +120,10 @@ _Avoid_: label color editor, new-label creation
 A user-owned copy of a repository created with `POST /repos/{owner}/{repo}/forks`. Distinct from starring and from watching.
 _Avoid_: organization destination, fork network, default_branch_only
 
+**Workflow Dispatch**:
+A manual Actions run created with `POST /repos/{owner}/{repo}/actions/workflows/{id}/dispatches` and a git `ref`. Distinct from rerunning an existing Workflow Run.
+_Avoid_: workflow inputs, enable/disable workflow
+
 **Repo License**:
 The SPDX/name pair from GET repository (`Repo.License`). Distinct from changing a license file.
 _Avoid_: license picker, topics

@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Dispatch a repository workflow from the Actions page.
+- Roadmap M40 / v0.28.0: workflow dispatch (docs).
+
+
+### Added
+
 - Show repository language and SPDX license on repo detail.
 - Roadmap M39 / v0.27.0: repo language and license (docs).
 

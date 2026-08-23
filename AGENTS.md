@@ -8,7 +8,7 @@
 |----|------|
 | **类型** | 个人项目（Skymly workspace） |
 | **远程** | https://github.com/Skymly/GitPulse |
-| **阶段** | **v0.7.0 已发布**；M39 进行中（Repo language and license；见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
+| **阶段** | **v0.7.0 已发布**；M40 进行中（Workflow dispatch；见 [docs/ROADMAP.md](docs/ROADMAP.md)） |
 | **目的** | [Observables](https://github.com/Skymly/Observables) 的真实世界展示应用（声明式 RestAPI + R3）。非玩具 demo，作者日常使用的 GitHub 客户端。 |
 
 ## 技术栈
@@ -85,7 +85,7 @@ build/                  — Nuke
 
 ## 路线图
 
-里程碑 **M0–M39** 见 [docs/ROADMAP.md](docs/ROADMAP.md)。**不要在本文件重复完整表格**——以 ROADMAP 为唯一 backlog 源。
+里程碑 **M0–M40** 见 [docs/ROADMAP.md](docs/ROADMAP.md)。**不要在本文件重复完整表格**——以 ROADMAP 为唯一 backlog 源。
 
 ## 文档体系
 
