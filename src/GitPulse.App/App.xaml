@@ -20,6 +20,8 @@
             <conv:NotNullConverter x:Key="NotNullConverter" />
             <conv:IntGreaterThanZeroConverter x:Key="IntGreaterThanZeroConverter" />
             <conv:StringTruncateConverter x:Key="StringTruncateConverter" />
+            <conv:JoinStringsConverter x:Key="JoinStringsConverter" />
+            <conv:CollectionToBoolConverter x:Key="CollectionToBoolConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
