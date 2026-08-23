@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Fork a repository from repo detail and open the new fork in-app.
+- Roadmap M35 / v0.23.0: fork repository (docs).
+
+
+### Added
+
 - Copy the HTTPS clone URL from repo detail.
 - Roadmap M34 / v0.22.0: copy clone URL (docs).
 
