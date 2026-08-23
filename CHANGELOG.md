@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Verify a PAT with GET /user before saving it, and show the signed-in login.
+- Roadmap M23 / v0.11.0: Verify PAT on save (docs).
+
+
+### Added
+
 - Open a Check Run in-app from the PR Gate Rollup (output title, summary, text).
 - Roadmap M22 / v0.10.0: Check Run detail (docs).
 
