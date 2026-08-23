@@ -1,3 +1,4 @@
+using System.Net;
 using GitPulse.Core.Models;
 using GitPulse.Tests.TestHelpers;
 using GitPulse.ViewModels;
@@ -7,10 +8,17 @@ namespace GitPulse.Tests;
 
 public class IssueDetailViewModelCrudTests
 {
-    private static string IssueJson(int number, string state = "open", string? body = "body") =>
-        $"{{\"number\":{number},\"title\":\"Issue {number}\",\"state\":\"{state}\"," +
-        $"\"body\":\"{body ?? ""}\",\"user\":{{\"login\":\"alice\"}}," +
-        $"\"labels\":[]}}";
+    private static string IssueJson(
+        int number,
+        string state = "open",
+        string? body = "body",
+        string assigneesJson = "[]")
+    {
+        var issueBody = body ?? "";
+        return $$"""
+            {"number":{{number}},"title":"Issue {{number}}","state":"{{state}}","body":"{{issueBody}}","user":{"login":"alice"},"labels":[],"assignees":{{assigneesJson}}}
+            """.Trim();
+    }
 
     private static string CommentJson(int id, string body) =>
         $"{{\"id\":{id},\"body\":\"{body}\",\"user\":{{\"login\":\"bob\"}}," +
@@ -233,6 +241,148 @@ public class IssueDetailViewModelCrudTests
         await vm.SaveLabelsCommand.ExecuteAsync(null);
 
         Assert.Empty(vm.Labels);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_PopulatesAssigneesFromIssuePayload()
+    {
+        var handler = new MockHttpHandler()
+            .When("/issues/42", IssueJson(42, assigneesJson: "[{\"login\":\"carol\"}]"))
+            .When("/issues/42/comments", "[]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("carol", Assert.Single(vm.Assignees).Login);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task AddAssignee_PostsLoginAndRefreshesList()
+    {
+        string? posted = null;
+        var handler = new MockHttpHandler()
+            .When("/issues/42", IssueJson(42))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/assignees", req =>
+            {
+                posted = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                return new MockResponse(
+                    IssueJson(42, assigneesJson: "[{\"login\":\"carol\"}]"),
+                    StatusCode: HttpStatusCode.Created,
+                    AttachRequest: true);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.AssigneeLogin.Value = "@carol";
+        await vm.AddAssigneeCommand.ExecuteAsync(null);
+
+        Assert.Contains("carol", posted, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(string.Empty, vm.AssigneeLogin.Value);
+        Assert.Equal("carol", Assert.Single(vm.Assignees).Login);
+        Assert.Empty(vm.ErrorMessage.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task AddAssignee_EmptyLogin_DoesNothing()
+    {
+        var posts = 0;
+        var handler = new MockHttpHandler()
+            .When("/issues/42", IssueJson(42))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/assignees", _ =>
+            {
+                posts++;
+                return new MockResponse(IssueJson(42), StatusCode: HttpStatusCode.Created, AttachRequest: true);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.AssigneeLogin.Value = "  ";
+        await vm.AddAssigneeCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, posts);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task AddAssignee_Forbidden_StaysOnPage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/issues/42", IssueJson(42))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/assignees", _ =>
+                new MockResponse("{}", StatusCode: HttpStatusCode.Forbidden, AttachRequest: true));
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.AssigneeLogin.Value = "carol";
+        await vm.AddAssigneeCommand.ExecuteAsync(null);
+
+        Assert.Contains("Not allowed", vm.ErrorMessage.Value);
+        Assert.NotNull(vm.Issue.Value);
+        Assert.Empty(vm.Assignees);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task AddAssignee_Unprocessable_StaysOnPage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/issues/42", IssueJson(42))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/assignees", _ =>
+                new MockResponse("{}", StatusCode: HttpStatusCode.UnprocessableEntity, AttachRequest: true));
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.AssigneeLogin.Value = "not-a-collaborator";
+        await vm.AddAssigneeCommand.ExecuteAsync(null);
+
+        Assert.Contains("rejected", vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(vm.Issue.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task RemoveAssignee_DeletesLoginAndRefreshesList()
+    {
+        HttpRequestMessage? delete = null;
+        var handler = new MockHttpHandler()
+            .When("/issues/42", IssueJson(42, assigneesJson: "[{\"login\":\"carol\"}]"))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/assignees", req =>
+            {
+                delete = req;
+                return new MockResponse(
+                    IssueJson(42, assigneesJson: "[]"),
+                    StatusCode: HttpStatusCode.OK,
+                    AttachRequest: true);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssueDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.RemoveAssigneeCommand.ExecuteAsync("carol");
+
+        Assert.NotNull(delete);
+        Assert.Equal(HttpMethod.Delete, delete!.Method);
+        Assert.Empty(vm.Assignees);
+        Assert.Empty(vm.ErrorMessage.Value);
         vm.Dispose();
     }
 }
