@@ -100,6 +100,13 @@
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>
+                <Button Text="Rerequest"
+                        Command="{Binding RerequestCommand}"
+                        IsEnabled="{Binding IsRerequesting.Value, Converter={StaticResource InvertedBoolConverter}}"
+                        IsVisible="{Binding CheckRun.Value, Converter={StaticResource NotNullConverter}}"
+                        Padding="16,12"
+                        FontSize="13"
+                        AutomationId="CheckRunRerequestButton" />
                 <Button Text="Open GitHub"
                         Command="{Binding OpenInBrowserCommand}"
                         CommandParameter="{Binding HtmlUrl.Value}"
