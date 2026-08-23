@@ -57,6 +57,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M22 ✅ | `GET /repos/{owner}/{repo}/check-runs/{checkRunId}` (`GetCheckRun`, non-paged) |
 | M23 ✅ | Settings reuses `GET /user` (`GetAuthenticatedUser`) to verify a PAT before persist |
 | M24 ✅ | `GET/PUT/DELETE /user/starred/{owner}/{repo}` (`GetStarredRepo`, `StarRepo`, `UnstarRepo`) |
+| M25 ✅ | `GET /user/repos?sort=pushed` (`ListMyReposSortedPaged`) |
 
 ## M9 Search
 
@@ -254,6 +255,11 @@ Write + read on `IGitHubReposApi`. No new Core model.
 | `UnstarRepo` | `DELETE /user/starred/{owner}/{repo}` | 204. |
 
 Check failure does not fail repo detail. 403 stays on the page.
+
+### Recently pushed repos (M25)
+
+My repos hub uses `ListMyReposSortedPaged("pushed")` → `GET /user/repos?sort=pushed`. Starred hub unchanged. Existing `ListMyReposPaged` remains for compatibility.
+
 
 
 
