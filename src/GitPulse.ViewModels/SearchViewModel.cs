@@ -11,7 +11,7 @@ using R3;
 namespace GitPulse.ViewModels;
 
 /// <summary>
-/// GitHub Search and Review inbox. Paging uses <see cref="PagedGitHubSession"/> (M28).
+/// GitHub Search, Review inbox, and Assigned inbox. Paging uses <see cref="PagedGitHubSession"/>.
 /// </summary>
 public sealed partial class SearchViewModel : IDisposable
 {
@@ -22,11 +22,15 @@ public sealed partial class SearchViewModel : IDisposable
     public const string ReviewRequestedHub = "Review requested";
     public const string ReviewRequestedQuery =
         "is:open is:pr review-requested:@me archived:false";
+    public const string AssignedHub = "Assigned";
+    public const string AssignedQuery =
+        "is:open assignee:@me archived:false";
 
     private readonly IGitHubClientFactory _clientFactory;
     private readonly CompositeDisposable _disposables = [];
     private readonly Dictionary<SearchType, SearchSession> _sessions = [];
     private readonly SearchSession _reviewInboxSession = new();
+    private readonly SearchSession _assignedInboxSession = new();
 
     private CancellationTokenSource? _requestCts;
     private int _requestVersion;
@@ -35,6 +39,7 @@ public sealed partial class SearchViewModel : IDisposable
     public ObservableCollection<SearchIssueItem> Issues { get; } = [];
     public ObservableCollection<SearchIssueItem> PullRequests { get; } = [];
     public ObservableCollection<SearchIssueItem> ReviewRequested { get; } = [];
+    public ObservableCollection<SearchIssueItem> Assigned { get; } = [];
     public ObservableCollection<CodeSearchItem> CodeResults { get; } = [];
 
     public BindableReactiveProperty<string> Query { get; } = new(string.Empty);
@@ -49,11 +54,13 @@ public sealed partial class SearchViewModel : IDisposable
 
     public BindableReactiveProperty<bool> IsSearchHub { get; } = new(true);
     public BindableReactiveProperty<bool> IsReviewRequestedHub { get; } = new(false);
+    public BindableReactiveProperty<bool> IsAssignedHub { get; } = new(false);
     public BindableReactiveProperty<bool> IsRepositoriesSelected { get; } = new(true);
     public BindableReactiveProperty<bool> IsIssuesSelected { get; } = new(false);
     public BindableReactiveProperty<bool> IsPullRequestsSelected { get; } = new(false);
     public BindableReactiveProperty<bool> IsCodeSelected { get; } = new(false);
     public BindableReactiveProperty<bool> IsReviewRequestedSelected { get; } = new(false);
+    public BindableReactiveProperty<bool> IsAssignedSelected { get; } = new(false);
 
     public SearchViewModel(IGitHubClientFactory clientFactory)
     {
@@ -71,7 +78,7 @@ public sealed partial class SearchViewModel : IDisposable
     [RelayCommand]
     private void SelectType(SearchType type)
     {
-        if (IsReviewRequestedHub.Value)
+        if (IsAnyInboxHub)
             ApplyHub(SearchHub);
 
         SelectedType.Value = type;
@@ -82,13 +89,15 @@ public sealed partial class SearchViewModel : IDisposable
     {
         var next = string.IsNullOrWhiteSpace(hub) ? SearchHub : hub;
         var alreadyOnHub = string.Equals(SelectedHub.Value, next, StringComparison.Ordinal);
-        if (alreadyOnHub && (IsSearchHub.Value || _reviewInboxSession.Paged is not null))
+        if (alreadyOnHub && HubSessionReady(next))
             return;
 
         ApplyHub(next);
 
         if (string.Equals(next, ReviewRequestedHub, StringComparison.Ordinal))
             await LoadReviewRequestedAsync();
+        else if (string.Equals(next, AssignedHub, StringComparison.Ordinal))
+            await LoadAssignedAsync();
         else
             RefreshSelectedState();
     }
@@ -96,7 +105,7 @@ public sealed partial class SearchViewModel : IDisposable
     [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task SearchAsync()
     {
-        if (IsReviewRequestedHub.Value)
+        if (IsAnyInboxHub)
             ApplyHub(SearchHub);
 
         var query = Query.Value.Trim();
@@ -174,6 +183,12 @@ public sealed partial class SearchViewModel : IDisposable
         if (IsReviewRequestedHub.Value)
         {
             await LoadMoreReviewRequestedAsync();
+            return;
+        }
+
+        if (IsAssignedHub.Value)
+        {
+            await LoadMoreAssignedAsync();
             return;
         }
 
@@ -371,6 +386,137 @@ public sealed partial class SearchViewModel : IDisposable
         }
     }
 
+
+    private async Task LoadAssignedAsync()
+    {
+        var session = _assignedInboxSession;
+        session.DisposePaged();
+        Assigned.Clear();
+
+        var (version, requestCts) = BeginRequest();
+        IsLoading.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var paged = await StartPagedAsync(session, AssignedQuery, version, requestCts.Token);
+            if (paged is null)
+            {
+                RefreshSelectedState();
+                return;
+            }
+
+            var api = RestService.For<IGitHubSearchApi>(paged.Client);
+            await SearchAssignedPageAsync(
+                api, session, replace: true, version, requestCts.Token);
+
+            if (!IsCurrent(version))
+                return;
+
+            session.HasSearched = true;
+            RefreshSelectedState();
+        }
+        catch (OperationCanceledException)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "Request timed out.";
+        }
+        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
+        }
+        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
+        }
+        catch (Exception ex)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = $"Load failed: {ex.Message}";
+        }
+        finally
+        {
+            CompleteRequest(version, requestCts);
+        }
+    }
+
+    private async Task LoadMoreAssignedAsync()
+    {
+        var session = _assignedInboxSession;
+        if (session.Paged is null
+            || !session.HasNextPage
+            || IsLoading.Value)
+        {
+            return;
+        }
+
+        var (version, requestCts) = BeginRequest();
+        IsLoading.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            if (!session.Paged.Advance())
+                return;
+
+            session.Paged.PrepareRequest();
+            var api = RestService.For<IGitHubSearchApi>(session.Paged.Client);
+            await SearchAssignedPageAsync(
+                api, session, replace: false, version, requestCts.Token);
+
+            if (!IsCurrent(version))
+                return;
+
+            RefreshSelectedState();
+        }
+        catch (OperationCanceledException)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "Request timed out.";
+        }
+        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
+        }
+        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
+        }
+        catch (Exception ex)
+        {
+            if (IsCurrent(version))
+                ErrorMessage.Value = $"Load more failed: {ex.Message}";
+        }
+        finally
+        {
+            CompleteRequest(version, requestCts);
+        }
+    }
+
     private async Task SearchPageAsync(
         IGitHubSearchApi api,
         SearchType type,
@@ -446,6 +592,45 @@ public sealed partial class SearchViewModel : IDisposable
         UpdateSession(session, response.Content, response.Headers);
     }
 
+    private async Task SearchAssignedPageAsync(
+        IGitHubSearchApi api,
+        SearchSession session,
+        bool replace,
+        int version,
+        CancellationToken cancellationToken)
+    {
+        var response = await api.SearchIssues(EncodeQuery(AssignedQuery))
+            .FirstAsync(cancellationToken);
+        if (!IsCurrent(version))
+            return;
+
+        EnsureSearchSucceeded(response);
+        UpdateCollection(Assigned, response.Content?.Items, replace);
+        UpdateSession(session, response.Content, response.Headers);
+    }
+
+    private void ApplyInboxState(SearchSession session, int count)
+    {
+        HasSearched.Value = session.HasSearched;
+        IsEmpty.Value = session.HasSearched && count == 0;
+        TotalCount.Value = session.TotalCount;
+        CanLoadMore.Value = session.HasNextPage;
+    }
+
+    private bool IsAnyInboxHub =>
+        IsReviewRequestedHub.Value || IsAssignedHub.Value;
+
+    private bool HubSessionReady(string hub)
+    {
+        if (string.Equals(hub, SearchHub, StringComparison.Ordinal))
+            return true;
+        if (string.Equals(hub, ReviewRequestedHub, StringComparison.Ordinal))
+            return _reviewInboxSession.Paged is not null;
+        if (string.Equals(hub, AssignedHub, StringComparison.Ordinal))
+            return _assignedInboxSession.Paged is not null;
+        return false;
+    }
+
     private void ApplyHub(string hub)
     {
         CancelActiveRequest();
@@ -455,12 +640,13 @@ public sealed partial class SearchViewModel : IDisposable
         SelectedHub.Value = hub;
         IsSearchHub.Value = string.Equals(hub, SearchHub, StringComparison.Ordinal);
         IsReviewRequestedHub.Value = string.Equals(hub, ReviewRequestedHub, StringComparison.Ordinal);
+        IsAssignedHub.Value = string.Equals(hub, AssignedHub, StringComparison.Ordinal);
         ApplyCollectionVisibility();
     }
 
     private void OnSelectedTypeChanged(SearchType type)
     {
-        if (IsReviewRequestedHub.Value)
+        if (IsAnyInboxHub)
             return;
 
         CancelActiveRequest();
@@ -473,9 +659,12 @@ public sealed partial class SearchViewModel : IDisposable
     private void ApplyCollectionVisibility()
     {
         var type = SelectedType.Value;
-        var inbox = IsReviewRequestedHub.Value;
+        var review = IsReviewRequestedHub.Value;
+        var assigned = IsAssignedHub.Value;
+        var inbox = review || assigned;
 
-        IsReviewRequestedSelected.Value = inbox;
+        IsReviewRequestedSelected.Value = review;
+        IsAssignedSelected.Value = assigned;
         IsRepositoriesSelected.Value = !inbox && type == SearchType.Repositories;
         IsIssuesSelected.Value = !inbox && type == SearchType.Issues;
         IsPullRequestsSelected.Value = !inbox && type == SearchType.PullRequests;
@@ -486,11 +675,13 @@ public sealed partial class SearchViewModel : IDisposable
     {
         if (IsReviewRequestedHub.Value)
         {
-            var session = _reviewInboxSession;
-            HasSearched.Value = session.HasSearched;
-            IsEmpty.Value = session.HasSearched && ReviewRequested.Count == 0;
-            TotalCount.Value = session.TotalCount;
-            CanLoadMore.Value = session.HasNextPage;
+            ApplyInboxState(_reviewInboxSession, ReviewRequested.Count);
+            return;
+        }
+
+        if (IsAssignedHub.Value)
+        {
+            ApplyInboxState(_assignedInboxSession, Assigned.Count);
             return;
         }
 
@@ -616,6 +807,7 @@ public sealed partial class SearchViewModel : IDisposable
         foreach (var session in _sessions.Values)
             session.DisposePaged();
         _reviewInboxSession.DisposePaged();
+        _assignedInboxSession.DisposePaged();
 
         Query.Dispose();
         SelectedType.Dispose();
@@ -628,11 +820,13 @@ public sealed partial class SearchViewModel : IDisposable
         ErrorMessage.Dispose();
         IsSearchHub.Dispose();
         IsReviewRequestedHub.Dispose();
+        IsAssignedHub.Dispose();
         IsRepositoriesSelected.Dispose();
         IsIssuesSelected.Dispose();
         IsPullRequestsSelected.Dispose();
         IsCodeSelected.Dispose();
         IsReviewRequestedSelected.Dispose();
+        IsAssignedSelected.Dispose();
     }
 
     private sealed class SearchSession
