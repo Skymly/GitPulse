@@ -177,7 +177,7 @@ public interface IGitHubReposApi
 
     /// <summary>Request reviews from user logins and/or team slugs.</summary>
     [Post("/repos/{owner}/{repo}/pulls/{number}/requested_reviewers")]
-    Observable<PullRequest> RequestReviewers(
+    Observable<ApiResponse<PullRequest>> RequestReviewers(
         string owner, string repo, int number, [Body] ReviewersRequest body);
 
     /// <summary>
@@ -185,7 +185,7 @@ public interface IGitHubReposApi
     /// <see cref="RequestReviewers"/>.
     /// </summary>
     [Delete("/repos/{owner}/{repo}/pulls/{number}/requested_reviewers")]
-    Observable<PullRequest> RemoveRequestedReviewers(
+    Observable<ApiResponse<PullRequest>> RemoveRequestedReviewers(
         string owner, string repo, int number, [Body] ReviewersRequest body);
 
     // ── Check Runs / Commit Statuses (M16: PR head Gate Rollup) ──
