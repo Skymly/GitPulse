@@ -14,7 +14,7 @@ namespace GitPulse.ViewModels;
 public sealed partial class SettingsViewModel : IDisposable
 {
     private readonly ICredentialStore _credentialStore;
-    private readonly IGitHubClientFactory _clientFactory;
+    private readonly IGitHubClientFactory? _clientFactory;
 
     /// <summary>Current PAT input text (two-way bound to Entry).</summary>
     public BindableReactiveProperty<string> TokenInput { get; } = new(string.Empty);
@@ -31,7 +31,7 @@ public sealed partial class SettingsViewModel : IDisposable
     /// <summary>Whether an async operation is in progress.</summary>
     public BindableReactiveProperty<bool> IsBusy { get; } = new(false);
 
-    public SettingsViewModel(ICredentialStore credentialStore, IGitHubClientFactory clientFactory)
+    public SettingsViewModel(ICredentialStore credentialStore, IGitHubClientFactory? clientFactory = null)
     {
         _credentialStore = credentialStore;
         _clientFactory = clientFactory;
@@ -64,6 +64,15 @@ public sealed partial class SettingsViewModel : IDisposable
         IsBusy.Value = true;
         try
         {
+            if (_clientFactory is null)
+            {
+                await _credentialStore.SetTokenAsync(token);
+                TokenInput.Value = string.Empty;
+                HasToken.Value = true;
+                StatusMessage.Value = "Token saved.";
+                return;
+            }
+
             var login = await ProbeLoginAsync(token);
             if (string.IsNullOrEmpty(login))
                 return;
@@ -107,6 +116,9 @@ public sealed partial class SettingsViewModel : IDisposable
 
     private async Task TryLoadViewerAsync(string token)
     {
+        if (_clientFactory is null)
+            return;
+
         try
         {
             ViewerLogin.Value = await ProbeLoginAsync(token) ?? string.Empty;
@@ -119,7 +131,8 @@ public sealed partial class SettingsViewModel : IDisposable
 
     private async Task<string?> ProbeLoginAsync(string token)
     {
-        using var client = await _clientFactory.CreateClientAsync();
+        var factory = _clientFactory ?? throw new InvalidOperationException("Client factory required.");
+        using var client = await factory.CreateClientAsync();
         try
         {
             client.DefaultRequestHeaders.Authorization =
