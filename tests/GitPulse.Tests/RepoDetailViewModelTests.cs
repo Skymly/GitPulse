@@ -18,7 +18,7 @@ public class RepoDetailViewModelTests
         "\"description\":\"A test repo\",\"html_url\":\"https://github.com/owner/repo\"," +
         "\"private\":false,\"default_branch\":\"main\"," +
         "\"stargazers_count\":42,\"forks_count\":3,\"open_issues_count\":5," +
-        "\"updated_at\":\"2026-01-01T00:00:00Z\"}";
+        "\"updated_at\":\"2026-01-01T00:00:00Z\",\"clone_url\":\"https://github.com/owner/repo.git\",\"ssh_url\":\"git@github.com:owner/repo.git\"}";
 
     /// <summary>Encode a markdown string as base64 for README content.</summary>
     private static string ReadmeJson(string markdown)
@@ -86,6 +86,8 @@ public class RepoDetailViewModelTests
         Assert.NotNull(vm.Repo.Value);
         Assert.Equal("repo", vm.Repo.Value!.Name);
         Assert.Equal(42, vm.Repo.Value.StargazersCount);
+        Assert.Equal("https://github.com/owner/repo.git", vm.Repo.Value.CloneUrl);
+        Assert.Equal("git@github.com:owner/repo.git", vm.Repo.Value.SshUrl);
         Assert.True(vm.HasReadme.Value);
         Assert.Contains("Test README", vm.ReadmeMarkdown.Value);
         Assert.Contains("Hello world.", vm.ReadmeMarkdown.Value);
