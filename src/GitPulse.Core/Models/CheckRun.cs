@@ -42,4 +42,19 @@ public sealed class CheckRun
 
     [JsonPropertyName("completed_at")]
     public DateTime? CompletedAt { get; init; }
+
+    /// <summary>Optional output from Get-a-check-run (title / summary / text).</summary>
+    public CheckRunOutput? Output { get; init; }
 }
+
+/// <summary>Check Run output block. Distinct from annotations (out of M22).</summary>
+public sealed class CheckRunOutput
+{
+    public string? Title { get; init; }
+    public string? Summary { get; init; }
+    public string? Text { get; init; }
+
+    [JsonPropertyName("annotations_count")]
+    public int AnnotationsCount { get; init; }
+}
+
