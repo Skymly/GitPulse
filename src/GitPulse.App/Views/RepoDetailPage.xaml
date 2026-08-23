@@ -127,6 +127,22 @@
                                     FontSize="13"
                                     HorizontalOptions="Fill"
                                     AutomationId="RepoDetailUnstarButton" />
+                            <Button Text="Watch"
+                                    Command="{Binding ToggleWatchCommand}"
+                                    IsVisible="{Binding IsWatching.Value, Converter={StaticResource InvertedBoolConverter}}"
+                                    IsEnabled="{Binding IsTogglingWatch.Value, Converter={StaticResource InvertedBoolConverter}}"
+                                    Padding="16,10"
+                                    FontSize="13"
+                                    HorizontalOptions="Fill"
+                                    AutomationId="RepoDetailWatchButton" />
+                            <Button Text="Unwatch"
+                                    Command="{Binding ToggleWatchCommand}"
+                                    IsVisible="{Binding IsWatching.Value}"
+                                    IsEnabled="{Binding IsTogglingWatch.Value, Converter={StaticResource InvertedBoolConverter}}"
+                                    Padding="16,10"
+                                    FontSize="13"
+                                    HorizontalOptions="Fill"
+                                    AutomationId="RepoDetailUnwatchButton" />
 
                             <VerticalStackLayout Spacing="2" Margin="0,2,0,0">
                                 <Label Text="{Binding Repo.Value.DefaultBranch, StringFormat='Default: {0}'}"
