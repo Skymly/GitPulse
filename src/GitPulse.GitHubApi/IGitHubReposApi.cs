@@ -200,6 +200,12 @@ public interface IGitHubReposApi
         string owner, string repo, string @ref, [Query] string filter);
 
     /// <summary>
+    /// A single Check Run (M22). Non-paged. Path is the numeric check-run id.
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/check-runs/{checkRunId}")]
+    Observable<CheckRun> GetCheckRun(string owner, string repo, long checkRunId);
+
+    /// <summary>
     /// Combined Commit Statuses for a git ref. Does not include Check Runs.
     /// Empty <c>statuses</c> yields GitHub combined state <c>pending</c>.
     /// </summary>
