@@ -293,6 +293,14 @@ public interface IGitHubReposApi
     Observable<FileContent> GetFileContent(string owner, string repo, string path);
 
     /// <summary>
+    /// Get file content at a git ref (commit SHA, branch, or tag) (M31).
+    /// Query <c>ref</c> is the git ref — not a Contents blob SHA.
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/contents/{path}")]
+    Observable<FileContent> GetFileContentAtRef(
+        string owner, string repo, string path, [Query] string @ref);
+
+    /// <summary>
     /// Create or update a file. <see cref="FileUpdateRequest.Sha"/> is
     /// required for updates, omitted for creates.
     /// </summary>
