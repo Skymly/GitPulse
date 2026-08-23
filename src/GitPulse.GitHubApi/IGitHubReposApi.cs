@@ -166,6 +166,28 @@ public interface IGitHubReposApi
     Observable<PullRequestReview> CreatePullRequestReview(
         string owner, string repo, int number, [Body] PullRequestReviewCreateRequest body);
 
+    // ── Review requests (M21: pending reviewers, not submitted reviews) ──
+
+    /// <summary>
+    /// Users and teams currently requested to review. After a reviewer
+    /// submits, they leave this list (see <see cref="ListPullRequestReviews"/>).
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/pulls/{number}/requested_reviewers")]
+    Observable<RequestedReviewers> ListRequestedReviewers(string owner, string repo, int number);
+
+    /// <summary>Request reviews from user logins and/or team slugs.</summary>
+    [Post("/repos/{owner}/{repo}/pulls/{number}/requested_reviewers")]
+    Observable<PullRequest> RequestReviewers(
+        string owner, string repo, int number, [Body] ReviewersRequest body);
+
+    /// <summary>
+    /// Remove pending review requests. Sends the same body shape as
+    /// <see cref="RequestReviewers"/>.
+    /// </summary>
+    [Delete("/repos/{owner}/{repo}/pulls/{number}/requested_reviewers")]
+    Observable<PullRequest> RemoveRequestedReviewers(
+        string owner, string repo, int number, [Body] ReviewersRequest body);
+
     // ── Check Runs / Commit Statuses (M16: PR head Gate Rollup) ──
 
     /// <summary>
@@ -239,3 +261,4 @@ public interface IGitHubReposApi
     Observable<FileCommitResponse> DeleteFile(
         string owner, string repo, string path, [Body] FileDeleteRequest body);
 }
+
