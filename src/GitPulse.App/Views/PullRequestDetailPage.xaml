@@ -182,6 +182,66 @@
                             HorizontalOptions="Fill" />
                 </VerticalStackLayout>
 
+                <!-- M21: pending review requests -->
+                <VerticalStackLayout Spacing="8"
+                                     IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
+                    <Label Text="Requested reviewers"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           Margin="0,8,0,4" />
+                    <Label Text="No review requested."
+                           FontSize="12"
+                           TextColor="{StaticResource Gray500}"
+                           IsVisible="{Binding HasRequestedReviewers.Value, Converter={StaticResource InvertedBoolConverter}}" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding RequestedReviewers}"
+                                         Spacing="6">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:User">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding Login}"
+                                           FontSize="13"
+                                           VerticalOptions="Center"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1" />
+                                    <Button Grid.Column="1"
+                                            Text="Remove"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PullRequestDetailViewModel}}, Path=RemoveRequestedReviewerCommand}"
+                                            CommandParameter="{Binding Login}"
+                                            IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:PullRequestDetailViewModel}}, Path=CanManageReviewers.Value}"
+                                            Padding="12,8"
+                                            FontSize="12" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding RequestedTeams}"
+                                         Spacing="4">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:Team">
+                                <Label Text="{Binding Slug, StringFormat='Team: {0}'}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray600}" />
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="8"
+                          IsVisible="{Binding CanManageReviewers.Value}">
+                        <Entry Grid.Column="0"
+                               Placeholder="GitHub login"
+                               Text="{Binding ReviewerLogin.Value}"
+                               FontSize="13"
+                               AutomationId="RequestReviewerLogin" />
+                        <Button Grid.Column="1"
+                                Text="Request"
+                                Command="{Binding RequestReviewerCommand}"
+                                Padding="16,10"
+                                FontSize="13"
+                                AutomationId="RequestReviewerButton" />
+                    </Grid>
+                </VerticalStackLayout>
+
                 <!-- M15: submitted Pull Request Reviews + submit -->
                 <VerticalStackLayout Spacing="8"
                                      IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
