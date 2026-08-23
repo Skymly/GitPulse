@@ -16,6 +16,7 @@ namespace GitPulse.ViewModels;
 /// Supports pagination via <see cref="PagedGitHubSession"/>.
 /// M17 adds a My repos / Starred hub switch via
 /// <see cref="IGitHubReposApi.ListStarredReposPaged"/>.
+/// M25 lists My repos with <c>sort=pushed</c>.
 /// </summary>
 public sealed partial class ReposViewModel : IDisposable
 {
@@ -47,6 +48,8 @@ public sealed partial class ReposViewModel : IDisposable
 
     public const string MyReposHub = "My repos";
     public const string StarredHub = "Starred";
+
+    public const string MyReposSort = "pushed";
 
     /// <summary>Hub options shown on the Repos tab.</summary>
     public ObservableCollection<string> HubOptions { get; } = [MyReposHub, StarredHub];
@@ -204,7 +207,7 @@ public sealed partial class ReposViewModel : IDisposable
     {
         var request = string.Equals(SelectedHub.Value, StarredHub, StringComparison.Ordinal)
             ? api.ListStarredReposPaged()
-            : api.ListMyReposPaged();
+            : api.ListMyReposSortedPaged(MyReposSort);
         return request.FirstAsync(cancellationToken);
     }
 
