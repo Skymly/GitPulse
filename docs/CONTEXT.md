@@ -113,6 +113,10 @@ The My repos hub ordered by GitHub `sort=pushed` on `GET /user/repos`. Distinct 
 _Avoid_: affiliation change, recently viewed
 
 **Check Run Annotation**:
-A file/line note on a Check Run (`path`, `start_line`, `annotation_level`, `message`) from the annotations endpoint. Distinct from a Review Comment and from Check Run output summary.
-_Avoid_: review comment, rerequest
+A file/line note on a Check Run (`path`, `start_line`, `annotation_level`, `message`) from the annotations endpoint. Distinct from a Review Comment and from Check Run output summary. Tapping opens the file at the Check Run head SHA via Contents `?ref=` (read-only).
+_Avoid_: review comment, rerequest, line scroll
+
+**Contents Ref**:
+The GitHub Contents `ref` query (commit SHA / branch / tag) used to read a file blob at that revision. Distinct from the Contents blob SHA required to update a file.
+_Avoid_: treating commit SHA as blob SHA
 

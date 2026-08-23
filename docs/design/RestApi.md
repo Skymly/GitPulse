@@ -63,6 +63,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M28 ✅ | Search / Review inbox use `PagedGitHubSession` |
 | M29 ✅ | Assigned inbox reuses `GET /search/issues` (`SearchIssues`, canned assignee:@me) |
 | M30 ✅ | `GET/PUT/DELETE /repos/{owner}/{repo}/subscription` (`GetRepoSubscription`, `SetRepoSubscription`, `DeleteRepoSubscription`) |
+| M31 ✅ | `GET /repos/{owner}/{repo}/contents/{path}?ref=` (`GetFileContentAtRef`) |
 
 ## M9 Search
 
@@ -297,8 +298,9 @@ Read-only. Lives on `IGitHubReposApi`. First page only, non-paged client.
 
 Load failure is a quiet empty list; the Check Run page stays intact.
 
+### Annotation file at head (M31)
 
-
+Read-only. `GetFileContentAtRef` is `GET /repos/{owner}/{repo}/contents/{path}?ref=`. The query is a git ref (Check Run `head_sha`), **not** a Contents blob SHA. FileEditor loads that blob and disables save/delete. Tapping an annotation opens FileEditor with `path` + `ref=head_sha`. Line scroll is out of scope.
 
 
 
