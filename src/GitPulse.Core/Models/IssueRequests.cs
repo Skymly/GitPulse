@@ -61,3 +61,13 @@ public sealed class LabelsReplaceRequest
     [JsonPropertyName("labels")]
     public string[] Labels { get; set; } = [];
 }
+
+/// <summary>
+/// Body for POST/DELETE /repos/{owner}/{repo}/issues/{number}/assignees.
+/// </summary>
+public sealed class AssigneesRequest
+{
+    [JsonPropertyName("assignees")]
+    public string[] Assignees { get; set; } = [];
+}
+

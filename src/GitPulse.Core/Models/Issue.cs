@@ -21,6 +21,7 @@ public sealed class Issue
 
     public int CommentsCount { get; init; }
     public Label[] Labels { get; init; } = [];
+    public User[] Assignees { get; init; } = [];
     public string? MilestoneTitle { get; init; }
 }
 
