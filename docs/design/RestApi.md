@@ -69,6 +69,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M34 ✅ | Repo `clone_url` / `ssh_url` on GET repo (no new method) |
 | M35 ✅ | `POST /repos/{owner}/{repo}/forks` (`ForkRepo`) |
 | M36 ✅ | PR assignees reuse issue assignee writes + `PullRequest.Assignees` |
+| M37 ✅ | Mentions inbox reuses `GET /search/issues` (`SearchIssues`, canned mentions:@me) |
 
 ## M9 Search
 
@@ -333,6 +334,11 @@ Write. Lives on `IGitHubReposApi`. `ForkRepo` is `POST /repos/{owner}/{repo}/for
 ### PR assignees (M36)
 
 Write + read. No new GitHubApi method. `PullRequest.Assignees` comes from GET pull. Add/remove reuse `AddIssueAssignees` / `RemoveIssueAssignees` (same number space). Writes only when the PR is open and not merged. 403/422 stay on the page.
+
+### Mentions inbox (M37)
+
+Read-only. Reuses `IGitHubSearchApi.SearchIssues`. Canned query: `is:open mentions:@me archived:false`. Does **not** append `is:issue`. Does **not** apply the typed-Search 3-character minimum. Own `PagedGitHubSession`. Search tab uses a 2x2 hub: Search / Review requested / Assigned / Mentions. Tap opens Issue or PR detail from `pull_request`. Empty is quiet.
+
 
 
 
