@@ -479,6 +479,79 @@ public class RepoDetailViewModelTests
         vm.Dispose();
     }
 
+    [Fact]
+    public async Task Fork_WhenAllowed_SetsForkedFullName()
+    {
+        HttpRequestMessage? post = null;
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/repos/{Owner}/{Repo}/forks", req =>
+            {
+                post = req;
+                return new MockResponse(
+                    "{\"id\":9,\"name\":\"repo\",\"full_name\":\"me/repo\"}",
+                    StatusCode: HttpStatusCode.Accepted,
+                    AttachRequest: true);
+            });
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ForkCommand.ExecuteAsync(null);
+
+        Assert.NotNull(post);
+        Assert.Equal(HttpMethod.Post, post!.Method);
+        Assert.Equal("me/repo", vm.ForkedFullName.Value);
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.False(vm.IsForking.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Fork_WithoutToken_SetsErrorWithoutRequest()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}/forks", _ =>
+            {
+                called = true;
+                return new MockResponse("{}", StatusCode: HttpStatusCode.Accepted, AttachRequest: true);
+            });
+        var vm = new RepoDetailViewModel(
+            new FakeGitHubClientFactory(handler, token: null), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+
+        await vm.ForkCommand.ExecuteAsync(null);
+
+        Assert.Contains("No token", vm.ErrorMessage.Value);
+        Assert.False(called);
+        Assert.Empty(vm.ForkedFullName.Value);
+        vm.Dispose();
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden, "Not allowed")]
+    [InlineData(HttpStatusCode.UnprocessableEntity, "could not fork")]
+    public async Task Fork_HttpFailure_StaysOnPage(HttpStatusCode statusCode, string expected)
+    {
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", ReadmeJson("# hi"))
+            .When($"/repos/{Owner}/{Repo}/forks", _ =>
+                new MockResponse("{}", StatusCode: statusCode, AttachRequest: true));
+        var vm = new RepoDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ForkCommand.ExecuteAsync(null);
+
+        Assert.Contains(expected, vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(vm.Repo.Value);
+        Assert.Empty(vm.ForkedFullName.Value);
+        vm.Dispose();
+    }
+
     private static MockHttpHandler WatchingHandler(bool watching)
     {
         return new MockHttpHandler()
