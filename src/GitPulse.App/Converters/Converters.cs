@@ -80,3 +80,37 @@ public sealed class StringTruncateConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
+
+/// <summary>
+/// Joins a sequence of strings with ", " for XAML display.
+/// </summary>
+public sealed class JoinStringsConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is System.Collections.IEnumerable items
+            ? string.Join(", ", items.OfType<string>().Where(static s => !string.IsNullOrWhiteSpace(s)))
+            : string.Empty;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+/// <summary>
+/// Returns true if the value is a non-empty sequence.
+/// </summary>
+public sealed class CollectionToBoolConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is System.Collections.IEnumerable items)
+        {
+            foreach (var _ in items)
+                return true;
+        }
+
+        return false;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
