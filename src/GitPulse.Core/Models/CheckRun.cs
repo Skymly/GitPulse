@@ -47,7 +47,7 @@ public sealed class CheckRun
     public CheckRunOutput? Output { get; init; }
 }
 
-/// <summary>Check Run output block. Distinct from annotations (out of M22).</summary>
+/// <summary>Check Run output block. Distinct from Check Run Annotation (M27).</summary>
 public sealed class CheckRunOutput
 {
     public string? Title { get; init; }
@@ -56,5 +56,28 @@ public sealed class CheckRunOutput
 
     [JsonPropertyName("annotations_count")]
     public int AnnotationsCount { get; init; }
+}
+
+/// <summary>
+/// A Check Run annotation from
+/// <c>GET /repos/{owner}/{repo}/check-runs/{check_run_id}/annotations</c>.
+/// First page only in M27.
+/// </summary>
+public sealed class CheckRunAnnotation
+{
+    public string Path { get; init; } = string.Empty;
+
+    [JsonPropertyName("start_line")]
+    public int StartLine { get; init; }
+
+    [JsonPropertyName("end_line")]
+    public int EndLine { get; init; }
+
+    [JsonPropertyName("annotation_level")]
+    public string AnnotationLevel { get; init; } = string.Empty;
+
+    public string Message { get; init; } = string.Empty;
+
+    public string? Title { get; init; }
 }
 
