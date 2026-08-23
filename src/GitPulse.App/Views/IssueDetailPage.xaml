@@ -108,6 +108,46 @@
                                     FontSize="13"
                                     HorizontalOptions="Fill" />
                         </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6" Margin="0,8,0,0">
+                            <Label Text="Assignees"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Gray500}" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Assignees}"
+                                                 Spacing="6">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:User">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Login}"
+                                                   FontSize="13"
+                                                   VerticalOptions="Center"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1" />
+                                            <Button Grid.Column="1"
+                                                    Text="Remove"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:IssueDetailViewModel}}, Path=RemoveAssigneeCommand}"
+                                                    CommandParameter="{Binding Login}"
+                                                    Padding="12,8"
+                                                    FontSize="12" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <Entry Grid.Column="0"
+                                       Placeholder="GitHub login"
+                                       Text="{Binding AssigneeLogin.Value}"
+                                       FontSize="13"
+                                       AutomationId="IssueAssigneeLogin" />
+                                <Button Grid.Column="1"
+                                        Text="Assign"
+                                        Command="{Binding AddAssigneeCommand}"
+                                        Padding="16,10"
+                                        FontSize="13" />
+                            </Grid>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
