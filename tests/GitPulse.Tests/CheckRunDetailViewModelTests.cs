@@ -131,4 +131,53 @@ public class CheckRunDetailViewModelTests
 
         Assert.Equal("https://github.com/owner/repo/runs/4", launcher.OpenedUrls.Single());
     }
+
+    private const string AnnotationsJson = """
+        [
+          {
+            "path": "src/Program.cs",
+            "start_line": 10,
+            "end_line": 12,
+            "annotation_level": "failure",
+            "message": "null ref",
+            "title": "CS0001"
+          }
+        ]
+        """;
+
+    [Fact]
+    public async Task Load_ListsAnnotations()
+    {
+        var handler = new MockHttpHandler()
+            .When("/check-runs/4", CheckRunJson)
+            .When("/check-runs/4/annotations", AnnotationsJson);
+        using var vm = new CheckRunDetailViewModel(
+            new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 4);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        var item = Assert.Single(vm.Annotations);
+        Assert.Equal("src/Program.cs", item.Path);
+        Assert.Equal(10, item.StartLine);
+        Assert.Equal("failure", item.AnnotationLevel);
+        Assert.Equal("null ref", item.Message);
+        Assert.Empty(vm.ErrorMessage.Value);
+    }
+
+    [Fact]
+    public async Task Load_WhenAnnotationsMissing_KeepsCheckRun()
+    {
+        using var vm = new CheckRunDetailViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()
+                .When("/check-runs/4", CheckRunJson)),
+            new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 4);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("build", vm.Name.Value);
+        Assert.Empty(vm.Annotations);
+        Assert.Empty(vm.ErrorMessage.Value);
+    }
 }
