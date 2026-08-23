@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:GitPulse.ViewModels;assembly=GitPulse.ViewModels"
+             xmlns:models="clr-namespace:GitPulse.Core.Models;assembly=GitPulse.Core"
              xmlns:idk="clr-namespace:Indiko.Maui.Controls.Markdown;assembly=Indiko.Maui.Controls.Markdown"
              x:Class="GitPulse.App.Views.CheckRunDetailPage"
              x:DataType="vm:CheckRunDetailViewModel"
@@ -65,6 +66,37 @@
                                   UseAppTheme="True"
                                   TextFontSize="13"
                                   IsVisible="{Binding OutputText.Value, Converter={StaticResource StringToBoolConverter}}" />
+                <Label Text="Annotations"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       Margin="0,8,0,0" />
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Annotations}"
+                                     Spacing="8">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:CheckRunAnnotation">
+                            <Border Padding="14"
+                                    StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource Gray200}">
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="{Binding Path}"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           LineBreakMode="MiddleTruncation"
+                                           MaxLines="2" />
+                                    <Label Text="{Binding AnnotationLevel}"
+                                           FontSize="12"
+                                           TextColor="{StaticResource Gray600}" />
+                                    <Label Text="{Binding StartLine, StringFormat='Line {0}'}"
+                                           FontSize="12"
+                                           TextColor="{StaticResource Gray500}" />
+                                    <Label Text="{Binding Message}"
+                                           FontSize="13"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
                 <Button Text="Open GitHub"
                         Command="{Binding OpenInBrowserCommand}"
                         CommandParameter="{Binding HtmlUrl.Value}"
