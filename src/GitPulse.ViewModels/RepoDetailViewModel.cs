@@ -83,6 +83,12 @@ public sealed partial class RepoDetailViewModel : IDisposable
     /// <summary>True while a star/unstar write is in flight.</summary>
     public BindableReactiveProperty<bool> IsTogglingStar { get; } = new(false);
 
+    /// <summary>Whether the authenticated user is watching this repo.</summary>
+    public BindableReactiveProperty<bool> IsWatching { get; } = new(false);
+
+    /// <summary>True while a watch/unwatch write is in flight.</summary>
+    public BindableReactiveProperty<bool> IsTogglingWatch { get; } = new(false);
+
     public RepoDetailViewModel(IGitHubClientFactory clientFactory, IBrowserLauncher browserLauncher)
     {
         _clientFactory = clientFactory;
@@ -128,6 +134,7 @@ public sealed partial class RepoDetailViewModel : IDisposable
             Repo.Value = repo;
             StarCount.Value = repo.StargazersCount;
             await LoadStarStateAsync(api, cts.Token);
+            await LoadWatchStateAsync(api, cts.Token);
 
             var readme = await TryGetReadmeAsync(api, cts.Token);
             if (readme is not null)
@@ -171,6 +178,27 @@ public sealed partial class RepoDetailViewModel : IDisposable
         catch
         {
             // Keep last known star state; repo page stays usable.
+        }
+    }
+
+
+    private async Task LoadWatchStateAsync(IGitHubReposApi api, CancellationToken ct)
+    {
+        try
+        {
+            var response = await api.GetRepoSubscription(_owner, _repo).FirstAsync(ct);
+            var code = (int)(response.StatusCode ?? 0);
+            var subscription = response.Content;
+            IsWatching.Value = code is >= 200 and < 300
+                && subscription is { Subscribed: true, Ignored: false };
+        }
+        catch (Exception ex) when (IsNotFoundError(ex))
+        {
+            IsWatching.Value = false;
+        }
+        catch
+        {
+            // Keep last known watch state; repo page stays usable.
         }
     }
 
@@ -223,6 +251,61 @@ public sealed partial class RepoDetailViewModel : IDisposable
         finally
         {
             IsTogglingStar.Value = false;
+        }
+    }
+
+    /// <summary>Watch or unwatch the current repository.</summary>
+    [RelayCommand]
+    private async Task ToggleWatchAsync()
+    {
+        if (string.IsNullOrEmpty(_owner) || string.IsNullOrEmpty(_repo) || IsTogglingWatch.Value)
+            return;
+
+        IsTogglingWatch.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var watching = !IsWatching.Value;
+            var status = watching
+                ? (await api.SetRepoSubscription(
+                    _owner,
+                    _repo,
+                    new RepoSubscriptionRequest { Subscribed = true, Ignored = false })
+                    .FirstAsync(cts.Token)).StatusCode
+                : (await api.DeleteRepoSubscription(_owner, _repo).FirstAsync(cts.Token)).StatusCode;
+
+            var code = (int)(status ?? 0);
+            if (code is >= 200 and < 300 || (!watching && IsNotFoundStatus(status)))
+            {
+                IsWatching.Value = watching;
+                return;
+            }
+
+            ErrorMessage.Value = code == 403
+                ? "Not allowed to change watching."
+                : $"Watch update failed: {code}.";
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Watch update failed: {ex.Message}";
+        }
+        finally
+        {
+            IsTogglingWatch.Value = false;
         }
     }
 
@@ -362,5 +445,7 @@ public sealed partial class RepoDetailViewModel : IDisposable
         IsStarred.Dispose();
         StarCount.Dispose();
         IsTogglingStar.Dispose();
+        IsWatching.Dispose();
+        IsTogglingWatch.Dispose();
     }
 }
