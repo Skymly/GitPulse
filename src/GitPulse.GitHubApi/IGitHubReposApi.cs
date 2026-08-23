@@ -225,6 +225,12 @@ public interface IGitHubReposApi
     Observable<CheckRun> GetCheckRun(string owner, string repo, long checkRunId);
 
     /// <summary>
+    /// First page of Check Run annotations (M27). Non-paged client.
+    /// </summary>
+    [Get("/repos/{owner}/{repo}/check-runs/{checkRunId}/annotations")]
+    Observable<CheckRunAnnotation[]> ListCheckRunAnnotations(string owner, string repo, long checkRunId);
+
+    /// <summary>
     /// Combined Commit Statuses for a git ref. Does not include Check Runs.
     /// Empty <c>statuses</c> yields GitHub combined state <c>pending</c>.
     /// </summary>
