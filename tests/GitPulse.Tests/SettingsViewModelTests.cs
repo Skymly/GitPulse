@@ -1,4 +1,6 @@
+using System.Net;
 using GitPulse.Core.Abstractions;
+using GitPulse.Tests.TestHelpers;
 using GitPulse.ViewModels;
 using Xunit;
 
@@ -32,13 +34,15 @@ public class SettingsViewModelTests
         }
     }
 
+    private static FakeGitHubClientFactory UserFactory(string login = "octocat") =>
+        new(new MockHttpHandler().When("/user", $"{{\"login\":\"{login}\"}}"));
+
     [Fact]
     public void Constructor_WithExistingToken_SetsHasTokenTrue()
     {
         var store = new FakeCredentialStore("ghp_existing");
-        var vm = new SettingsViewModel(store);
+        var vm = new SettingsViewModel(store, UserFactory());
 
-        // LoadStatusAsync runs in the constructor — give it a tick.
         Assert.True(vm.HasToken.Value);
         vm.Dispose();
     }
@@ -47,17 +51,17 @@ public class SettingsViewModelTests
     public void Constructor_WithoutToken_SetsHasTokenFalse()
     {
         var store = new FakeCredentialStore(null);
-        var vm = new SettingsViewModel(store);
+        var vm = new SettingsViewModel(store, UserFactory());
 
         Assert.False(vm.HasToken.Value);
         vm.Dispose();
     }
 
     [Fact]
-    public async Task SaveToken_WithValidToken_PersistsAndClearsInput()
+    public async Task SaveToken_WithValidToken_PersistsAndShowsLogin()
     {
         var store = new FakeCredentialStore(null);
-        var vm = new SettingsViewModel(store);
+        var vm = new SettingsViewModel(store, UserFactory("skymly"));
         vm.TokenInput.Value = "ghp_new_token";
 
         await vm.SaveTokenCommand.ExecuteAsync(null);
@@ -65,7 +69,8 @@ public class SettingsViewModelTests
         Assert.True(store.SetTokenCalled);
         Assert.True(vm.HasToken.Value);
         Assert.Equal(string.Empty, vm.TokenInput.Value);
-        Assert.Equal("Token saved.", vm.StatusMessage.Value);
+        Assert.Equal("skymly", vm.ViewerLogin.Value);
+        Assert.Contains("skymly", vm.StatusMessage.Value);
         vm.Dispose();
     }
 
@@ -73,7 +78,7 @@ public class SettingsViewModelTests
     public async Task SaveToken_WithEmptyToken_SetsStatusMessage()
     {
         var store = new FakeCredentialStore(null);
-        var vm = new SettingsViewModel(store);
+        var vm = new SettingsViewModel(store, UserFactory());
 
         vm.TokenInput.Value = "";
         await vm.SaveTokenCommand.ExecuteAsync(null);
@@ -87,7 +92,7 @@ public class SettingsViewModelTests
     public async Task SaveToken_WithWhitespaceOnly_SetsStatusMessage()
     {
         var store = new FakeCredentialStore(null);
-        var vm = new SettingsViewModel(store);
+        var vm = new SettingsViewModel(store, UserFactory());
 
         vm.TokenInput.Value = "   ";
         await vm.SaveTokenCommand.ExecuteAsync(null);
@@ -98,15 +103,34 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task SaveToken_RejectedByGitHub_DoesNotPersist()
+    {
+        var store = new FakeCredentialStore(null);
+        var factory = new FakeGitHubClientFactory(
+            new MockHttpHandler().When("/user", _ =>
+                new MockResponse("{}", StatusCode: HttpStatusCode.Unauthorized, AttachRequest: true)));
+        var vm = new SettingsViewModel(store, factory);
+        vm.TokenInput.Value = "ghp_bad";
+
+        await vm.SaveTokenCommand.ExecuteAsync(null);
+
+        Assert.False(store.SetTokenCalled);
+        Assert.False(vm.HasToken.Value);
+        Assert.Contains("rejected", vm.StatusMessage.Value, StringComparison.OrdinalIgnoreCase);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task ClearToken_RemovesTokenAndUpdatesHasToken()
     {
         var store = new FakeCredentialStore("ghp_existing");
-        var vm = new SettingsViewModel(store);
+        var vm = new SettingsViewModel(store, UserFactory());
 
         await vm.ClearTokenCommand.ExecuteAsync(null);
 
         Assert.True(store.ClearTokenCalled);
         Assert.False(vm.HasToken.Value);
+        Assert.Equal(string.Empty, vm.ViewerLogin.Value);
         Assert.Equal("Token cleared.", vm.StatusMessage.Value);
         vm.Dispose();
     }
@@ -115,7 +139,7 @@ public class SettingsViewModelTests
     public async Task SaveToken_WithStoreException_SetsErrorMessage()
     {
         var store = new ThrowingCredentialStore("Set");
-        var vm = new SettingsViewModel(store);
+        var vm = new SettingsViewModel(store, UserFactory());
         vm.TokenInput.Value = "ghp_token";
 
         await vm.SaveTokenCommand.ExecuteAsync(null);
@@ -129,7 +153,7 @@ public class SettingsViewModelTests
     public async Task ClearToken_WithStoreException_SetsErrorMessage()
     {
         var store = new ThrowingCredentialStore("Clear");
-        var vm = new SettingsViewModel(store);
+        var vm = new SettingsViewModel(store, UserFactory());
 
         await vm.ClearTokenCommand.ExecuteAsync(null);
 
