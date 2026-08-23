@@ -7,6 +7,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added
+
+- Show a Gate Rollup on the in-app commit page and open a Check Run in-app.
+- Roadmap M26 / v0.14.0: Commit Gate Rollup (docs).
+
+
 ### Changed
 
 - Sort My repos by recently pushed (`sort=pushed`).

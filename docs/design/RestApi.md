@@ -58,6 +58,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M23 ✅ | Settings reuses `GET /user` (`GetAuthenticatedUser`) to verify a PAT before persist |
 | M24 ✅ | `GET/PUT/DELETE /user/starred/{owner}/{repo}` (`GetStarredRepo`, `StarRepo`, `UnstarRepo`) |
 | M25 ✅ | `GET /user/repos?sort=pushed` (`ListMyReposSortedPaged`) |
+| M26 ✅ | Commit detail reuses check-runs + combined status (no new method) |
 
 ## M9 Search
 
@@ -259,6 +260,11 @@ Check failure does not fail repo detail. 403 stays on the page.
 ### Recently pushed repos (M25)
 
 My repos hub uses `ListMyReposSortedPaged("pushed")` → `GET /user/repos?sort=pushed`. Starred hub unchanged. Existing `ListMyReposPaged` remains for compatibility.
+
+### Commit Gate Rollup (M26)
+
+Read-only. Reuses `ListCheckRunsForRef` (`filter=latest`) and `GetCombinedStatusForRef` on the commit SHA. Same client Gate Rollup as PR detail. Either call failing leaves the commit page intact. Open navigates to the M22 Check Run page.
+
 
 
 
