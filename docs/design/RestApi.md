@@ -67,6 +67,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M32 ✅ | `POST /repos/{owner}/{repo}/check-runs/{checkRunId}/rerequest` (`RerequestCheckRun`) |
 | M33 ✅ | `POST/DELETE /repos/{owner}/{repo}/issues/{number}/assignees` (`AddIssueAssignees`, `RemoveIssueAssignees`) |
 | M34 ✅ | Repo `clone_url` / `ssh_url` on GET repo (no new method) |
+| M35 ✅ | `POST /repos/{owner}/{repo}/forks` (`ForkRepo`) |
 
 ## M9 Search
 
@@ -322,7 +323,11 @@ Suggested assignees and team assignees are out of scope.
 
 ### Copy clone URL (M34)
 
-Read-only. No new GitHubApi method. `Repo.CloneUrl` / `Repo.SshUrl` come from GET repo. Repo detail copies the HTTPS URL via the platform clipboard in App code-behind. ViewModels stay MAUI-free. Fork / ZIP / git:// are out of scope.
+Read-only. No new GitHubApi method. `Repo.CloneUrl` / `Repo.SshUrl` come from GET repo. Repo detail copies the HTTPS URL via the platform clipboard in App code-behind. ViewModels stay MAUI-free. ZIP / git:// are out of scope.
+
+### Fork repository (M35)
+
+Write. Lives on `IGitHubReposApi`. `ForkRepo` is `POST /repos/{owner}/{repo}/forks` returning `ApiResponse<Repo>` (202). 403/422 stay on the page. Success records `full_name` and can open that repo in-app. Organization destination and `default_branch_only` are out of scope.
 
 
 

@@ -1,6 +1,6 @@
 # GitPulse 路线图
 
-功能与技术 backlog 的滚动清单。里程碑编号 **M0–M34**；完成项移入「已完成（归档）」章节。
+功能与技术 backlog 的滚动清单。里程碑编号 **M0–M35**；完成项移入「已完成（归档）」章节。
 
 - **文档标准**：[DOCUMENTATION.md](DOCUMENTATION.md)
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
@@ -46,6 +46,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
+| **M35** ✅ | v0.23.0 Fork repository：Repo detail POST /forks 并打开新 fork（[#315](https://github.com/Skymly/GitPulse/issues/315)） | RestAPI |
 | **M34** ✅ | v0.22.0 Copy clone URL：Repo detail 显示并复制 HTTPS `clone_url`（[#309](https://github.com/Skymly/GitPulse/issues/309)） | RestAPI |
 | **M33** ✅ | v0.21.0 Issue assignees：Issue detail 列出/添加/移除 assignees（[#301](https://github.com/Skymly/GitPulse/issues/301)） | RestAPI |
 | **M32** ✅ | v0.20.0 Rerequest Check Run：Check Run 页 POST rerequest（[#294](https://github.com/Skymly/GitPulse/issues/294)） | RestAPI |
