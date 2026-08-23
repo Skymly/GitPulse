@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Add or remove issue assignees from issue detail.
+- Roadmap M33 / v0.21.0: Issue assignees (docs).
+
+
+### Added
+
 - Rerequest a Check Run from the Check Run page.
 - Roadmap M32 / v0.20.0: Rerequest Check Run (docs).
 

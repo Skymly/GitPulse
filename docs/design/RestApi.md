@@ -65,6 +65,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M30 ✅ | `GET/PUT/DELETE /repos/{owner}/{repo}/subscription` (`GetRepoSubscription`, `SetRepoSubscription`, `DeleteRepoSubscription`) |
 | M31 ✅ | `GET /repos/{owner}/{repo}/contents/{path}?ref=` (`GetFileContentAtRef`) |
 | M32 ✅ | `POST /repos/{owner}/{repo}/check-runs/{checkRunId}/rerequest` (`RerequestCheckRun`) |
+| M33 ✅ | `POST/DELETE /repos/{owner}/{repo}/issues/{number}/assignees` (`AddIssueAssignees`, `RemoveIssueAssignees`) |
 
 ## M9 Search
 
@@ -306,6 +307,18 @@ Read-only. `GetFileContentAtRef` is `GET /repos/{owner}/{repo}/contents/{path}?r
 ### Rerequest Check Run (M32)
 
 Write. Lives on `IGitHubReposApi`. `RerequestCheckRun` is `POST /repos/{owner}/{repo}/check-runs/{checkRunId}/rerequest` returning `ApiResponse<Unit>` so 403/422 stay on the page. Success is quiet and does not invent a new run row. Check-suite rerequest and live polling are out of scope.
+
+### Issue assignees (M33)
+
+Write + read. Lives on `IGitHubReposApi`. Current assignees come from GET issue (`Issue.Assignees`). Add/remove use `AssigneesRequest` logins.
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `AddIssueAssignees` | `POST /repos/{owner}/{repo}/issues/{number}/assignees` | Body `assignees[]` logins. `ApiResponse<Issue>` so 403/422 stay on the page. |
+| `RemoveIssueAssignees` | `DELETE .../assignees` | Same body. |
+
+Suggested assignees and team assignees are out of scope.
+
 
 
 
