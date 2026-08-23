@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Request and remove pending pull request reviewers from PR detail Conversation.
+- Roadmap M21 / v0.9.0: request reviewers (docs).
+
+
+### Added
+
 - Switch the Search tab between Search and Review requested (open PRs waiting
   for your review via review-requested:@me).
 - Roadmap M20 / v0.8.0: Review inbox on the Search tab (docs).

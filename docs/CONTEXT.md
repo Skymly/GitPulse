@@ -84,3 +84,7 @@ _Avoid_: commit comment, compare, blame
 Open pull requests whose review is requested from the authenticated user (directly or via a team), listed from GitHub Search review-requested:@me on the Search tab. Distinct from the Notifications feed (reason=review_requested is mixed and not the full open set) and from requesting reviewers on a single PR.
 _Avoid_: notification reason filter, review request (the write), assigned/mentioned hub
 
+**Review Request**:
+A pending request for a user or team to review a pull request, from `GET/POST/DELETE .../requested_reviewers`. Distinct from a submitted Pull Request Review and from the Review Inbox (cross-repo Search).
+_Avoid_: review event, submitted review, review inbox
+

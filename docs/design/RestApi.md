@@ -53,6 +53,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M18 ✅ | `GET /repos/{owner}/{repo}/commits` (`ListCommitsPaged`) |
 | M19 ✅ | `GET /repos/{owner}/{repo}/commits/{ref}` (`GetCommit`, non-paged) |
 | M20 ✅ | Review inbox reuses `GET /search/issues` (`SearchPullRequests`, canned review-requested:@me) |
+| M21 ✅ | `GET/POST/DELETE /repos/{owner}/{repo}/pulls/{number}/requested_reviewers` |
 
 ## M9 Search
 
@@ -212,6 +213,19 @@ Read-only. Lives on `IGitHubReposApi` — no fourth interface. List paging stays
 Read-only. Reuses `IGitHubSearchApi.SearchPullRequests` — no new method or interface. Canned query is GitHub.com Review requested: `is:open is:pr review-requested:@me archived:false`. Does **not** append a second `is:pr`. Does **not** apply the typed-Search 3-character minimum. Own session so typed PR search is not mixed. Still `CreatePagedClientAsync` (not `PagedGitHubSession`).
 
 Search tab switches Search (existing) vs Review requested. Rows show `SearchIssueItem.RepositoryFullName` plus title / number / state / author. Tap opens existing PR detail. Empty inbox is quiet. Notifications are not the source of truth.
+
+### Request reviewers (M21)
+
+Write + read. Lives on `IGitHubReposApi` — no fourth interface. Distinct from submitted Pull Request Reviews (M15).
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `ListRequestedReviewers` | `GET /repos/{owner}/{repo}/pulls/{number}/requested_reviewers` | Pending users + teams. After a reviewer submits, they leave this list. |
+| `RequestReviewers` | `POST .../requested_reviewers` | Body `reviewers[]` logins. Returns `ApiResponse<PullRequest>` so 403/422 stay on the PR page. |
+| `RemoveRequestedReviewers` | `DELETE .../requested_reviewers` | Same body shape. Teams are display-only in v0.9.0. |
+
+Load failure of this call does not fail PR detail. Closed/merged PRs cannot manage reviewers.
+
 
 
 
