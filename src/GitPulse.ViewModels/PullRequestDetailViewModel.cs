@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Net;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Models;
@@ -23,6 +24,10 @@ namespace GitPulse.ViewModels;
 /// M16 adds a PR-head Gate Rollup via
 /// <see cref="IGitHubReposApi.ListCheckRunsForRef"/> and
 /// <see cref="IGitHubReposApi.GetCombinedStatusForRef"/>.
+/// M21 adds pending review requests via
+/// <see cref="IGitHubReposApi.ListRequestedReviewers"/>,
+/// <see cref="IGitHubReposApi.RequestReviewers"/>, and
+/// <see cref="IGitHubReposApi.RemoveRequestedReviewers"/>.
 /// </summary>
 public sealed partial class PullRequestDetailViewModel : IDisposable
 {
@@ -82,6 +87,21 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
     /// <summary>Submitted Pull Request Reviews (PENDING omitted).</summary>
     public ObservableCollection<PullRequestReview> Reviews { get; } = [];
+
+    /// <summary>Users currently requested to review (not yet submitted).</summary>
+    public ObservableCollection<User> RequestedReviewers { get; } = [];
+
+    /// <summary>Teams currently requested to review (display-only).</summary>
+    public ObservableCollection<Team> RequestedTeams { get; } = [];
+
+    /// <summary>Login typed when requesting a reviewer.</summary>
+    public BindableReactiveProperty<string> ReviewerLogin { get; } = new(string.Empty);
+
+    /// <summary>True when the PR is open and not merged.</summary>
+    public BindableReactiveProperty<bool> CanManageReviewers { get; } = new(false);
+
+    /// <summary>True when at least one user or team is requested.</summary>
+    public BindableReactiveProperty<bool> HasRequestedReviewers { get; } = new(false);
 
     /// <summary>Review Event for submit: APPROVE, REQUEST_CHANGES, or COMMENT.</summary>
     public BindableReactiveProperty<string> ReviewEvent { get; } = new("COMMENT");
@@ -332,6 +352,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         BodyInput.Value = pr.Body ?? string.Empty;
         UpdateMergeStatus(pr);
         UpdateReviewPermissions(pr);
+        CanManageReviewers.Value = pr.State == "open" && !pr.Merged;
     }
 
     private void UpdateReviewPermissions(PullRequest pr)
@@ -380,6 +401,37 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         {
             Reviews.Clear();
         }
+
+        await LoadRequestedReviewersAsync(api, cancellationToken);
+    }
+
+    private async Task LoadRequestedReviewersAsync(IGitHubReposApi api, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var requested = await api.ListRequestedReviewers(_owner, _repo, _prNumber)
+                .FirstAsync(cancellationToken);
+            ReplaceRequestedReviewers(requested);
+        }
+        catch
+        {
+            RequestedReviewers.Clear();
+            RequestedTeams.Clear();
+            HasRequestedReviewers.Value = false;
+        }
+    }
+
+    private void ReplaceRequestedReviewers(RequestedReviewers requested)
+    {
+        RequestedReviewers.Clear();
+        foreach (var user in requested.Users ?? [])
+            RequestedReviewers.Add(user);
+
+        RequestedTeams.Clear();
+        foreach (var team in requested.Teams ?? [])
+            RequestedTeams.Add(team);
+
+        HasRequestedReviewers.Value = RequestedReviewers.Count > 0 || RequestedTeams.Count > 0;
     }
 
     private async Task LoadGateAsync(IGitHubReposApi api, CancellationToken cancellationToken)
@@ -483,6 +535,116 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         }
     }
 
+
+    /// <summary>Request a review from the typed user login.</summary>
+    [RelayCommand]
+    private async Task RequestReviewerAsync()
+    {
+        var login = ReviewerLogin.Value.Trim().TrimStart('@');
+        if (login.Length == 0 || PullRequest.Value is null || IsSaving.Value || !CanManageReviewers.Value)
+            return;
+
+        if (RequestedReviewers.Any(user =>
+                string.Equals(user.Login, login, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        IsSaving.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var request = new ReviewersRequest { Reviewers = [login] };
+            var response = await api.RequestReviewers(_owner, _repo, _prNumber, request)
+                .FirstAsync(cts.Token);
+            if (!ApplyReviewerWriteStatus(response.StatusCode, requesting: true))
+                return;
+
+            ReviewerLogin.Value = string.Empty;
+            await LoadRequestedReviewersAsync(api, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Request reviewer failed: {ex.Message}";
+        }
+        finally
+        {
+            IsSaving.Value = false;
+        }
+    }
+
+    /// <summary>Remove a pending requested user.</summary>
+    [RelayCommand]
+    private async Task RemoveRequestedReviewerAsync(string? login)
+    {
+        login = login?.Trim();
+        if (string.IsNullOrEmpty(login) || PullRequest.Value is null || IsSaving.Value || !CanManageReviewers.Value)
+            return;
+
+        IsSaving.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var request = new ReviewersRequest { Reviewers = [login] };
+            var response = await api.RemoveRequestedReviewers(_owner, _repo, _prNumber, request)
+                .FirstAsync(cts.Token);
+            if (!ApplyReviewerWriteStatus(response.StatusCode, requesting: false))
+                return;
+
+            await LoadRequestedReviewersAsync(api, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Remove reviewer failed: {ex.Message}";
+        }
+        finally
+        {
+            IsSaving.Value = false;
+        }
+    }
+
+    private bool ApplyReviewerWriteStatus(HttpStatusCode? status, bool requesting)
+    {
+        if (status is null || ((int)status >= 200 && (int)status < 300))
+            return true;
+
+        ErrorMessage.Value = status switch
+        {
+            HttpStatusCode.UnprocessableEntity =>
+                "GitHub rejected that reviewer. They may not be a collaborator.",
+            HttpStatusCode.Forbidden => "Not allowed to change review requests.",
+            _ => requesting
+                ? $"Request reviewer failed: {(int)status}."
+                : $"Remove reviewer failed: {(int)status}.",
+        };
+        return false;
+    }
     /// <summary>Submit a Pull Request Review with the selected Review Event.</summary>
     [RelayCommand]
     private async Task SubmitReviewAsync()
@@ -538,6 +700,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
             {
                 // Keep the local list; submit already succeeded.
             }
+
+            await LoadRequestedReviewersAsync(api, cts.Token);
 
             try
             {
@@ -705,6 +869,11 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         ViewerLogin.Dispose();
         CanReview.Dispose();
         CanApproveOrRequestChanges.Dispose();
+        ReviewerLogin.Dispose();
+        CanManageReviewers.Dispose();
+        HasRequestedReviewers.Dispose();
         GateRollup.Dispose();
     }
 }
+
+
