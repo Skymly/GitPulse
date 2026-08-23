@@ -91,4 +91,26 @@ public class SearchModelTests
         Assert.Equal("abc123", item.Sha);
         Assert.Equal("Skymly/GitPulse", item.Repository.FullName);
     }
+
+    [Fact]
+    public void SearchIssueItem_RepositoryFullName_ParsesReposUrl()
+    {
+        var item = new SearchIssueItem
+        {
+            RepositoryUrl = "https://api.github.com/repos/Skymly/GitPulse",
+        };
+
+        Assert.Equal("Skymly/GitPulse", item.RepositoryFullName);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not-a-url")]
+    [InlineData("https://api.github.com/user")]
+    [InlineData("https://api.github.com/repos/only-owner")]
+    public void SearchIssueItem_RepositoryFullName_EmptyOnGarbage(string url)
+    {
+        var item = new SearchIssueItem { RepositoryUrl = url };
+        Assert.Equal(string.Empty, item.RepositoryFullName);
+    }
 }
