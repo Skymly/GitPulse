@@ -143,6 +143,16 @@ public interface IGitHubReposApi
     [Put("/repos/{owner}/{repo}/issues/{number}/labels")]
     Observable<Label[]> ReplaceIssueLabels(string owner, string repo, int number, [Body] LabelsReplaceRequest body);
 
+    /// <summary>Add issue assignees (M33). 403/422 stay on the page.</summary>
+    [Post("/repos/{owner}/{repo}/issues/{number}/assignees")]
+    Observable<ApiResponse<Issue>> AddIssueAssignees(
+        string owner, string repo, int number, [Body] AssigneesRequest body);
+
+    /// <summary>Remove issue assignees (M33).</summary>
+    [Delete("/repos/{owner}/{repo}/issues/{number}/assignees")]
+    Observable<ApiResponse<Issue>> RemoveIssueAssignees(
+        string owner, string repo, int number, [Body] AssigneesRequest body);
+
     // ── Pull Requests ─────────────────────────────────────────────
 
     [Get("/repos/{owner}/{repo}/pulls")]
