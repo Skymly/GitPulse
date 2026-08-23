@@ -243,6 +243,10 @@ public interface IGitHubReposApi
     [Get("/repos/{owner}/{repo}/check-runs/{checkRunId}/annotations")]
     Observable<CheckRunAnnotation[]> ListCheckRunAnnotations(string owner, string repo, long checkRunId);
 
+    /// <summary>Ask GitHub to rerequest a Check Run (201) (M32).</summary>
+    [Post("/repos/{owner}/{repo}/check-runs/{checkRunId}/rerequest")]
+    Observable<ApiResponse<Unit>> RerequestCheckRun(string owner, string repo, long checkRunId);
+
     /// <summary>
     /// Combined Commit Statuses for a git ref. Does not include Check Runs.
     /// Empty <c>statuses</c> yields GitHub combined state <c>pending</c>.
