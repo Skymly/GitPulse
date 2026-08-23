@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Show the first page of Check Run annotations on the Check Run page.
+- Roadmap M27 / v0.15.0: Check Run annotations (docs).
+
+
+### Added
+
 - Show a Gate Rollup on the in-app commit page and open a Check Run in-app.
 - Roadmap M26 / v0.14.0: Commit Gate Rollup (docs).
 

@@ -59,6 +59,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M24 ✅ | `GET/PUT/DELETE /user/starred/{owner}/{repo}` (`GetStarredRepo`, `StarRepo`, `UnstarRepo`) |
 | M25 ✅ | `GET /user/repos?sort=pushed` (`ListMyReposSortedPaged`) |
 | M26 ✅ | Commit detail reuses check-runs + combined status (no new method) |
+| M27 ✅ | `GET /repos/{owner}/{repo}/check-runs/{checkRunId}/annotations` (`ListCheckRunAnnotations`) |
 
 ## M9 Search
 
@@ -264,6 +265,17 @@ My repos hub uses `ListMyReposSortedPaged("pushed")` → `GET /user/repos?sort=p
 ### Commit Gate Rollup (M26)
 
 Read-only. Reuses `ListCheckRunsForRef` (`filter=latest`) and `GetCombinedStatusForRef` on the commit SHA. Same client Gate Rollup as PR detail. Either call failing leaves the commit page intact. Open navigates to the M22 Check Run page.
+
+### Check Run annotations (M27)
+
+Read-only. Lives on `IGitHubReposApi`. First page only, non-paged client.
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `ListCheckRunAnnotations` | `GET /repos/{owner}/{repo}/check-runs/{checkRunId}/annotations` | `Observable<CheckRunAnnotation[]>`. |
+
+Load failure is a quiet empty list; the Check Run page stays intact.
+
 
 
 
