@@ -42,6 +42,13 @@ public interface IGitHubReposApi
     Observable<ApiResponse<Repo[]>> ListMyReposPaged();
 
     /// <summary>
+    /// Authenticated user's repositories with an explicit sort (M25).
+    /// Pass <c>pushed</c> for recently pushed.
+    /// </summary>
+    [Get("/user/repos")]
+    Observable<ApiResponse<Repo[]>> ListMyReposSortedPaged([Query] string sort);
+
+    /// <summary>
     /// Repositories starred by the authenticated user (M17). Paged via
     /// <c>Link</c>; items reuse <see cref="Repo"/>.
     /// </summary>
