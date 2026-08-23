@@ -105,6 +105,51 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <Border StrokeShape="RoundRectangle 8"
+                        Stroke="{StaticResource Gray200}"
+                        Padding="16"
+                        IsVisible="{Binding Commit.Value, Converter={StaticResource NotNullConverter}}">
+                    <VerticalStackLayout Spacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Checks:"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Gray600}" />
+                            <Label Text="{Binding GateRollup.Value}"
+                                   FontSize="13"
+                                   TextColor="{StaticResource Primary}"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding CheckRuns}"
+                                             Spacing="6">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:CheckRun">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding Name}"
+                                               FontSize="13"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding Status}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Gray600}"
+                                               VerticalOptions="Center" />
+                                        <Button Grid.Column="2"
+                                                Text="Open"
+                                                FontSize="12"
+                                                Padding="10,6"
+                                                BackgroundColor="Transparent"
+                                                TextColor="{StaticResource Primary}"
+                                                Clicked="OnCheckRunOpened" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
                 <Label Text="Files"
                        FontSize="16"
                        FontAttributes="Bold"
