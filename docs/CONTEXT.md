@@ -104,3 +104,7 @@ _Avoid_: watching, sort=pushed, recents
 The My repos hub ordered by GitHub `sort=pushed` on `GET /user/repos`. Distinct from Starred and from a local recents store.
 _Avoid_: affiliation change, recently viewed
 
+**Check Run Annotation**:
+A file/line note on a Check Run (`path`, `start_line`, `annotation_level`, `message`) from the annotations endpoint. Distinct from a Review Comment and from Check Run output summary.
+_Avoid_: review comment, rerequest
+

@@ -1,6 +1,6 @@
 # GitPulse 路线图
 
-功能与技术 backlog 的滚动清单。里程碑编号 **M0–M26**；完成项移入「已完成（归档）」章节。
+功能与技术 backlog 的滚动清单。里程碑编号 **M0–M27**；完成项移入「已完成（归档）」章节。
 
 - **文档标准**：[DOCUMENTATION.md](DOCUMENTATION.md)
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
@@ -46,6 +46,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
+| **M27** ✅ | v0.15.0 Check Run annotations：Check Run 页首屏 annotations（path / level / line / message）（[#261](https://github.com/Skymly/GitPulse/issues/261)） | RestAPI |
 | **M26** ✅ | v0.14.0 Commit Gate Rollup：commit 页 latest Check Runs + combined status，并打开应用内 Check Run（[#255](https://github.com/Skymly/GitPulse/issues/255)） | RestAPI |
 | **M25** ✅ | v0.13.0 Sort My repos by recently pushed：`GET /user/repos?sort=pushed`（[#249](https://github.com/Skymly/GitPulse/issues/249)） | RestAPI |
 | **M24** ✅ | v0.12.0 Star toggle：Repo detail Star / Unstar（GET/PUT/DELETE /user/starred/{owner}/{repo}）（[#242](https://github.com/Skymly/GitPulse/issues/242)） | RestAPI |
