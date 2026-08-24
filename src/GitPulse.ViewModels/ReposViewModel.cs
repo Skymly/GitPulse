@@ -23,7 +23,7 @@ public sealed partial class ReposViewModel : IDisposable
     private readonly IGitHubClientFactory _clientFactory;
     private readonly CompositeDisposable _disposables = [];
 
-    private PagedGitHubSession? _session;
+    private readonly PagedListCycle _cycle;
 
     /// <summary>Repos currently displayed (after search filter).</summary>
     public ObservableCollection<Repo> Repos { get; } = [];
@@ -60,6 +60,7 @@ public sealed partial class ReposViewModel : IDisposable
     public ReposViewModel(IGitHubClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
+        _cycle = new PagedListCycle(clientFactory);
 
         FilteredRepos = new ReadOnlyObservableCollection<Repo>(Repos);
 
@@ -108,42 +109,28 @@ public sealed partial class ReposViewModel : IDisposable
 
         try
         {
-            _session?.Dispose();
-            _session = null;
             _allRepos.Clear();
             ApplyFilter(SearchText.Value);
 
-            var session = await _clientFactory.CreatePagedSessionAsync();
-            if (session.Client.DefaultRequestHeaders.Authorization is null)
+            var result = await _cycle.LoadAsync(null, async (client, ct) =>
             {
-                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
-                IsAuthenticated.Value = false;
-                session.Dispose();
+                var api = RestService.For<IGitHubReposApi>(client);
+                var response = await ListCurrentAsync(api, ct);
+                return new PagedListPage<Repo>(response.Content ?? [], response.Headers);
+            });
+            if (!result.Completed)
+                return;
+            if (result.Error is not null)
+            {
+                ErrorMessage.Value = result.Error;
+                IsAuthenticated.Value = result.Authenticated;
                 return;
             }
 
             IsAuthenticated.Value = true;
-            _session = session;
-            _session.Reset();
-            _session.PrepareRequest();
-
-            var api = RestService.For<IGitHubReposApi>(_session.Client);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await ListCurrentAsync(api, cts.Token);
-
-            _allRepos.AddRange(response.Content ?? []);
+            _allRepos.AddRange(result.Items);
             ApplyFilter(SearchText.Value);
-
-            _session.ApplyLink(response.Headers);
-            CanLoadMore.Value = _session.HasNextPage;
-        }
-        catch (OperationCanceledException)
-        {
-            ErrorMessage.Value = "Request timed out.";
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage.Value = $"Load failed: {ex.Message}";
+            CanLoadMore.Value = result.HasNextPage;
         }
         finally
         {
@@ -155,10 +142,7 @@ public sealed partial class ReposViewModel : IDisposable
     [RelayCommand]
     private async Task LoadMoreAsync()
     {
-        if (_session is null || !_session.HasNextPage || IsLoading.Value)
-            return;
-
-        if (!_session.Advance())
+        if (!_cycle.CanLoadMore || IsLoading.Value)
             return;
 
         IsLoading.Value = true;
@@ -166,25 +150,23 @@ public sealed partial class ReposViewModel : IDisposable
 
         try
         {
-            _session.PrepareRequest();
+            var result = await _cycle.LoadMoreAsync(async (client, ct) =>
+            {
+                var api = RestService.For<IGitHubReposApi>(client);
+                var response = await ListCurrentAsync(api, ct);
+                return new PagedListPage<Repo>(response.Content ?? [], response.Headers);
+            });
+            if (!result.Completed)
+                return;
+            if (result.Error is not null)
+            {
+                ErrorMessage.Value = result.Error;
+                return;
+            }
 
-            var api = RestService.For<IGitHubReposApi>(_session.Client);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await ListCurrentAsync(api, cts.Token);
-
-            _allRepos.AddRange(response.Content ?? []);
+            _allRepos.AddRange(result.Items);
             ApplyFilter(SearchText.Value);
-
-            _session.ApplyLink(response.Headers);
-            CanLoadMore.Value = _session.HasNextPage;
-        }
-        catch (OperationCanceledException)
-        {
-            ErrorMessage.Value = "Request timed out.";
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage.Value = $"Load more failed: {ex.Message}";
+            CanLoadMore.Value = result.HasNextPage;
         }
         finally
         {
@@ -196,7 +178,7 @@ public sealed partial class ReposViewModel : IDisposable
     private async Task SelectHubAsync(string? hub)
     {
         var next = string.IsNullOrWhiteSpace(hub) ? MyReposHub : hub;
-        if (string.Equals(SelectedHub.Value, next, StringComparison.Ordinal) && _session is not null)
+        if (string.Equals(SelectedHub.Value, next, StringComparison.Ordinal) && _cycle.HasSession)
             return;
 
         SelectedHub.Value = next;
@@ -220,6 +202,6 @@ public sealed partial class ReposViewModel : IDisposable
         CanLoadMore.Dispose();
         ErrorMessage.Dispose();
         SelectedHub.Dispose();
-        _session?.Dispose();
+        _cycle.Dispose();
     }
 }
