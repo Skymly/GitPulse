@@ -230,7 +230,7 @@ public class SearchViewModelTests
         Assert.False(vm.IsLoading.Value);
     }
 
-[Fact]
+    [Fact]
     public async Task DefaultHub_DoesNotLoadReviewRequested()
     {
         var handler = new RecordingHandler((_, _, _) =>
