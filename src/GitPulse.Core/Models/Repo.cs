@@ -46,6 +46,8 @@ public sealed class Repo
     public RepoLicense? License { get; init; }
 
     public string[] Topics { get; init; } = [];
+
+    public string? Homepage { get; init; }
 }
 
 /// <summary>License summary from GET repository.</summary>
