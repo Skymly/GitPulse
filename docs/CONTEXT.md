@@ -124,6 +124,10 @@ _Avoid_: organization destination, fork network, default_branch_only
 A manual Actions run created with `POST /repos/{owner}/{repo}/actions/workflows/{id}/dispatches` and a git `ref`. Distinct from rerunning an existing Workflow Run.
 _Avoid_: workflow inputs, enable/disable workflow
 
+**Repo Homepage**:
+The optional project website from GET repository (`Repo.Homepage`), shown on repo detail and opened with the platform browser. Distinct from `html_url` and from the HTTPS clone URL.
+_Avoid_: homepage editor, website validation
+
 **Repo Topics**:
 Repository topic strings from GET repository (`Repo.Topics`). Distinct from searching by topic.
 _Avoid_: topic editor, topic search

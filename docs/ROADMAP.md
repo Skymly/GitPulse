@@ -1,6 +1,6 @@
 # GitPulse 路线图
 
-功能与技术 backlog 的滚动清单。里程碑编号 **M0–M41**；完成项移入「已完成（归档）」章节。
+功能与技术 backlog 的滚动清单。里程碑编号 **M0–M42**；完成项移入「已完成（归档）」章节。
 
 - **文档标准**：[DOCUMENTATION.md](DOCUMENTATION.md)
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
@@ -46,6 +46,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
+| **M42** ✅ | v0.30.0 Repo homepage：Repo detail 显示/打开 GET repo 的 homepage（[#362](https://github.com/Skymly/GitPulse/issues/362)） | RestAPI |
 | **M41** ✅ | v0.29.0 Repo topics：Repo detail 显示 GET repo 的 topics（[#356](https://github.com/Skymly/GitPulse/issues/356)） | RestAPI |
 | **M40** ✅ | v0.28.0 Workflow dispatch：Actions 页列出 workflow 并 POST workflow_dispatch（[#348](https://github.com/Skymly/GitPulse/issues/348)） | RestAPI |
 | **M39** ✅ | v0.27.0 Repo language and license：Repo detail 显示 language / SPDX（[#342](https://github.com/Skymly/GitPulse/issues/342)） | RestAPI |

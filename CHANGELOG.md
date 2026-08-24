@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Show the repository homepage on repo detail and open it in the browser.
+- Roadmap M42 / v0.30.0: repo homepage (docs).
+
+
+### Added
+
 - Show repository topics on repo detail.
 - Roadmap M41 / v0.29.0: repo topics (docs).
 
