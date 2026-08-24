@@ -123,43 +123,11 @@ public sealed partial class CommitDetailViewModel : IDisposable
 
     private async Task LoadGateAsync(IGitHubReposApi api, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(_sha))
-        {
-            CheckRuns.Clear();
-            CommitStatuses.Clear();
-            GateRollup.Value = "No checks";
-            return;
-        }
-
-        CheckRun[] runs = [];
-        CombinedCommitStatus? combined = null;
-
-        try
-        {
-            var result = await api.ListCheckRunsForRef(_owner, _repo, _sha, "latest")
-                .FirstAsync(cancellationToken);
-            runs = result.CheckRuns ?? [];
-            ReplaceCheckRuns(runs);
-        }
-        catch
-        {
-            CheckRuns.Clear();
-            runs = [];
-        }
-
-        try
-        {
-            combined = await api.GetCombinedStatusForRef(_owner, _repo, _sha)
-                .FirstAsync(cancellationToken);
-            ReplaceCommitStatuses(combined.Statuses ?? []);
-        }
-        catch
-        {
-            CommitStatuses.Clear();
-            combined = null;
-        }
-
-        GateRollup.Value = PullRequestDetailViewModel.ComputeGateRollup(runs, combined);
+        var state = await HeadGateRollup.LoadAsync(
+            api, _owner, _repo, _sha, cancellationToken);
+        ReplaceCheckRuns(state.Runs);
+        ReplaceCommitStatuses(state.Statuses);
+        GateRollup.Value = state.Summary;
     }
 
     private void ReplaceCheckRuns(IEnumerable<CheckRun> runs)

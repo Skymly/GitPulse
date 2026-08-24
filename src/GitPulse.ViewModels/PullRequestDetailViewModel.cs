@@ -449,44 +449,11 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
     private async Task LoadGateAsync(IGitHubReposApi api, CancellationToken cancellationToken)
     {
-        var sha = PullRequest.Value?.Head?.Sha;
-        if (string.IsNullOrEmpty(sha))
-        {
-            CheckRuns.Clear();
-            CommitStatuses.Clear();
-            GateRollup.Value = "No checks";
-            return;
-        }
-
-        CheckRun[] runs = [];
-        CombinedCommitStatus? combined = null;
-
-        try
-        {
-            var result = await api.ListCheckRunsForRef(_owner, _repo, sha, "latest")
-                .FirstAsync(cancellationToken);
-            runs = result.CheckRuns ?? [];
-            ReplaceCheckRuns(runs);
-        }
-        catch
-        {
-            CheckRuns.Clear();
-            runs = [];
-        }
-
-        try
-        {
-            combined = await api.GetCombinedStatusForRef(_owner, _repo, sha)
-                .FirstAsync(cancellationToken);
-            ReplaceCommitStatuses(combined.Statuses ?? []);
-        }
-        catch
-        {
-            CommitStatuses.Clear();
-            combined = null;
-        }
-
-        GateRollup.Value = ComputeGateRollup(runs, combined);
+        var state = await HeadGateRollup.LoadAsync(
+            api, _owner, _repo, PullRequest.Value?.Head?.Sha, cancellationToken);
+        ReplaceCheckRuns(state.Runs);
+        ReplaceCommitStatuses(state.Statuses);
+        GateRollup.Value = state.Summary;
     }
 
     private void ReplaceCheckRuns(IEnumerable<CheckRun> runs)
@@ -501,40 +468,6 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         CommitStatuses.Clear();
         foreach (var status in statuses)
             CommitStatuses.Add(status);
-    }
-
-    internal static string ComputeGateRollup(
-        IReadOnlyList<CheckRun> runs, CombinedCommitStatus? combined)
-    {
-        var statuses = combined?.Statuses ?? [];
-        if (runs.Count == 0 && statuses.Length == 0)
-            return "No checks";
-
-        if (runs.Any(IsIncompleteCheckRun) ||
-            statuses.Any(status => status.State.Equals("pending", StringComparison.OrdinalIgnoreCase)))
-            return "Pending";
-
-        if (runs.Any(IsFailedCheckRun) ||
-            statuses.Any(status =>
-                status.State.Equals("failure", StringComparison.OrdinalIgnoreCase) ||
-                status.State.Equals("error", StringComparison.OrdinalIgnoreCase)))
-            return "Failure";
-
-        return "Success";
-    }
-
-    private static bool IsIncompleteCheckRun(CheckRun run) =>
-        !run.Status.Equals("completed", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsFailedCheckRun(CheckRun run)
-    {
-        var conclusion = run.Conclusion;
-        return conclusion is not null &&
-               (conclusion.Equals("failure", StringComparison.OrdinalIgnoreCase) ||
-                conclusion.Equals("timed_out", StringComparison.OrdinalIgnoreCase) ||
-                conclusion.Equals("cancelled", StringComparison.OrdinalIgnoreCase) ||
-                conclusion.Equals("startup_failure", StringComparison.OrdinalIgnoreCase) ||
-                conclusion.Equals("action_required", StringComparison.OrdinalIgnoreCase));
     }
 
     private void ReplaceReviews(IEnumerable<PullRequestReview> reviews)
