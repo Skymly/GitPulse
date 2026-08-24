@@ -74,6 +74,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M39 ✅ | Repo `language` / `license` on GET repo (no new method) |
 | M40 ✅ | `GET /actions/workflows`, `POST /actions/workflows/{id}/dispatches` |
 | M41 ✅ | Repo `topics` on GET repo (no new method) |
+| M42 ✅ | Repo `homepage` on GET repo (no new method) |
 
 ## M9 Search
 
@@ -358,6 +359,10 @@ Write + read on `IGitHubActionsApi`. `ListWorkflows` is first page only. `Dispat
 ### Repo topics (M41)
 
 Read-only. No new GitHubApi method. `Repo.Topics` comes from GET repo. An empty topics list is omitted. Editing topics and topic search are out of scope.
+
+### Repo homepage (M42)
+
+Read-only. No new GitHubApi method. `Repo.Homepage` comes from GET repo. An empty homepage is omitted. A non-empty homepage opens with the existing browser launcher. Editing homepage is out of scope.
 
 
 
