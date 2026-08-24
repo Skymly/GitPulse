@@ -11,7 +11,7 @@ using R3;
 namespace GitPulse.ViewModels;
 
 /// <summary>
-/// GitHub Search, Review inbox, and Assigned inbox. Paging uses <see cref="PagedGitHubSession"/>.
+/// GitHub typed Search and Search Inbox chrome. Paging uses <see cref="PagedGitHubSession"/>.
 /// </summary>
 public sealed partial class SearchViewModel : IDisposable
 {
@@ -32,9 +32,9 @@ public sealed partial class SearchViewModel : IDisposable
     private readonly IGitHubClientFactory _clientFactory;
     private readonly CompositeDisposable _disposables = [];
     private readonly Dictionary<SearchType, SearchSession> _sessions = [];
-    private readonly SearchSession _reviewInboxSession = new();
-    private readonly SearchSession _assignedInboxSession = new();
-    private readonly SearchSession _mentionsInboxSession = new();
+    private readonly SearchInbox _reviewInbox;
+    private readonly SearchInbox _assignedInbox;
+    private readonly SearchInbox _mentionsInbox;
 
     private CancellationTokenSource? _requestCts;
     private int _requestVersion;
@@ -72,6 +72,12 @@ public sealed partial class SearchViewModel : IDisposable
     public SearchViewModel(IGitHubClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
+        _reviewInbox = new SearchInbox(
+            ReviewRequestedQuery, SearchInboxKind.PullRequests, ReviewRequested);
+        _assignedInbox = new SearchInbox(
+            AssignedQuery, SearchInboxKind.Issues, Assigned);
+        _mentionsInbox = new SearchInbox(
+            MentionsQuery, SearchInboxKind.Issues, Mentions);
 
         foreach (var type in Enum.GetValues<SearchType>())
             _sessions[type] = new SearchSession();
@@ -102,11 +108,11 @@ public sealed partial class SearchViewModel : IDisposable
         ApplyHub(next);
 
         if (string.Equals(next, ReviewRequestedHub, StringComparison.Ordinal))
-            await LoadReviewRequestedAsync();
+            await LoadInboxAsync(_reviewInbox);
         else if (string.Equals(next, AssignedHub, StringComparison.Ordinal))
-            await LoadAssignedAsync();
+            await LoadInboxAsync(_assignedInbox);
         else if (string.Equals(next, MentionsHub, StringComparison.Ordinal))
-            await LoadMentionsAsync();
+            await LoadInboxAsync(_mentionsInbox);
         else
             RefreshSelectedState();
     }
@@ -191,19 +197,19 @@ public sealed partial class SearchViewModel : IDisposable
     {
         if (IsReviewRequestedHub.Value)
         {
-            await LoadMoreReviewRequestedAsync();
+            await LoadMoreInboxAsync(_reviewInbox);
             return;
         }
 
         if (IsAssignedHub.Value)
         {
-            await LoadMoreAssignedAsync();
+            await LoadMoreInboxAsync(_assignedInbox);
             return;
         }
 
         if (IsMentionsHub.Value)
         {
-            await LoadMoreMentionsAsync();
+            await LoadMoreInboxAsync(_mentionsInbox);
             return;
         }
 
@@ -229,267 +235,6 @@ public sealed partial class SearchViewModel : IDisposable
             var api = RestService.For<IGitHubSearchApi>(session.Paged.Client);
             await SearchPageAsync(
                 api, type, session.Query, session, replace: false, version, requestCts.Token);
-
-            if (!IsCurrent(version))
-                return;
-
-            RefreshSelectedState();
-        }
-        catch (OperationCanceledException)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "Request timed out.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (Exception ex)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = $"Load more failed: {ex.Message}";
-        }
-        finally
-        {
-            CompleteRequest(version, requestCts);
-        }
-    }
-
-    private async Task LoadReviewRequestedAsync()
-    {
-        var session = _reviewInboxSession;
-        session.DisposePaged();
-        ReviewRequested.Clear();
-
-        var (version, requestCts) = BeginRequest();
-        IsLoading.Value = true;
-        ErrorMessage.Value = string.Empty;
-
-        try
-        {
-            var paged = await StartPagedAsync(session, ReviewRequestedQuery, version, requestCts.Token);
-            if (paged is null)
-            {
-                RefreshSelectedState();
-                return;
-            }
-
-            var api = RestService.For<IGitHubSearchApi>(paged.Client);
-            await SearchReviewRequestedPageAsync(
-                api, session, replace: true, version, requestCts.Token);
-
-            if (!IsCurrent(version))
-                return;
-
-            session.HasSearched = true;
-            RefreshSelectedState();
-        }
-        catch (OperationCanceledException)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "Request timed out.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (Exception ex)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = $"Load failed: {ex.Message}";
-        }
-        finally
-        {
-            CompleteRequest(version, requestCts);
-        }
-    }
-
-    private async Task LoadMoreReviewRequestedAsync()
-    {
-        var session = _reviewInboxSession;
-        if (session.Paged is null
-            || !session.HasNextPage
-            || IsLoading.Value)
-        {
-            return;
-        }
-
-        var (version, requestCts) = BeginRequest();
-        IsLoading.Value = true;
-        ErrorMessage.Value = string.Empty;
-
-        try
-        {
-            if (!session.Paged.Advance())
-                return;
-
-            session.Paged.PrepareRequest();
-            var api = RestService.For<IGitHubSearchApi>(session.Paged.Client);
-            await SearchReviewRequestedPageAsync(
-                api, session, replace: false, version, requestCts.Token);
-
-            if (!IsCurrent(version))
-                return;
-
-            RefreshSelectedState();
-        }
-        catch (OperationCanceledException)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "Request timed out.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (Exception ex)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = $"Load more failed: {ex.Message}";
-        }
-        finally
-        {
-            CompleteRequest(version, requestCts);
-        }
-    }
-
-
-    private async Task LoadAssignedAsync()
-    {
-        var session = _assignedInboxSession;
-        session.DisposePaged();
-        Assigned.Clear();
-
-        var (version, requestCts) = BeginRequest();
-        IsLoading.Value = true;
-        ErrorMessage.Value = string.Empty;
-
-        try
-        {
-            var paged = await StartPagedAsync(session, AssignedQuery, version, requestCts.Token);
-            if (paged is null)
-            {
-                RefreshSelectedState();
-                return;
-            }
-
-            var api = RestService.For<IGitHubSearchApi>(paged.Client);
-            await SearchAssignedPageAsync(
-                api, session, replace: true, version, requestCts.Token);
-
-            if (!IsCurrent(version))
-                return;
-
-            session.HasSearched = true;
-            RefreshSelectedState();
-        }
-        catch (OperationCanceledException)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "Request timed out.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (Exception ex)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = $"Load failed: {ex.Message}";
-        }
-        finally
-        {
-            CompleteRequest(version, requestCts);
-        }
-    }
-
-    private async Task LoadMoreAssignedAsync()
-    {
-        var session = _assignedInboxSession;
-        if (session.Paged is null
-            || !session.HasNextPage
-            || IsLoading.Value)
-        {
-            return;
-        }
-
-        var (version, requestCts) = BeginRequest();
-        IsLoading.Value = true;
-        ErrorMessage.Value = string.Empty;
-
-        try
-        {
-            if (!session.Paged.Advance())
-                return;
-
-            session.Paged.PrepareRequest();
-            var api = RestService.For<IGitHubSearchApi>(session.Paged.Client);
-            await SearchAssignedPageAsync(
-                api, session, replace: false, version, requestCts.Token);
 
             if (!IsCurrent(version))
                 return;
@@ -590,98 +335,23 @@ public sealed partial class SearchViewModel : IDisposable
         }
     }
 
-    private async Task SearchReviewRequestedPageAsync(
-        IGitHubSearchApi api,
-        SearchSession session,
-        bool replace,
-        int version,
-        CancellationToken cancellationToken)
+    private async Task LoadInboxAsync(SearchInbox inbox)
     {
-        var response = await api.SearchPullRequests(EncodeQuery(ReviewRequestedQuery))
-            .FirstAsync(cancellationToken);
-        if (!IsCurrent(version))
-            return;
-
-        EnsureSearchSucceeded(response);
-        UpdateCollection(ReviewRequested, response.Content?.Items, replace);
-        UpdateSession(session, response.Content, response.Headers);
-    }
-
-    private async Task SearchAssignedPageAsync(
-        IGitHubSearchApi api,
-        SearchSession session,
-        bool replace,
-        int version,
-        CancellationToken cancellationToken)
-    {
-        var response = await api.SearchIssues(EncodeQuery(AssignedQuery))
-            .FirstAsync(cancellationToken);
-        if (!IsCurrent(version))
-            return;
-
-        EnsureSearchSucceeded(response);
-        UpdateCollection(Assigned, response.Content?.Items, replace);
-        UpdateSession(session, response.Content, response.Headers);
-    }
-
-    private async Task LoadMentionsAsync()
-    {
-        var session = _mentionsInboxSession;
-        session.DisposePaged();
-        Mentions.Clear();
-
         var (version, requestCts) = BeginRequest();
         IsLoading.Value = true;
         ErrorMessage.Value = string.Empty;
 
         try
         {
-            var paged = await StartPagedAsync(session, MentionsQuery, version, requestCts.Token);
-            if (paged is null)
-            {
-                RefreshSelectedState();
-                return;
-            }
-
-            var api = RestService.For<IGitHubSearchApi>(paged.Client);
-            await SearchMentionsPageAsync(
-                api, session, replace: true, version, requestCts.Token);
-
-            if (!IsCurrent(version))
+            var result = await inbox.LoadAsync(
+                _clientFactory, version, IsCurrent, requestCts.Token);
+            if (!result.Completed)
                 return;
 
-            session.HasSearched = true;
+            if (result.Error is not null)
+                ErrorMessage.Value = result.Error;
+
             RefreshSelectedState();
-        }
-        catch (OperationCanceledException)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "Request timed out.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (Exception ex)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = $"Load failed: {ex.Message}";
         }
         finally
         {
@@ -689,15 +359,10 @@ public sealed partial class SearchViewModel : IDisposable
         }
     }
 
-    private async Task LoadMoreMentionsAsync()
+    private async Task LoadMoreInboxAsync(SearchInbox inbox)
     {
-        var session = _mentionsInboxSession;
-        if (session.Paged is null
-            || !session.HasNextPage
-            || IsLoading.Value)
-        {
+        if (!inbox.CanLoadMore || IsLoading.Value)
             return;
-        }
 
         var (version, requestCts) = BeginRequest();
         IsLoading.Value = true;
@@ -705,48 +370,15 @@ public sealed partial class SearchViewModel : IDisposable
 
         try
         {
-            if (!session.Paged.Advance())
+            var result = await inbox.LoadMoreAsync(
+                version, IsCurrent, requestCts.Token);
+            if (!result.Completed)
                 return;
 
-            session.Paged.PrepareRequest();
-            var api = RestService.For<IGitHubSearchApi>(session.Paged.Client);
-            await SearchMentionsPageAsync(
-                api, session, replace: false, version, requestCts.Token);
-
-            if (!IsCurrent(version))
-                return;
+            if (result.Error is not null)
+                ErrorMessage.Value = result.Error;
 
             RefreshSelectedState();
-        }
-        catch (OperationCanceledException)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "Request timed out.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub rejected the search query. Check its syntax and qualifiers.";
-        }
-        catch (Exception ex)
-        {
-            if (IsCurrent(version))
-                ErrorMessage.Value = $"Load more failed: {ex.Message}";
         }
         finally
         {
@@ -754,29 +386,12 @@ public sealed partial class SearchViewModel : IDisposable
         }
     }
 
-    private async Task SearchMentionsPageAsync(
-        IGitHubSearchApi api,
-        SearchSession session,
-        bool replace,
-        int version,
-        CancellationToken cancellationToken)
+    private void ApplyInboxState(SearchInbox inbox)
     {
-        var response = await api.SearchIssues(EncodeQuery(MentionsQuery))
-            .FirstAsync(cancellationToken);
-        if (!IsCurrent(version))
-            return;
-
-        EnsureSearchSucceeded(response);
-        UpdateCollection(Mentions, response.Content?.Items, replace);
-        UpdateSession(session, response.Content, response.Headers);
-    }
-
-    private void ApplyInboxState(SearchSession session, int count)
-    {
-        HasSearched.Value = session.HasSearched;
-        IsEmpty.Value = session.HasSearched && count == 0;
-        TotalCount.Value = session.TotalCount;
-        CanLoadMore.Value = session.HasNextPage;
+        HasSearched.Value = inbox.HasSearched;
+        IsEmpty.Value = inbox.HasSearched && inbox.Items.Count == 0;
+        TotalCount.Value = inbox.TotalCount;
+        CanLoadMore.Value = inbox.HasNextPage;
     }
 
     private bool IsAnyInboxHub =>
@@ -787,11 +402,11 @@ public sealed partial class SearchViewModel : IDisposable
         if (string.Equals(hub, SearchHub, StringComparison.Ordinal))
             return true;
         if (string.Equals(hub, ReviewRequestedHub, StringComparison.Ordinal))
-            return _reviewInboxSession.Paged is not null;
+            return _reviewInbox.HasSession;
         if (string.Equals(hub, AssignedHub, StringComparison.Ordinal))
-            return _assignedInboxSession.Paged is not null;
+            return _assignedInbox.HasSession;
         if (string.Equals(hub, MentionsHub, StringComparison.Ordinal))
-            return _mentionsInboxSession.Paged is not null;
+            return _mentionsInbox.HasSession;
         return false;
     }
 
@@ -842,19 +457,19 @@ public sealed partial class SearchViewModel : IDisposable
     {
         if (IsReviewRequestedHub.Value)
         {
-            ApplyInboxState(_reviewInboxSession, ReviewRequested.Count);
+            ApplyInboxState(_reviewInbox);
             return;
         }
 
         if (IsAssignedHub.Value)
         {
-            ApplyInboxState(_assignedInboxSession, Assigned.Count);
+            ApplyInboxState(_assignedInbox);
             return;
         }
 
         if (IsMentionsHub.Value)
         {
-            ApplyInboxState(_mentionsInboxSession, Mentions.Count);
+            ApplyInboxState(_mentionsInbox);
             return;
         }
 
@@ -979,9 +594,9 @@ public sealed partial class SearchViewModel : IDisposable
         _disposables.Dispose();
         foreach (var session in _sessions.Values)
             session.DisposePaged();
-        _reviewInboxSession.DisposePaged();
-        _assignedInboxSession.DisposePaged();
-        _mentionsInboxSession.DisposePaged();
+        _reviewInbox.Dispose();
+        _assignedInbox.Dispose();
+        _mentionsInbox.Dispose();
 
         Query.Dispose();
         SelectedType.Dispose();
