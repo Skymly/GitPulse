@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Http;
+using GitPulse.Core.Models;
 using GitPulse.ViewModels;
 using Xunit;
 
@@ -231,7 +232,7 @@ public class SearchViewModelTests
     }
 
     [Fact]
-    public async Task DefaultHub_DoesNotLoadReviewRequested()
+    public async Task DefaultHub_DoesNotLoadAnyInbox()
     {
         var handler = new RecordingHandler((_, _, _) =>
             Task.FromResult(JsonResponse(IssueResults("should-not-load"))));
@@ -240,56 +241,64 @@ public class SearchViewModelTests
         Assert.Equal(SearchViewModel.SearchHub, vm.SelectedHub.Value);
         Assert.True(vm.IsSearchHub.Value);
         Assert.False(vm.IsReviewRequestedHub.Value);
+        Assert.False(vm.IsAssignedHub.Value);
+        Assert.False(vm.IsMentionsHub.Value);
         Assert.Empty(handler.Requests);
         Assert.Empty(vm.ReviewRequested);
+        Assert.Empty(vm.Assigned);
+        Assert.Empty(vm.Mentions);
     }
 
-    [Fact]
-    public async Task SelectHub_ReviewRequested_UsesCannedQueryWithoutThreeCharGate()
+    [Theory]
+    [MemberData(nameof(InboxHubs))]
+    public async Task SelectHub_Inbox_UsesCannedQueryWithoutThreeCharGate(string hub)
     {
         var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(JsonResponse(IssueResults("Needs review", totalCount: 4))));
+            Task.FromResult(JsonResponse(IssueResults("Inbox item", totalCount: 4))));
         using var vm = CreateViewModel(handler);
 
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.ReviewRequestedHub);
+        await vm.SelectHubCommand.ExecuteAsync(hub);
 
         var uri = Assert.Single(handler.Requests);
         Assert.Equal("/search/issues", uri.AbsolutePath);
         Assert.Contains(
-            "q=" + Uri.EscapeDataString(SearchViewModel.ReviewRequestedQuery),
+            "q=" + Uri.EscapeDataString(InboxQuery(hub)),
             uri.Query,
             StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("false%20is%3Apr", uri.Query, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(SearchViewModel.ReviewRequestedHub, vm.SelectedHub.Value);
-        Assert.True(vm.IsReviewRequestedSelected.Value);
+        Assert.DoesNotContain(InboxExtraQualifier(hub), uri.Query, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(hub, vm.SelectedHub.Value);
+        Assert.True(IsInboxSelected(vm, hub));
+        Assert.False(vm.IsIssuesSelected.Value);
         Assert.False(vm.IsPullRequestsSelected.Value);
-        var item = Assert.Single(vm.ReviewRequested);
-        Assert.Equal("Needs review", item.Title);
+        var item = Assert.Single(InboxItems(vm, hub));
+        Assert.Equal("Inbox item", item.Title);
         Assert.Equal(4, vm.TotalCount.Value);
         Assert.True(vm.HasSearched.Value);
         Assert.False(vm.IsEmpty.Value);
     }
 
-    [Fact]
-    public async Task SelectHub_ReviewRequested_WithoutToken_SetsAuthenticationErrorWithoutRequest()
+    [Theory]
+    [MemberData(nameof(InboxHubs))]
+    public async Task SelectHub_Inbox_WithoutToken_SetsAuthenticationErrorWithoutRequest(string hub)
     {
         var handler = new RecordingHandler((_, _, _) =>
             Task.FromResult(JsonResponse(IssueResults("unused"))));
         using var vm = new SearchViewModel(new RecordingClientFactory(handler, token: null));
 
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.ReviewRequestedHub);
+        await vm.SelectHubCommand.ExecuteAsync(hub);
 
         Assert.Contains("No token", vm.ErrorMessage.Value);
         Assert.Empty(handler.Requests);
-        Assert.Empty(vm.ReviewRequested);
-        Assert.Equal(SearchViewModel.ReviewRequestedHub, vm.SelectedHub.Value);
+        Assert.Empty(InboxItems(vm, hub));
+        Assert.Equal(hub, vm.SelectedHub.Value);
     }
 
-    [Fact]
-    public async Task LoadMore_ReviewRequested_AppendsNextPage()
+    [Theory]
+    [MemberData(nameof(InboxHubs))]
+    public async Task LoadMore_Inbox_AppendsNextPage(string hub)
     {
         var nextLink =
-            "<https://api.github.com/search/issues?q=review&page=2>; rel=\"next\"";
+            "<https://api.github.com/search/issues?q=inbox&page=2>; rel=\"next\"";
         var handler = new RecordingHandler((request, _, _) =>
         {
             var isSecondPage = request.RequestUri?.Query.Contains("page=2") == true;
@@ -299,12 +308,12 @@ public class SearchViewModelTests
         });
         using var vm = CreateViewModel(handler);
 
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.ReviewRequestedHub);
+        await vm.SelectHubCommand.ExecuteAsync(hub);
         Assert.True(vm.CanLoadMore.Value);
 
         await vm.LoadMoreCommand.ExecuteAsync(null);
 
-        Assert.Equal(["First", "Second"], vm.ReviewRequested.Select(item => item.Title));
+        Assert.Equal(["First", "Second"], InboxItems(vm, hub).Select(item => item.Title));
         Assert.False(vm.CanLoadMore.Value);
         Assert.Contains("page=2", handler.Requests.Last().Query);
     }
@@ -336,26 +345,26 @@ public class SearchViewModelTests
         Assert.Equal("Inbox PR", Assert.Single(vm.ReviewRequested).Title);
     }
 
-    [Fact]
-    public async Task SelectHub_EmptyReviewRequested_IsQuiet()
+    [Theory]
+    [MemberData(nameof(InboxHubs))]
+    public async Task SelectHub_EmptyInbox_IsQuiet(string hub)
     {
         var handler = new RecordingHandler((_, _, _) =>
             Task.FromResult(JsonResponse(EmptyResults())));
         using var vm = CreateViewModel(handler);
 
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.ReviewRequestedHub);
+        await vm.SelectHubCommand.ExecuteAsync(hub);
 
         Assert.True(vm.HasSearched.Value);
         Assert.True(vm.IsEmpty.Value);
-        Assert.Empty(vm.ReviewRequested);
+        Assert.Empty(InboxItems(vm, hub));
         Assert.Empty(vm.ErrorMessage.Value);
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Forbidden, "rate limit")]
-    [InlineData(HttpStatusCode.UnprocessableEntity, "syntax")]
-    [InlineData(HttpStatusCode.InternalServerError, "Load failed")]
-    public async Task SelectHub_ReviewRequestedHttpFailure_ShowsSpecificMessage(
+    [MemberData(nameof(InboxHttpFailures))]
+    public async Task SelectHub_InboxHttpFailure_ShowsSpecificMessage(
+        string hub,
         HttpStatusCode statusCode,
         string expectedMessage)
     {
@@ -366,90 +375,11 @@ public class SearchViewModelTests
             }));
         using var vm = CreateViewModel(handler);
 
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.ReviewRequestedHub);
+        await vm.SelectHubCommand.ExecuteAsync(hub);
 
         Assert.Contains(expectedMessage, vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(SearchViewModel.ReviewRequestedHub, vm.SelectedHub.Value);
+        Assert.Equal(hub, vm.SelectedHub.Value);
         Assert.False(vm.IsLoading.Value);
-    }
-
-    [Fact]
-    public async Task DefaultHub_DoesNotLoadAssigned()
-    {
-        var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(JsonResponse(IssueResults("should-not-load"))));
-        using var vm = CreateViewModel(handler);
-
-        Assert.Equal(SearchViewModel.SearchHub, vm.SelectedHub.Value);
-        Assert.False(vm.IsAssignedHub.Value);
-        Assert.Empty(handler.Requests);
-        Assert.Empty(vm.Assigned);
-    }
-
-    [Fact]
-    public async Task SelectHub_Assigned_UsesCannedQueryWithoutThreeCharGate()
-    {
-        var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(JsonResponse(IssueResults("Assigned to me", totalCount: 5))));
-        using var vm = CreateViewModel(handler);
-
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.AssignedHub);
-
-        var uri = Assert.Single(handler.Requests);
-        Assert.Equal("/search/issues", uri.AbsolutePath);
-        Assert.Contains(
-            "q=" + Uri.EscapeDataString(SearchViewModel.AssignedQuery),
-            uri.Query,
-            StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("false%20is%3Aissue", uri.Query, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(SearchViewModel.AssignedHub, vm.SelectedHub.Value);
-        Assert.True(vm.IsAssignedSelected.Value);
-        Assert.False(vm.IsReviewRequestedSelected.Value);
-        Assert.False(vm.IsIssuesSelected.Value);
-        var item = Assert.Single(vm.Assigned);
-        Assert.Equal("Assigned to me", item.Title);
-        Assert.Equal(5, vm.TotalCount.Value);
-        Assert.True(vm.HasSearched.Value);
-        Assert.False(vm.IsEmpty.Value);
-    }
-
-    [Fact]
-    public async Task SelectHub_Assigned_WithoutToken_SetsAuthenticationErrorWithoutRequest()
-    {
-        var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(JsonResponse(IssueResults("unused"))));
-        using var vm = new SearchViewModel(new RecordingClientFactory(handler, token: null));
-
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.AssignedHub);
-
-        Assert.Contains("No token", vm.ErrorMessage.Value);
-        Assert.Empty(handler.Requests);
-        Assert.Empty(vm.Assigned);
-        Assert.Equal(SearchViewModel.AssignedHub, vm.SelectedHub.Value);
-    }
-
-    [Fact]
-    public async Task LoadMore_Assigned_AppendsNextPage()
-    {
-        var nextLink =
-            "<https://api.github.com/search/issues?q=assigned&page=2>; rel=\"next\"";
-        var handler = new RecordingHandler((request, _, _) =>
-        {
-            var isSecondPage = request.RequestUri?.Query.Contains("page=2") == true;
-            return Task.FromResult(JsonResponse(
-                IssueResults(isSecondPage ? "Second" : "First", totalCount: 2),
-                isSecondPage ? null : nextLink));
-        });
-        using var vm = CreateViewModel(handler);
-
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.AssignedHub);
-        Assert.True(vm.CanLoadMore.Value);
-
-        await vm.LoadMoreCommand.ExecuteAsync(null);
-
-        Assert.Equal(["First", "Second"], vm.Assigned.Select(item => item.Title));
-        Assert.False(vm.CanLoadMore.Value);
-        Assert.Contains("page=2", handler.Requests.Last().Query);
     }
 
     [Fact]
@@ -481,117 +411,6 @@ public class SearchViewModelTests
     }
 
     [Fact]
-    public async Task SelectHub_EmptyAssigned_IsQuiet()
-    {
-        var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(JsonResponse(EmptyResults())));
-        using var vm = CreateViewModel(handler);
-
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.AssignedHub);
-
-        Assert.True(vm.HasSearched.Value);
-        Assert.True(vm.IsEmpty.Value);
-        Assert.Empty(vm.Assigned);
-        Assert.Empty(vm.ErrorMessage.Value);
-    }
-
-    [Theory]
-    [InlineData(HttpStatusCode.Forbidden, "rate limit")]
-    [InlineData(HttpStatusCode.UnprocessableEntity, "syntax")]
-    [InlineData(HttpStatusCode.InternalServerError, "Load failed")]
-    public async Task SelectHub_AssignedHttpFailure_ShowsSpecificMessage(
-        HttpStatusCode statusCode,
-        string expectedMessage)
-    {
-        var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(new HttpResponseMessage(statusCode)
-            {
-                Content = new StringContent("{}", Encoding.UTF8, "application/json"),
-            }));
-        using var vm = CreateViewModel(handler);
-
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.AssignedHub);
-
-        Assert.Contains(expectedMessage, vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(SearchViewModel.AssignedHub, vm.SelectedHub.Value);
-        Assert.False(vm.IsLoading.Value);
-    }
-
-    [Fact]
-    public async Task DefaultHub_DoesNotLoadMentions()
-    {
-        var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(JsonResponse(IssueResults("should-not-load"))));
-        using var vm = CreateViewModel(handler);
-
-        Assert.False(vm.IsMentionsHub.Value);
-        Assert.Empty(handler.Requests);
-        Assert.Empty(vm.Mentions);
-    }
-
-    [Fact]
-    public async Task SelectHub_Mentions_UsesCannedQueryWithoutThreeCharGate()
-    {
-        var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(JsonResponse(IssueResults("Mentioned me", totalCount: 3))));
-        using var vm = CreateViewModel(handler);
-
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.MentionsHub);
-
-        var uri = Assert.Single(handler.Requests);
-        Assert.Equal("/search/issues", uri.AbsolutePath);
-        Assert.Contains(
-            "q=" + Uri.EscapeDataString(SearchViewModel.MentionsQuery),
-            uri.Query,
-            StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("false%20is%3Aissue", uri.Query, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(SearchViewModel.MentionsHub, vm.SelectedHub.Value);
-        Assert.True(vm.IsMentionsSelected.Value);
-        Assert.False(vm.IsAssignedSelected.Value);
-        var item = Assert.Single(vm.Mentions);
-        Assert.Equal("Mentioned me", item.Title);
-        Assert.Equal(3, vm.TotalCount.Value);
-        Assert.True(vm.HasSearched.Value);
-    }
-
-    [Fact]
-    public async Task SelectHub_Mentions_WithoutToken_SetsAuthenticationErrorWithoutRequest()
-    {
-        var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(JsonResponse(IssueResults("unused"))));
-        using var vm = new SearchViewModel(new RecordingClientFactory(handler, token: null));
-
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.MentionsHub);
-
-        Assert.Contains("No token", vm.ErrorMessage.Value);
-        Assert.Empty(handler.Requests);
-        Assert.Empty(vm.Mentions);
-    }
-
-    [Fact]
-    public async Task LoadMore_Mentions_AppendsNextPage()
-    {
-        var nextLink =
-            "<https://api.github.com/search/issues?q=mentions&page=2>; rel=\"next\"";
-        var handler = new RecordingHandler((request, _, _) =>
-        {
-            var isSecondPage = request.RequestUri?.Query.Contains("page=2") == true;
-            return Task.FromResult(JsonResponse(
-                IssueResults(isSecondPage ? "Second" : "First", totalCount: 2),
-                isSecondPage ? null : nextLink));
-        });
-        using var vm = CreateViewModel(handler);
-
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.MentionsHub);
-        Assert.True(vm.CanLoadMore.Value);
-
-        await vm.LoadMoreCommand.ExecuteAsync(null);
-
-        Assert.Equal(["First", "Second"], vm.Mentions.Select(item => item.Title));
-        Assert.Contains("page=2", handler.Requests.Last().Query);
-    }
-
-    [Fact]
     public async Task SelectHub_DoesNotMixMentionsAndAssigned()
     {
         var handler = new RecordingHandler((request, _, _) =>
@@ -615,21 +434,6 @@ public class SearchViewModelTests
     }
 
     [Fact]
-    public async Task SelectHub_EmptyMentions_IsQuiet()
-    {
-        var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(JsonResponse(EmptyResults())));
-        using var vm = CreateViewModel(handler);
-
-        await vm.SelectHubCommand.ExecuteAsync(SearchViewModel.MentionsHub);
-
-        Assert.True(vm.HasSearched.Value);
-        Assert.True(vm.IsEmpty.Value);
-        Assert.Empty(vm.Mentions);
-        Assert.Empty(vm.ErrorMessage.Value);
-    }
-
-    [Fact]
     public async Task Search_StillRequiresThreeCharactersOnSearchHub()
     {
         var handler = new RecordingHandler((_, _, _) =>
@@ -641,6 +445,76 @@ public class SearchViewModelTests
 
         Assert.Empty(handler.Requests);
         Assert.Contains("3 characters", vm.ErrorMessage.Value);
+    }
+
+    public static TheoryData<string> InboxHubs => new()
+    {
+        SearchViewModel.ReviewRequestedHub,
+        SearchViewModel.AssignedHub,
+        SearchViewModel.MentionsHub,
+    };
+
+    public static TheoryData<string, HttpStatusCode, string> InboxHttpFailures
+    {
+        get
+        {
+            var data = new TheoryData<string, HttpStatusCode, string>();
+            foreach (var hub in new[]
+                     {
+                         SearchViewModel.ReviewRequestedHub,
+                         SearchViewModel.AssignedHub,
+                         SearchViewModel.MentionsHub,
+                     })
+            {
+                data.Add(hub, HttpStatusCode.Forbidden, "rate limit");
+                data.Add(hub, HttpStatusCode.UnprocessableEntity, "syntax");
+                data.Add(hub, HttpStatusCode.InternalServerError, "Load failed");
+            }
+
+            return data;
+        }
+    }
+
+    private static string InboxQuery(string hub)
+    {
+        return hub switch
+        {
+            SearchViewModel.ReviewRequestedHub => SearchViewModel.ReviewRequestedQuery,
+            SearchViewModel.AssignedHub => SearchViewModel.AssignedQuery,
+            SearchViewModel.MentionsHub => SearchViewModel.MentionsQuery,
+            _ => throw new ArgumentOutOfRangeException(nameof(hub), hub, null),
+        };
+    }
+
+    private static string InboxExtraQualifier(string hub)
+    {
+        return hub == SearchViewModel.ReviewRequestedHub
+            ? "false%20is%3Apr"
+            : "false%20is%3Aissue";
+    }
+
+    private static IReadOnlyList<SearchIssueItem> InboxItems(
+        SearchViewModel vm,
+        string hub)
+    {
+        return hub switch
+        {
+            SearchViewModel.ReviewRequestedHub => vm.ReviewRequested,
+            SearchViewModel.AssignedHub => vm.Assigned,
+            SearchViewModel.MentionsHub => vm.Mentions,
+            _ => throw new ArgumentOutOfRangeException(nameof(hub), hub, null),
+        };
+    }
+
+    private static bool IsInboxSelected(SearchViewModel vm, string hub)
+    {
+        return hub switch
+        {
+            SearchViewModel.ReviewRequestedHub => vm.IsReviewRequestedSelected.Value,
+            SearchViewModel.AssignedHub => vm.IsAssignedSelected.Value,
+            SearchViewModel.MentionsHub => vm.IsMentionsSelected.Value,
+            _ => throw new ArgumentOutOfRangeException(nameof(hub), hub, null),
+        };
     }
 
     private static SearchViewModel CreateViewModel(RecordingHandler handler)
