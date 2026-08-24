@@ -182,6 +182,25 @@
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4"
                                                  Margin="0,8,0,0"
+                                                 IsVisible="{Binding Repo.Value.Homepage, Converter={StaticResource StringToBoolConverter}}">
+                                <Label Text="Homepage"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Text="{Binding Repo.Value.Homepage}"
+                                       FontSize="12"
+                                       LineBreakMode="MiddleTruncation"
+                                       MaxLines="2" />
+                                <Button Text="Open homepage"
+                                        Command="{Binding OpenInBrowserCommand}"
+                                        CommandParameter="{Binding Repo.Value.Homepage}"
+                                        Padding="16,10"
+                                        FontSize="13"
+                                        HorizontalOptions="Fill"
+                                        AutomationId="RepoDetailOpenHomepage" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4"
+                                                 Margin="0,8,0,0"
                                                  IsVisible="{Binding Repo.Value.CloneUrl, Converter={StaticResource StringToBoolConverter}}">
                                 <Label Text="Clone"
                                        FontSize="12"
