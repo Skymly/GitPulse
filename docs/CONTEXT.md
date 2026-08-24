@@ -45,7 +45,7 @@ The non-Shell `UiTestHostPage` (TabbedPage + NavigationPage) enabled by `GITPULS
 _Avoid_: production Shell, test-only navigation as user-facing design
 
 **Paged GitHub Session**:
-A Core type (`PagedGitHubSession`) that owns one paged GitHub HTTP client cycle: `GitHubQueryHandler` page/state injection, current page cursor, `Link`-header `HasNextPage`, and client dispose. List ViewModels call `RestService.For` on its `Client` and map domain items; they do not reassemble handler + Link parsing. Created via `IGitHubClientFactory.CreatePagedSessionAsync`. Does not own auth-timeout error envelope or Search-specific TotalCount / multi-type tables. Search, Review inbox, and Assigned inbox use the same session.
+A Core type (`PagedGitHubSession`) that owns one paged GitHub HTTP client cycle: `GitHubQueryHandler` page/state injection, current page cursor, `Link`-header `HasNextPage`, and client dispose. List ViewModels call `RestService.For` on its `Client` and map domain items; they do not reassemble handler + Link parsing. Created via `IGitHubClientFactory.CreatePagedSessionAsync`. Does not own auth-timeout error envelope or Search-specific TotalCount / multi-type tables. Typed Search and each Search Inbox use the same session.
 _Avoid_: generic HTTP session, repository, paging service, call envelope
 
 **Draft PR**:
@@ -79,6 +79,10 @@ _Avoid_: watching / subscriptions, recently viewed, star toggle (write)
 **Git Commit**:
 A commit on a repository from `GET /repos/{owner}/{repo}/commits` and `GET /repos/{owner}/{repo}/commits/{ref}` (SHA, message, author, date, `html_url`). List payloads omit stats and files; Get-a-commit fills optional `stats` (additions / deletions / total) and `files` (diff-entry shape, optional patch). Distinct from a Check Run, a FileCommitResponse (Contents API write), and a PR head SHA.
 _Avoid_: commit comment, compare, blame
+
+**Search Inbox**:
+A canned-query hub on the Search tab — Review Inbox, Assigned Inbox, or Mentions Inbox. Distinct from typed Search (a user-entered query with a 3-character minimum) and from the Notifications feed.
+_Avoid_: notification reason filter, typed search, created hub
 
 **Review Inbox**:
 Open pull requests whose review is requested from the authenticated user (directly or via a team), listed from GitHub Search review-requested:@me on the Search tab. Distinct from the Notifications feed (reason=review_requested is mixed and not the full open set) and from requesting reviewers on a single PR.

@@ -111,7 +111,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 2. Session 内部用 `GitHubQueryHandler` 注入 `page` / `per_page`（及 Issues/PRs 的 `state`）；handler 不是 ViewModel 面向契约
 3. Session 用 `LinkHeaderParser` 解析 `rel="next"` → `HasNextPage`
 
-Search / Review inbox / Assigned inbox 使用 `PagedGitHubSession`。
+Typed Search 与每个 Search Inbox 使用 `PagedGitHubSession`。
 
 ### CRUD（M3+）
 
