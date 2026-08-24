@@ -18,7 +18,7 @@ public class RepoDetailViewModelTests
         "\"description\":\"A test repo\",\"html_url\":\"https://github.com/owner/repo\"," +
         "\"private\":false,\"default_branch\":\"main\"," +
         "\"stargazers_count\":42,\"forks_count\":3,\"open_issues_count\":5," +
-        "\"updated_at\":\"2026-01-01T00:00:00Z\",\"clone_url\":\"https://github.com/owner/repo.git\",\"ssh_url\":\"git@github.com:owner/repo.git\",\"language\":\"C#\",\"license\":{\"key\":\"mit\",\"name\":\"MIT License\",\"spdx_id\":\"MIT\"},\"topics\":[\"maui\",\"github\"]}";
+        "\"updated_at\":\"2026-01-01T00:00:00Z\",\"clone_url\":\"https://github.com/owner/repo.git\",\"ssh_url\":\"git@github.com:owner/repo.git\",\"language\":\"C#\",\"license\":{\"key\":\"mit\",\"name\":\"MIT License\",\"spdx_id\":\"MIT\"},\"topics\":[\"maui\",\"github\"],\"homepage\":\"https://example.com\"}";
 
     /// <summary>Encode a markdown string as base64 for README content.</summary>
     private static string ReadmeJson(string markdown)
@@ -90,6 +90,7 @@ public class RepoDetailViewModelTests
         Assert.Equal("C#", vm.Repo.Value.Language);
         Assert.Equal("MIT", vm.Repo.Value.License!.SpdxId);
         Assert.Equal(["maui", "github"], vm.Repo.Value.Topics);
+        Assert.Equal("https://example.com", vm.Repo.Value.Homepage);
         Assert.Equal("git@github.com:owner/repo.git", vm.Repo.Value.SshUrl);
         Assert.True(vm.HasReadme.Value);
         Assert.Contains("Test README", vm.ReadmeMarkdown.Value);
