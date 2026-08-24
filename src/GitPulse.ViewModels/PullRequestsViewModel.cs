@@ -24,7 +24,7 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
     private string _owner = string.Empty;
     private string _repo = string.Empty;
-    private PagedGitHubSession? _session;
+    private readonly PagedListCycle _cycle;
 
     /// <summary>Pull requests currently displayed.</summary>
     public ObservableCollection<PullRequest> PullRequests { get; } = [];
@@ -53,6 +53,7 @@ public sealed partial class PullRequestsViewModel : IDisposable
     public PullRequestsViewModel(IGitHubClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
+        _cycle = new PagedListCycle(clientFactory);
         StateFilter.Subscribe(OnStateChanged).AddTo(_disposables);
     }
 
@@ -73,7 +74,7 @@ public sealed partial class PullRequestsViewModel : IDisposable
     {
         // Filter change reloads from page 1 once a session cycle has started.
         // Load recreates the session so credential changes apply.
-        if (_session is not null)
+        if (_cycle.HasSession)
             _ = LoadCommand.ExecuteAsync(null);
     }
 
@@ -88,40 +89,24 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
         try
         {
-            _session?.Dispose();
-            _session = null;
-
-            var session = await _clientFactory.CreatePagedSessionAsync();
-            if (session.Client.DefaultRequestHeaders.Authorization is null)
+            var result = await _cycle.LoadAsync(StateFilter.Value, async (client, ct) =>
             {
-                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
-                session.Dispose();
+                var api = RestService.For<IGitHubReposApi>(client);
+                var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(ct);
+                return new PagedListPage<PullRequest>(response.Content ?? [], response.Headers);
+            });
+            if (!result.Completed)
+                return;
+            if (result.Error is not null)
+            {
+                ErrorMessage.Value = result.Error;
                 return;
             }
 
-            _session = session;
-            _session.State = StateFilter.Value;
-            _session.Reset();
-            _session.PrepareRequest();
-
-            var api = RestService.For<IGitHubReposApi>(_session.Client);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(cts.Token);
-
             PullRequests.Clear();
-            foreach (var pr in response.Content ?? [])
+            foreach (var pr in result.Items)
                 PullRequests.Add(pr);
-
-            _session.ApplyLink(response.Headers);
-            CanLoadMore.Value = _session.HasNextPage;
-        }
-        catch (OperationCanceledException)
-        {
-            ErrorMessage.Value = "Request timed out.";
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage.Value = $"Load failed: {ex.Message}";
+            CanLoadMore.Value = result.HasNextPage;
         }
         finally
         {
@@ -133,10 +118,7 @@ public sealed partial class PullRequestsViewModel : IDisposable
     [RelayCommand]
     private async Task LoadMoreAsync()
     {
-        if (_session is null || !_session.HasNextPage || IsLoading.Value)
-            return;
-
-        if (!_session.Advance())
+        if (!_cycle.CanLoadMore || IsLoading.Value)
             return;
 
         IsLoading.Value = true;
@@ -144,25 +126,23 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
         try
         {
-            _session.PrepareRequest();
+            var result = await _cycle.LoadMoreAsync(async (client, ct) =>
+            {
+                var api = RestService.For<IGitHubReposApi>(client);
+                var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(ct);
+                return new PagedListPage<PullRequest>(response.Content ?? [], response.Headers);
+            });
+            if (!result.Completed)
+                return;
+            if (result.Error is not null)
+            {
+                ErrorMessage.Value = result.Error;
+                return;
+            }
 
-            var api = RestService.For<IGitHubReposApi>(_session.Client);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(cts.Token);
-
-            foreach (var pr in response.Content ?? [])
+            foreach (var pr in result.Items)
                 PullRequests.Add(pr);
-
-            _session.ApplyLink(response.Headers);
-            CanLoadMore.Value = _session.HasNextPage;
-        }
-        catch (OperationCanceledException)
-        {
-            ErrorMessage.Value = "Request timed out.";
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage.Value = $"Load more failed: {ex.Message}";
+            CanLoadMore.Value = result.HasNextPage;
         }
         finally
         {
@@ -180,6 +160,6 @@ public sealed partial class PullRequestsViewModel : IDisposable
         RepoFullName.Dispose();
         Owner.Dispose();
         RepoName.Dispose();
-        _session?.Dispose();
+        _cycle.Dispose();
     }
 }

@@ -18,7 +18,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
 
     private string _owner = string.Empty;
     private string _repo = string.Empty;
-    private PagedGitHubSession? _session;
+    private readonly PagedListCycle _cycle;
 
     public ObservableCollection<WorkflowRun> Runs { get; } = [];
     public ObservableCollection<Workflow> Workflows { get; } = [];
@@ -36,6 +36,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
     public WorkflowRunsViewModel(IGitHubClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
+        _cycle = new PagedListCycle(clientFactory);
     }
 
     public void Initialize(string owner, string repo)
@@ -58,32 +59,32 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
 
         try
         {
-            _session?.Dispose();
-            _session = null;
-
-            var session = await _clientFactory.CreatePagedSessionAsync();
-            if (session.Client.DefaultRequestHeaders.Authorization is null)
+            var result = await _cycle.LoadAsync(null, async (client, ct) =>
             {
-                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
-                session.Dispose();
+                var api = RestService.For<IGitHubActionsApi>(client);
+                var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(ct);
+                return new PagedListPage<WorkflowRun>(
+                    response.Content?.WorkflowRuns ?? [], response.Headers);
+            });
+            if (!result.Completed)
+                return;
+            if (result.Error is not null)
+            {
+                ErrorMessage.Value = result.Error;
                 return;
             }
 
-            _session = session;
-            _session.Reset();
-            _session.PrepareRequest();
-
-            var api = RestService.For<IGitHubActionsApi>(_session.Client);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(cts.Token);
-
             Runs.Clear();
-            foreach (var run in response.Content?.WorkflowRuns ?? [])
+            foreach (var run in result.Items)
                 Runs.Add(run);
+            CanLoadMore.Value = result.HasNextPage;
 
-            _session.ApplyLink(response.Headers);
-            CanLoadMore.Value = _session.HasNextPage;
-            await LoadWorkflowsAsync(api, cts.Token);
+            if (_cycle.Client is { } client)
+            {
+                var api = RestService.For<IGitHubActionsApi>(client);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                await LoadWorkflowsAsync(api, cts.Token);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -102,10 +103,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
     [RelayCommand]
     private async Task LoadMoreAsync()
     {
-        if (_session is null || !_session.HasNextPage || IsLoading.Value)
-            return;
-
-        if (!_session.Advance())
+        if (!_cycle.CanLoadMore || IsLoading.Value)
             return;
 
         IsLoading.Value = true;
@@ -113,25 +111,24 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
 
         try
         {
-            _session.PrepareRequest();
+            var result = await _cycle.LoadMoreAsync(async (client, ct) =>
+            {
+                var api = RestService.For<IGitHubActionsApi>(client);
+                var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(ct);
+                return new PagedListPage<WorkflowRun>(
+                    response.Content?.WorkflowRuns ?? [], response.Headers);
+            });
+            if (!result.Completed)
+                return;
+            if (result.Error is not null)
+            {
+                ErrorMessage.Value = result.Error;
+                return;
+            }
 
-            var api = RestService.For<IGitHubActionsApi>(_session.Client);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(cts.Token);
-
-            foreach (var run in response.Content?.WorkflowRuns ?? [])
+            foreach (var run in result.Items)
                 Runs.Add(run);
-
-            _session.ApplyLink(response.Headers);
-            CanLoadMore.Value = _session.HasNextPage;
-        }
-        catch (OperationCanceledException)
-        {
-            ErrorMessage.Value = "Request timed out.";
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage.Value = $"Load more failed: {ex.Message}";
+            CanLoadMore.Value = result.HasNextPage;
         }
         finally
         {
@@ -224,6 +221,6 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
         SelectedWorkflow.Dispose();
         DispatchRef.Dispose();
         IsDispatching.Dispose();
-        _session?.Dispose();
+        _cycle.Dispose();
     }
 }
