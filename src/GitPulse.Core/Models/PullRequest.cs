@@ -143,3 +143,27 @@ public sealed class MergeResponse
     [JsonPropertyName("message")]
     public string Message { get; init; } = string.Empty;
 }
+
+/// <summary>
+/// Request body for <c>PUT /repos/{owner}/{repo}/pulls/{number}/update-branch</c>.
+/// <c>expected_head_sha</c> is optional; omit when the caller has no head SHA.
+/// </summary>
+public sealed class UpdatePullRequestBranchRequest
+{
+    /// <summary>SHA the pull request head must match (optional safety check).</summary>
+    [JsonPropertyName("expected_head_sha")]
+    public string? ExpectedHeadSha { get; set; }
+}
+
+/// <summary>
+/// Response from <c>PUT /repos/{owner}/{repo}/pulls/{number}/update-branch</c> (202).
+/// </summary>
+public sealed class UpdatePullRequestBranchResponse
+{
+    [JsonPropertyName("message")]
+    public string Message { get; init; } = string.Empty;
+
+    [JsonPropertyName("url")]
+    public string Url { get; init; } = string.Empty;
+}
+
