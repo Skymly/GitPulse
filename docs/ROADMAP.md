@@ -1,6 +1,6 @@
 # GitPulse 路线图
 
-功能与技术 backlog 的滚动清单。里程碑编号 **M0–M42**；完成项移入「已完成（归档）」章节。
+功能与技术 backlog 的滚动清单。里程碑编号 **M0–M43**；完成项移入「已完成（归档）」章节。
 
 - **文档标准**：[DOCUMENTATION.md](DOCUMENTATION.md)
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
@@ -18,7 +18,9 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 ## 排期
 
-（暂无）
+| 项 | 说明 | Observables 域 |
+|----|------|----------------|
+| **M43** | v0.31.0 Update PR branch：PR Conversation 对 open 未合并 PR 调用 `PUT /pulls/{number}/update-branch`（[plan](plans/0.31.md)，[#390](https://github.com/Skymly/GitPulse/issues/390)） | RestAPI |
 
 ---
 

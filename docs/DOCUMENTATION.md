@@ -9,6 +9,7 @@
 | **ADR** | `docs/adr/` | 架构决策（不可变卡片） |
 | **Design Doc** | `docs/design/` | 每个子系统的 API、模型、不变量、实现与权衡 |
 | **Roadmap** | `docs/ROADMAP.md` | 宏观规划与 backlog 排序 |
+| **Product plan** | `docs/plans/0.N.md` | 单个产品 minor 的产品句、非目标、竖切与验收 |
 | **Context / glossary** | `docs/CONTEXT.md` | 领域术语（ubiquitous language）；切片级词汇以本文件为准 |
 | **Agent skills config** | `docs/agents/` | Issue tracker / triage labels / domain-doc pointers for engineering skills |
 | **Issue** | GitHub Issues | 需求、Bug、任务追踪 |
@@ -44,7 +45,8 @@ docs/
 ├── ROADMAP.md
 ├── agents/
 ├── adr/
-└── design/
+├── design/
+└── plans/
 ```
 
 ## 质量检查
