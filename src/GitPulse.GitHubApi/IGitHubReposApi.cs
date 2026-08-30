@@ -179,6 +179,15 @@ public interface IGitHubReposApi
     Observable<MergeResponse> MergePullRequest(
         string owner, string repo, int number, [Body] MergeRequest body);
 
+    /// <summary>
+    /// Update a pull request head from its base (202) (M43).
+    /// 403/422 stay on the page. Optional <c>expected_head_sha</c> is on
+    /// <see cref="UpdatePullRequestBranchRequest"/>.
+    /// </summary>
+    [Put("/repos/{owner}/{repo}/pulls/{number}/update-branch")]
+    Observable<ApiResponse<UpdatePullRequestBranchResponse>> UpdatePullRequestBranch(
+        string owner, string repo, int number, [Body] UpdatePullRequestBranchRequest body);
+
     // ── PR Diff (M8: diff viewer) ─────────────────────────────────
 
     /// <summary>List files changed in a pull request.</summary>
