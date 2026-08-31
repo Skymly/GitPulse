@@ -164,3 +164,6 @@ _Avoid_: review comment, line scroll
 The GitHub Contents `ref` query (commit SHA / branch / tag) used to read a file blob at that revision. Distinct from the Contents blob SHA required to update a file.
 _Avoid_: treating commit SHA as blob SHA
 
+**Update Branch**:
+Updating a pull request head from its base with `PUT /repos/{owner}/{repo}/pulls/{number}/update-branch`. Shown on Conversation for open unmerged pull requests, including drafts. Distinct from merge and from Gate Rollup.
+_Avoid_: compare, behind_by, ready for review

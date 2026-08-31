@@ -75,6 +75,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M40 ✅ | `GET /actions/workflows`, `POST /actions/workflows/{id}/dispatches` |
 | M41 ✅ | Repo `topics` on GET repo (no new method) |
 | M42 ✅ | Repo `homepage` on GET repo (no new method) |
+| M43 ✅ | `PUT /repos/{owner}/{repo}/pulls/{number}/update-branch` (`UpdatePullRequestBranch`) |
 
 ## M9 Search
 
@@ -374,6 +375,10 @@ Read-only. No new GitHubApi method. `Repo.Homepage` comes from GET repo. An empt
 
 
 
+
+### Update Branch (M43)
+
+Write on `IGitHubReposApi`. `UpdatePullRequestBranch` is `PUT .../pulls/{number}/update-branch` with optional `expected_head_sha` (`ApiResponse<UpdatePullRequestBranchResponse>`, 202). Conversation offers it for open unmerged pull requests, including drafts. 403/422 stay on the page. Compare / behind_by and ready-for-review are out of scope.
 
 
 ## 设计权衡- **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续由 Handler 注入，并由 Paged GitHub Session 统一 cursor / Link / dispose。

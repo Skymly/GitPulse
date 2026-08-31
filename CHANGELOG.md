@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Added
 
+- Update an out-of-date pull request branch from Conversation.
+- Roadmap M43 / v0.31.0: update pull request branch (docs).
+
+
+### Added
+
 - Show the repository homepage on repo detail and open it in the browser.
 - Roadmap M42 / v0.30.0: repo homepage (docs).
 
