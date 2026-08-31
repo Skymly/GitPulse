@@ -18,9 +18,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 ## 排期
 
-| 项 | 说明 | Observables 域 |
-|----|------|----------------|
-| **M43** | v0.31.0 Update PR branch：PR Conversation 对 open 未合并 PR 调用 `PUT /pulls/{number}/update-branch`（[plan](plans/0.31.md)，[#390](https://github.com/Skymly/GitPulse/issues/390)） | RestAPI |
+（暂无）
 
 ---
 
@@ -48,6 +46,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
+| **M43** ✅ | v0.31.0 Update PR branch：PR Conversation 对 open 未合并 PR 调用 `PUT /pulls/{number}/update-branch`（[#390](https://github.com/Skymly/GitPulse/issues/390)） | RestAPI |
 | **M42** ✅ | v0.30.0 Repo homepage：Repo detail 显示/打开 GET repo 的 homepage（[#362](https://github.com/Skymly/GitPulse/issues/362)） | RestAPI |
 | **M41** ✅ | v0.29.0 Repo topics：Repo detail 显示 GET repo 的 topics（[#356](https://github.com/Skymly/GitPulse/issues/356)） | RestAPI |
 | **M40** ✅ | v0.28.0 Workflow dispatch：Actions 页列出 workflow 并 POST workflow_dispatch（[#348](https://github.com/Skymly/GitPulse/issues/348)） | RestAPI |
