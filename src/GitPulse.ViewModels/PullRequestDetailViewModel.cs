@@ -30,6 +30,8 @@ namespace GitPulse.ViewModels;
 /// <see cref="IGitHubReposApi.RemoveRequestedReviewers"/>.
 /// M43 adds Update Branch via
 /// <see cref="IGitHubReposApi.UpdatePullRequestBranch"/>.
+/// M44 adds Ready for Review via
+/// <see cref="IGitHubReposApi.MarkPullRequestReadyForReview"/>.
 /// </summary>
 public sealed partial class PullRequestDetailViewModel : IDisposable
 {
@@ -92,6 +94,12 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
     /// <summary>True while Update Branch is in flight.</summary>
     public BindableReactiveProperty<bool> IsUpdatingBranch { get; } = new(false);
+
+    /// <summary>True when the PR is open, draft, and not merged.</summary>
+    public BindableReactiveProperty<bool> CanMarkReadyForReview { get; } = new(false);
+
+    /// <summary>True while Ready for review is in flight.</summary>
+    public BindableReactiveProperty<bool> IsMarkingReadyForReview { get; } = new(false);
 
     /// <summary>Submitted Pull Request Reviews (PENDING omitted).</summary>
     public ObservableCollection<PullRequestReview> Reviews { get; } = [];
@@ -373,6 +381,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         UpdateReviewPermissions(pr);
         CanManageReviewers.Value = pr.State == "open" && !pr.Merged;
         CanUpdateBranch.Value = pr.State == "open" && !pr.Merged;
+        CanMarkReadyForReview.Value = pr.State == "open" && pr.Draft && !pr.Merged;
         ApplyAssignees(pr.Assignees);
         ApplyLabels(pr.Labels);
     }
@@ -861,6 +870,58 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         }
     }
 
+
+    /// <summary>Mark an open draft pull request ready for review.</summary>
+    [RelayCommand]
+    private async Task MarkReadyForReviewAsync()
+    {
+        if (PullRequest.Value is null || IsMarkingReadyForReview.Value || !CanMarkReadyForReview.Value)
+            return;
+
+        IsMarkingReadyForReview.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var response = await api.MarkPullRequestReadyForReview(_owner, _repo, _prNumber)
+                .FirstAsync(cts.Token);
+            var code = (int)(response.StatusCode ?? 0);
+            if (code is >= 200 and < 300)
+            {
+                var pr = await api.GetPullRequest(_owner, _repo, _prNumber).FirstAsync(cts.Token);
+                ApplyPullRequest(pr);
+                return;
+            }
+
+            ErrorMessage.Value = code switch
+            {
+                403 => "Not allowed to mark this pull request ready for review.",
+                422 => "GitHub could not mark this pull request ready for review.",
+                _ => $"Ready for review failed: {code}.",
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Ready for review failed: {ex.Message}";
+        }
+        finally
+        {
+            IsMarkingReadyForReview.Value = false;
+        }
+    }
     /// <summary>Assign the typed GitHub login.</summary>
     [RelayCommand]
     private async Task AddAssigneeAsync()
@@ -1019,6 +1080,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         IsMerged.Dispose();
         CanUpdateBranch.Dispose();
         IsUpdatingBranch.Dispose();
+        CanMarkReadyForReview.Dispose();
+        IsMarkingReadyForReview.Dispose();
         ReviewEvent.Dispose();
         ReviewBody.Dispose();
         ViewerLogin.Dispose();
