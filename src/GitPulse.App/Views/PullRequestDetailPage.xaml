@@ -496,6 +496,19 @@
                                    TextColor="{StaticResource Gray500}" />
                         </VerticalStackLayout>
 
+                        <VerticalStackLayout Spacing="8"
+                                             IsVisible="{Binding CanUpdateBranch.Value}">
+                            <Button Text="Update branch"
+                                    Command="{Binding UpdateBranchCommand}"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="White"
+                                    Padding="24,12"
+                                    FontSize="14"
+                                    HorizontalOptions="Fill" />
+                            <ActivityIndicator IsRunning="{Binding IsUpdatingBranch.Value}"
+                                               IsVisible="{Binding IsUpdatingBranch.Value}" />
+                        </VerticalStackLayout>
+
                         <!-- Merge method + button stacked so narrow phones don't clip. -->
                         <VerticalStackLayout Spacing="8"
                                              IsVisible="{Binding CanMerge.Value}">
