@@ -28,6 +28,8 @@ namespace GitPulse.ViewModels;
 /// <see cref="IGitHubReposApi.ListRequestedReviewers"/>,
 /// <see cref="IGitHubReposApi.RequestReviewers"/>, and
 /// <see cref="IGitHubReposApi.RemoveRequestedReviewers"/>.
+/// M43 adds Update Branch via
+/// <see cref="IGitHubReposApi.UpdatePullRequestBranch"/>.
 /// </summary>
 public sealed partial class PullRequestDetailViewModel : IDisposable
 {
@@ -84,6 +86,12 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
     /// <summary>Whether the PR has been merged (shows merge result instead of merge button).</summary>
     public BindableReactiveProperty<bool> IsMerged { get; } = new(false);
+
+    /// <summary>True when the PR is open and not merged (including drafts).</summary>
+    public BindableReactiveProperty<bool> CanUpdateBranch { get; } = new(false);
+
+    /// <summary>True while Update Branch is in flight.</summary>
+    public BindableReactiveProperty<bool> IsUpdatingBranch { get; } = new(false);
 
     /// <summary>Submitted Pull Request Reviews (PENDING omitted).</summary>
     public ObservableCollection<PullRequestReview> Reviews { get; } = [];
@@ -364,6 +372,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         UpdateMergeStatus(pr);
         UpdateReviewPermissions(pr);
         CanManageReviewers.Value = pr.State == "open" && !pr.Merged;
+        CanUpdateBranch.Value = pr.State == "open" && !pr.Merged;
         ApplyAssignees(pr.Assignees);
         ApplyLabels(pr.Labels);
     }
@@ -794,6 +803,64 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         }
     }
 
+
+    /// <summary>Update the pull request head from its base.</summary>
+    [RelayCommand]
+    private async Task UpdateBranchAsync()
+    {
+        if (PullRequest.Value is null || IsUpdatingBranch.Value || !CanUpdateBranch.Value)
+            return;
+
+        IsUpdatingBranch.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var headSha = PullRequest.Value.Head?.Sha;
+            var request = new UpdatePullRequestBranchRequest
+            {
+                ExpectedHeadSha = string.IsNullOrEmpty(headSha) ? null : headSha,
+            };
+            var response = await api.UpdatePullRequestBranch(_owner, _repo, _prNumber, request)
+                .FirstAsync(cts.Token);
+            var code = (int)(response.StatusCode ?? 0);
+            if (code is >= 200 and < 300)
+            {
+                var pr = await api.GetPullRequest(_owner, _repo, _prNumber).FirstAsync(cts.Token);
+                ApplyPullRequest(pr);
+                return;
+            }
+
+            ErrorMessage.Value = code switch
+            {
+                403 => "Not allowed to update this pull request branch.",
+                422 => "GitHub could not update this pull request branch.",
+                _ => $"Update branch failed: {code}.",
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Update branch failed: {ex.Message}";
+        }
+        finally
+        {
+            IsUpdatingBranch.Value = false;
+        }
+    }
+
     /// <summary>Assign the typed GitHub login.</summary>
     [RelayCommand]
     private async Task AddAssigneeAsync()
@@ -950,6 +1017,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         CanMerge.Dispose();
         MergeStatus.Dispose();
         IsMerged.Dispose();
+        CanUpdateBranch.Dispose();
+        IsUpdatingBranch.Dispose();
         ReviewEvent.Dispose();
         ReviewBody.Dispose();
         ViewerLogin.Dispose();
