@@ -7,11 +7,6 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
-### Added
-
-- Update an out-of-date pull request branch from Conversation.
-- Roadmap M43 / v0.31.0: update pull request branch (docs).
-
 
 ### Added
 
