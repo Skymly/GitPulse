@@ -1579,6 +1579,174 @@ public class PullRequestDetailViewModelTests
         vm.Dispose();
     }
 
+    [Fact]
+    public async Task Load_DraftPR_SetsCanMarkReadyForReviewTrue()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", draft: true))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.True(vm.CanMarkReadyForReview.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_OpenNonDraft_SetsCanMarkReadyForReviewFalse()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", draft: false))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanMarkReadyForReview.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_MergedPR_SetsCanMarkReadyForReviewFalse()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed", merged: true))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanMarkReadyForReview.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task MarkReadyForReview_When201_RefreshesDraftFalse()
+    {
+        HttpRequestMessage? post = null;
+        var updated = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", _ => new MockResponse(
+                PrJson(42, "open", draft: !updated)))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/ready_for_review", req =>
+            {
+                post = req;
+                updated = true;
+                return new MockResponse(
+                    PrJson(42, "open", draft: false),
+                    StatusCode: HttpStatusCode.Created,
+                    AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.True(vm.PullRequest.Value!.Draft);
+
+        await vm.MarkReadyForReviewCommand.ExecuteAsync(null);
+
+        Assert.NotNull(post);
+        Assert.Equal(HttpMethod.Post, post!.Method);
+        Assert.False(vm.PullRequest.Value!.Draft);
+        Assert.False(vm.CanMarkReadyForReview.Value);
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.False(vm.IsMarkingReadyForReview.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task MarkReadyForReview_WithoutToken_SetsErrorWithoutRequest()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42/ready_for_review", _ =>
+            {
+                called = true;
+                return new MockResponse("{}", StatusCode: HttpStatusCode.Created, AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(
+            new FakeGitHubClientFactory(handler, token: null), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        vm.PullRequest.Value = new PullRequest { Number = 42, State = "open", Draft = true };
+        vm.CanMarkReadyForReview.Value = true;
+
+        await vm.MarkReadyForReviewCommand.ExecuteAsync(null);
+
+        Assert.Contains("No token", vm.ErrorMessage.Value);
+        Assert.False(called);
+        vm.Dispose();
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden, "Not allowed")]
+    [InlineData(HttpStatusCode.UnprocessableEntity, "could not mark")]
+    public async Task MarkReadyForReview_HttpFailure_StaysOnPage(HttpStatusCode statusCode, string expected)
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", draft: true))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/ready_for_review", _ =>
+                new MockResponse("{}", StatusCode: statusCode, AttachRequest: true));
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.MarkReadyForReviewCommand.ExecuteAsync(null);
+
+        Assert.Contains(expected, vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.True(vm.PullRequest.Value!.Draft);
+        Assert.False(vm.IsMarkingReadyForReview.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task MarkReadyForReview_NonDraft_DoesNotCallApi()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", draft: false))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/ready_for_review", _ =>
+            {
+                called = true;
+                return new MockResponse("{}", StatusCode: HttpStatusCode.Created, AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.MarkReadyForReviewCommand.ExecuteAsync(null);
+
+        Assert.False(called);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task MarkReadyForReview_MergedPR_DoesNotCallApi()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed", merged: true))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/ready_for_review", _ =>
+            {
+                called = true;
+                return new MockResponse("{}", StatusCode: HttpStatusCode.Created, AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.MarkReadyForReviewCommand.ExecuteAsync(null);
+
+        Assert.False(called);
+        vm.Dispose();
+    }
+
 }
 
 public class PullRequestModelTests
