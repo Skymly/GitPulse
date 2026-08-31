@@ -188,6 +188,14 @@ public interface IGitHubReposApi
     Observable<ApiResponse<UpdatePullRequestBranchResponse>> UpdatePullRequestBranch(
         string owner, string repo, int number, [Body] UpdatePullRequestBranchRequest body);
 
+    /// <summary>
+    /// Mark a draft pull request ready for review (201) (M44).
+    /// 403/422 stay on the page. No body.
+    /// </summary>
+    [Post("/repos/{owner}/{repo}/pulls/{number}/ready_for_review")]
+    Observable<ApiResponse<PullRequest>> MarkPullRequestReadyForReview(
+        string owner, string repo, int number);
+
     // ── PR Diff (M8: diff viewer) ─────────────────────────────────
 
     /// <summary>List files changed in a pull request.</summary>
