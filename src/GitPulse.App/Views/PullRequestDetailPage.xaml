@@ -509,6 +509,19 @@
                                                IsVisible="{Binding IsUpdatingBranch.Value}" />
                         </VerticalStackLayout>
 
+                        <VerticalStackLayout Spacing="8"
+                                             IsVisible="{Binding CanMarkReadyForReview.Value}">
+                            <Button Text="Ready for review"
+                                    Command="{Binding MarkReadyForReviewCommand}"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="White"
+                                    Padding="24,12"
+                                    FontSize="14"
+                                    HorizontalOptions="Fill" />
+                            <ActivityIndicator IsRunning="{Binding IsMarkingReadyForReview.Value}"
+                                               IsVisible="{Binding IsMarkingReadyForReview.Value}" />
+                        </VerticalStackLayout>
+
                         <!-- Merge method + button stacked so narrow phones don't clip. -->
                         <VerticalStackLayout Spacing="8"
                                              IsVisible="{Binding CanMerge.Value}">
