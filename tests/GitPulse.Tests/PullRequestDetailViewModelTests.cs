@@ -1395,6 +1395,190 @@ public class PullRequestDetailViewModelTests
         vm.Dispose();
     }
 
+    [Fact]
+    public async Task Load_OpenPR_SetsCanUpdateBranchTrue()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.True(vm.CanUpdateBranch.Value);
+        vm.Dispose();
+    }
+    [Fact]
+    public async Task Load_DraftPR_SetsCanUpdateBranchTrue()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", draft: true))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.True(vm.CanUpdateBranch.Value);
+        Assert.False(vm.CanMerge.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_MergedPR_SetsCanUpdateBranchFalse()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed", merged: true))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanUpdateBranch.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_ClosedPR_SetsCanUpdateBranchFalse()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed", merged: false))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanUpdateBranch.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task UpdateBranch_When202_RefreshesPullRequest()
+    {
+        HttpRequestMessage? put = null;
+        var updated = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", _ => new MockResponse(
+                PrJson(42, "open", headSha: updated ? "def456" : "abc123")))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/update-branch", req =>
+            {
+                put = req;
+                updated = true;
+                return new MockResponse(
+                    "{\"message\":\"Updating pull request branch.\",\"url\":\"https://api.github.com/repos/owner/repo/pulls/42\"}",
+                    StatusCode: HttpStatusCode.Accepted,
+                    AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Equal("abc123", vm.PullRequest.Value!.Head!.Sha);
+
+        await vm.UpdateBranchCommand.ExecuteAsync(null);
+
+        Assert.NotNull(put);
+        Assert.Equal(HttpMethod.Put, put!.Method);
+        Assert.Equal("def456", vm.PullRequest.Value!.Head!.Sha);
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.False(vm.IsUpdatingBranch.Value);
+        Assert.NotNull(vm.PullRequest.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task UpdateBranch_WithoutToken_SetsErrorWithoutRequest()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42/update-branch", _ =>
+            {
+                called = true;
+                return new MockResponse("{}", StatusCode: HttpStatusCode.Accepted, AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(
+            new FakeGitHubClientFactory(handler, token: null), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        vm.PullRequest.Value = new PullRequest { Number = 42, State = "open" };
+        vm.CanUpdateBranch.Value = true;
+
+        await vm.UpdateBranchCommand.ExecuteAsync(null);
+
+        Assert.Contains("No token", vm.ErrorMessage.Value);
+        Assert.False(called);
+        vm.Dispose();
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden, "Not allowed")]
+    [InlineData(HttpStatusCode.UnprocessableEntity, "could not update")]
+    public async Task UpdateBranch_HttpFailure_StaysOnPage(HttpStatusCode statusCode, string expected)
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/update-branch", _ =>
+                new MockResponse("{}", StatusCode: statusCode, AttachRequest: true));
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.UpdateBranchCommand.ExecuteAsync(null);
+
+        Assert.Contains(expected, vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("abc123", vm.PullRequest.Value!.Head!.Sha);
+        Assert.False(vm.IsUpdatingBranch.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task UpdateBranch_MergedPR_DoesNotCallApi()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed", merged: true))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/update-branch", _ =>
+            {
+                called = true;
+                return new MockResponse("{}", StatusCode: HttpStatusCode.Accepted, AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.UpdateBranchCommand.ExecuteAsync(null);
+
+        Assert.False(called);
+        Assert.Empty(vm.ErrorMessage.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task UpdateBranch_ClosedPR_DoesNotCallApi()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed", merged: false))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/update-branch", _ =>
+            {
+                called = true;
+                return new MockResponse("{}", StatusCode: HttpStatusCode.Accepted, AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.UpdateBranchCommand.ExecuteAsync(null);
+
+        Assert.False(called);
+        vm.Dispose();
+    }
+
 }
 
 public class PullRequestModelTests
@@ -1478,6 +1662,7 @@ public class PullRequestModelTests
         Assert.True(resp.Merged);
         Assert.Equal("Successfully merged", resp.Message);
     }
+
 
 
 }
