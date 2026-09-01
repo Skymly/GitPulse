@@ -49,7 +49,7 @@ A Core type (`PagedGitHubSession`) that owns one paged GitHub HTTP client cycle:
 _Avoid_: generic HTTP session, repository, paging service, call envelope
 
 **Draft PR**:
-A pull request opened with GitHub’s create-time draft flag. Distinct from Ready for Review (the post-create write).
+A pull request opened with GitHub’s create-time draft flag. Distinct from Ready for Review and Convert to Draft (the post-create writes).
 _Avoid_: WIP PR (informal)
 
 **Pull Request Review**:
@@ -169,5 +169,9 @@ Updating a pull request head from its base with `PUT /repos/{owner}/{repo}/pulls
 _Avoid_: compare, behind_by, convert-to-draft
 
 **Ready for Review**:
-Marking an open draft pull request ready with `POST /repos/{owner}/{repo}/pulls/{number}/ready_for_review`. Shown on Conversation for open draft unmerged PRs. Distinct from Draft PR (create-time) and from a submitted Pull Request Review.
-_Avoid_: convert-to-draft, pending review
+Marking an open draft pull request ready with `POST /repos/{owner}/{repo}/pulls/{number}/ready_for_review`. Shown on Conversation for open draft unmerged PRs. Distinct from Draft PR (create-time), Convert to Draft, and a submitted Pull Request Review.
+_Avoid_: pending review
+
+**Convert to Draft**:
+Converting an open non-draft pull request to draft with `POST /repos/{owner}/{repo}/pulls/{number}/convert_to_draft`. Shown on Conversation for open non-draft unmerged PRs. Distinct from Draft PR (create-time) and from Ready for Review.
+_Avoid_: GraphQL convertPullRequestToDraft, PATCH draft
