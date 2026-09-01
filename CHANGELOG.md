@@ -7,10 +7,6 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
-### Added
-
-- Mark a draft pull request ready for review from Conversation.
-- Roadmap M44 / v0.32.0: ready for review (docs).
 
 ### Added
 
