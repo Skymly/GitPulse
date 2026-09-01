@@ -76,6 +76,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | M41 ✅ | Repo `topics` on GET repo (no new method) |
 | M42 ✅ | Repo `homepage` on GET repo (no new method) |
 | M43 ✅ | `PUT /repos/{owner}/{repo}/pulls/{number}/update-branch` (`UpdatePullRequestBranch`) |
+| M44 ✅ | `POST /repos/{owner}/{repo}/pulls/{number}/ready_for_review` (`MarkPullRequestReadyForReview`) |
 
 ## M9 Search
 
@@ -380,6 +381,10 @@ Read-only. No new GitHubApi method. `Repo.Homepage` comes from GET repo. An empt
 
 Write on `IGitHubReposApi`. `UpdatePullRequestBranch` is `PUT .../pulls/{number}/update-branch` with optional `expected_head_sha` (`ApiResponse<UpdatePullRequestBranchResponse>`, 202). Conversation offers it for open unmerged pull requests, including drafts. 403/422 stay on the page. Compare / behind_by and ready-for-review are out of scope.
 
+
+### Ready for Review (M44)
+
+Write on `IGitHubReposApi`. `MarkPullRequestReadyForReview` is `POST .../pulls/{number}/ready_for_review` with no body (`ApiResponse<PullRequest>`, 201). Conversation offers it for open draft unmerged pull requests. 403/422 stay on the page. Convert-to-draft is out of scope.
 
 ## 设计权衡- **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续由 Handler 注入，并由 Paged GitHub Session 统一 cursor / Link / dispose。
 - **Paged GitHub Session vs 元组工厂**：列表与 Search ViewModel 面向 session；`CreatePagedClientAsync` 仍留在工厂上，删除为 follow-up。
