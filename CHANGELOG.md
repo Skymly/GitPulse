@@ -7,6 +7,11 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Added
+
+- Convert an open pull request to draft from Conversation.
+- Roadmap M45 / v0.33.0: convert to draft (docs).
+
 ## [0.32.0] - 2026-09-02
 
 ### Added
