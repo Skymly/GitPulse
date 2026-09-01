@@ -18,9 +18,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 ## 排期
 
-| 项 | 说明 | Observables 域 |
-|----|------|----------------|
-| **M44** | v0.32.0 Ready for review：PR Conversation 对 open draft 调用 `POST /pulls/{number}/ready_for_review`（[plan](plans/0.32.md)，[#407](https://github.com/Skymly/GitPulse/issues/407)） | RestAPI |
+（暂无）
 
 ---
 
@@ -48,6 +46,7 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
+| **M44** ✅ | v0.32.0 Ready for review：PR Conversation 对 open draft 调用 `POST /pulls/{number}/ready_for_review`（[#407](https://github.com/Skymly/GitPulse/issues/407)） | RestAPI |
 | **M43** ✅ | v0.31.0 Update PR branch：PR Conversation 对 open 未合并 PR 调用 `PUT /pulls/{number}/update-branch`（[#390](https://github.com/Skymly/GitPulse/issues/390)） | RestAPI |
 | **M42** ✅ | v0.30.0 Repo homepage：Repo detail 显示/打开 GET repo 的 homepage（[#362](https://github.com/Skymly/GitPulse/issues/362)） | RestAPI |
 | **M41** ✅ | v0.29.0 Repo topics：Repo detail 显示 GET repo 的 topics（[#356](https://github.com/Skymly/GitPulse/issues/356)） | RestAPI |

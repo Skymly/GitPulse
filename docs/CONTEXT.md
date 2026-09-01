@@ -49,8 +49,8 @@ A Core type (`PagedGitHubSession`) that owns one paged GitHub HTTP client cycle:
 _Avoid_: generic HTTP session, repository, paging service, call envelope
 
 **Draft PR**:
-A pull request opened with GitHub’s create-time draft flag. In the v0.2.0 create/manage-PRs slice this means optional draft-at-create only; toggling draft ↔ ready after create is out of scope.
-_Avoid_: ready for review (in-app), draft lifecycle, WIP PR (informal)
+A pull request opened with GitHub’s create-time draft flag. Distinct from Ready for Review (the post-create write).
+_Avoid_: WIP PR (informal)
 
 **Pull Request Review**:
 A submitted GitHub review on a pull request (author, summary body, submitted time). Listed `state` is GitHub’s submitted state (`APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`, …), not the create-time Review Event. Distinct from a Review Comment (M8 line comment on the diff). PENDING reviews are omitted from the Conversation list.
@@ -166,4 +166,8 @@ _Avoid_: treating commit SHA as blob SHA
 
 **Update Branch**:
 Updating a pull request head from its base with `PUT /repos/{owner}/{repo}/pulls/{number}/update-branch`. Shown on Conversation for open unmerged pull requests, including drafts. Distinct from merge and from Gate Rollup.
-_Avoid_: compare, behind_by, ready for review
+_Avoid_: compare, behind_by, convert-to-draft
+
+**Ready for Review**:
+Marking an open draft pull request ready with `POST /repos/{owner}/{repo}/pulls/{number}/ready_for_review`. Shown on Conversation for open draft unmerged PRs. Distinct from Draft PR (create-time) and from a submitted Pull Request Review.
+_Avoid_: convert-to-draft, pending review
