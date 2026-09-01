@@ -1747,6 +1747,175 @@ public class PullRequestDetailViewModelTests
         vm.Dispose();
     }
 
+    [Fact]
+    public async Task Load_OpenNonDraft_SetsCanConvertToDraftTrue()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", draft: false))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.True(vm.CanConvertToDraft.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_DraftPR_SetsCanConvertToDraftFalse()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", draft: true))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanConvertToDraft.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_MergedPR_SetsCanConvertToDraftFalse()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed", merged: true))
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanConvertToDraft.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task ConvertToDraft_When201_RefreshesDraftTrue()
+    {
+        HttpRequestMessage? post = null;
+        var updated = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", _ => new MockResponse(
+                PrJson(42, "open", draft: updated)))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/convert_to_draft", req =>
+            {
+                post = req;
+                updated = true;
+                return new MockResponse(
+                    PrJson(42, "open", draft: true),
+                    StatusCode: HttpStatusCode.Created,
+                    AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.False(vm.PullRequest.Value!.Draft);
+
+        await vm.ConvertToDraftCommand.ExecuteAsync(null);
+
+        Assert.NotNull(post);
+        Assert.Equal(HttpMethod.Post, post!.Method);
+        Assert.True(vm.PullRequest.Value!.Draft);
+        Assert.False(vm.CanConvertToDraft.Value);
+        Assert.True(vm.CanMarkReadyForReview.Value);
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.False(vm.IsConvertingToDraft.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task ConvertToDraft_WithoutToken_SetsErrorWithoutRequest()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42/convert_to_draft", _ =>
+            {
+                called = true;
+                return new MockResponse("{}", StatusCode: HttpStatusCode.Created, AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(
+            new FakeGitHubClientFactory(handler, token: null), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        vm.PullRequest.Value = new PullRequest { Number = 42, State = "open", Draft = false };
+        vm.CanConvertToDraft.Value = true;
+
+        await vm.ConvertToDraftCommand.ExecuteAsync(null);
+
+        Assert.Contains("No token", vm.ErrorMessage.Value);
+        Assert.False(called);
+        vm.Dispose();
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden, "Not allowed")]
+    [InlineData(HttpStatusCode.UnprocessableEntity, "could not convert")]
+    public async Task ConvertToDraft_HttpFailure_StaysOnPage(HttpStatusCode statusCode, string expected)
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", draft: false))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/convert_to_draft", _ =>
+                new MockResponse("{}", StatusCode: statusCode, AttachRequest: true));
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ConvertToDraftCommand.ExecuteAsync(null);
+
+        Assert.Contains(expected, vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.False(vm.PullRequest.Value!.Draft);
+        Assert.False(vm.IsConvertingToDraft.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task ConvertToDraft_DraftPR_DoesNotCallApi()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", draft: true))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/convert_to_draft", _ =>
+            {
+                called = true;
+                return new MockResponse("{}", StatusCode: HttpStatusCode.Created, AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ConvertToDraftCommand.ExecuteAsync(null);
+
+        Assert.False(called);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task ConvertToDraft_MergedPR_DoesNotCallApi()
+    {
+        var called = false;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "closed", merged: true))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/convert_to_draft", _ =>
+            {
+                called = true;
+                return new MockResponse("{}", StatusCode: HttpStatusCode.Created, AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ConvertToDraftCommand.ExecuteAsync(null);
+
+        Assert.False(called);
+        vm.Dispose();
+    }
+
 }
 
 public class PullRequestModelTests
