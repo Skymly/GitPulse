@@ -203,7 +203,7 @@ v0.1.0 经 **GitHub Release** 分发且 **仅 Windows zip**（[ADR-013](adr/ADR-
 | 渠道 | 仅 GitHub Releases；`v*` tag 触发 `release` job。不上商店。 |
 | Windows **Release Artifact** | self-contained publish **目录 zip**（`artifacts/GitPulse-{RID}.zip`）。未 Authenticode。入口为 `GitPulse.App.exe`。 |
 | Android **Release Artifact** | CI **签名 APK**（`artifacts/GitPulse-android.apk`）。**v0.1.0 未挂**；**v0.1.1+** 在 Android Emulator UI Smoke（cut 清单）通过后挂。不做 AAB。 |
-| 版本 | MinVer + `v` tag 前缀；最近公开 tag **`v0.7.0`**。 |
+| 版本 | MinVer + `v` tag 前缀；最近公开 tag **`v0.32.0`**。 |
 | Release 说明 | `CHANGELOG.md` 对应版本节为权威；`generate_release_notes` 仅可作补充。 |
 
 交付仍拆两刀：**先合能力**（自动化 / 流水线），再单独 **cut**（冒烟 + CHANGELOG 收口 + 打 tag）。

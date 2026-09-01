@@ -7,6 +7,17 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-09-02
+
+### Added
+
+- Mark a draft pull request ready for review from Conversation.
+- Roadmap M44 / v0.32.0: ready for review (docs).
+
+### Added
+
+- Update an out-of-date pull request branch from Conversation.
+- Roadmap M43 / v0.31.0: update pull request branch (docs).
 
 ### Added
 
