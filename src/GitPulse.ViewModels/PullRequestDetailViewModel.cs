@@ -32,6 +32,8 @@ namespace GitPulse.ViewModels;
 /// <see cref="IGitHubReposApi.UpdatePullRequestBranch"/>.
 /// M44 adds Ready for Review via
 /// <see cref="IGitHubReposApi.MarkPullRequestReadyForReview"/>.
+/// M45 adds Convert to Draft via
+/// <see cref="IGitHubReposApi.ConvertPullRequestToDraft"/>.
 /// </summary>
 public sealed partial class PullRequestDetailViewModel : IDisposable
 {
@@ -100,6 +102,12 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
     /// <summary>True while Ready for review is in flight.</summary>
     public BindableReactiveProperty<bool> IsMarkingReadyForReview { get; } = new(false);
+
+    /// <summary>True when the PR is open, not draft, and not merged.</summary>
+    public BindableReactiveProperty<bool> CanConvertToDraft { get; } = new(false);
+
+    /// <summary>True while Convert to draft is in flight.</summary>
+    public BindableReactiveProperty<bool> IsConvertingToDraft { get; } = new(false);
 
     /// <summary>Submitted Pull Request Reviews (PENDING omitted).</summary>
     public ObservableCollection<PullRequestReview> Reviews { get; } = [];
@@ -382,6 +390,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         CanManageReviewers.Value = pr.State == "open" && !pr.Merged;
         CanUpdateBranch.Value = pr.State == "open" && !pr.Merged;
         CanMarkReadyForReview.Value = pr.State == "open" && pr.Draft && !pr.Merged;
+        CanConvertToDraft.Value = pr.State == "open" && !pr.Draft && !pr.Merged;
         ApplyAssignees(pr.Assignees);
         ApplyLabels(pr.Labels);
     }
@@ -922,6 +931,60 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
             IsMarkingReadyForReview.Value = false;
         }
     }
+
+
+    /// <summary>Convert an open non-draft pull request to draft.</summary>
+    [RelayCommand]
+    private async Task ConvertToDraftAsync()
+    {
+        if (PullRequest.Value is null || IsConvertingToDraft.Value || !CanConvertToDraft.Value)
+            return;
+
+        IsConvertingToDraft.Value = true;
+        ErrorMessage.Value = string.Empty;
+
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync();
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = "No token configured.";
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var response = await api.ConvertPullRequestToDraft(_owner, _repo, _prNumber)
+                .FirstAsync(cts.Token);
+            var code = (int)(response.StatusCode ?? 0);
+            if (code is >= 200 and < 300)
+            {
+                var pr = await api.GetPullRequest(_owner, _repo, _prNumber).FirstAsync(cts.Token);
+                ApplyPullRequest(pr);
+                return;
+            }
+
+            ErrorMessage.Value = code switch
+            {
+                403 => "Not allowed to convert this pull request to draft.",
+                422 => "GitHub could not convert this pull request to draft.",
+                _ => $"Convert to draft failed: {code}.",
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage.Value = "Request timed out.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage.Value = $"Convert to draft failed: {ex.Message}";
+        }
+        finally
+        {
+            IsConvertingToDraft.Value = false;
+        }
+    }
+
     /// <summary>Assign the typed GitHub login.</summary>
     [RelayCommand]
     private async Task AddAssigneeAsync()
@@ -1082,6 +1145,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         IsUpdatingBranch.Dispose();
         CanMarkReadyForReview.Dispose();
         IsMarkingReadyForReview.Dispose();
+        CanConvertToDraft.Dispose();
+        IsConvertingToDraft.Dispose();
         ReviewEvent.Dispose();
         ReviewBody.Dispose();
         ViewerLogin.Dispose();
