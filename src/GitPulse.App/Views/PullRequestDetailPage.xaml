@@ -522,6 +522,19 @@
                                                IsVisible="{Binding IsMarkingReadyForReview.Value}" />
                         </VerticalStackLayout>
 
+                        <VerticalStackLayout Spacing="8"
+                                             IsVisible="{Binding CanConvertToDraft.Value}">
+                            <Button Text="Convert to draft"
+                                    Command="{Binding ConvertToDraftCommand}"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="White"
+                                    Padding="24,12"
+                                    FontSize="14"
+                                    HorizontalOptions="Fill" />
+                            <ActivityIndicator IsRunning="{Binding IsConvertingToDraft.Value}"
+                                               IsVisible="{Binding IsConvertingToDraft.Value}" />
+                        </VerticalStackLayout>
+
                         <!-- Merge method + button stacked so narrow phones don't clip. -->
                         <VerticalStackLayout Spacing="8"
                                              IsVisible="{Binding CanMerge.Value}">
