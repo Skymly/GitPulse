@@ -55,10 +55,12 @@
         </Border>
 
         <!-- Repository list -->
-        <CollectionView Grid.Row="2"
+        <CollectionView x:Name="ReposList"
+                        Grid.Row="2"
                         ItemsSource="{Binding Repos}"
                         Margin="16,8,16,0"
                         SelectionMode="Single"
+                        RemainingItemsThreshold="5"
                         SelectionChanged="OnRepoSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Repo">
@@ -127,3 +129,4 @@
     </Grid>
 
 </ContentPage>
+
