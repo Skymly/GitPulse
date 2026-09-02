@@ -88,10 +88,11 @@ using var d = api.GetRepo("Skymly", "Observables")
 
 ```
 src/
-  GitPulse.App/         — MAUI UI (Views, ViewModels, DI, platform entry points)
+  GitPulse.App/         — MAUI UI, DI, platform entry points
+  GitPulse.ViewModels/  — ViewModels (R3, no MAUI)
   GitPulse.Core/        — Domain models, abstractions (no UI/IO)
   GitPulse.GitHubApi/   — Observables.RestAPI declarative interfaces + DTOs
-  GitPulse.Services/    — Auth, caching, polling, app config
+  GitPulse.Services/    — Auth, polling, GitHub client factory
 tests/
   GitPulse.Tests/       — Unit tests
 build/                  — Nuke build script
@@ -133,3 +134,4 @@ git push origin v0.1.0
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+

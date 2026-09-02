@@ -1,6 +1,6 @@
 # Design Doc: Architecture
 
-> **版本**：Unreleased（目标 v0.1.1）
+> **版本**：0.33.0（公开 git tag 仍为 v0.32.0）
 > **关联 ADR**：[ADR-001](../adr/ADR-001-layered-solution-architecture.md)、[ADR-004](../adr/ADR-004-pat-auth-platform-credential-store.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)、[ADR-011](../adr/ADR-011-android-m11-daily-usable-phone.md)、[ADR-014](../adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md)
 
 ## 概述
@@ -48,6 +48,10 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 - Singleton：`ICredentialStore`、`IGitHubClientFactory`、`IBrowserLauncher`、`INotificationPoller`、`IAppPresence`、`IToastNotifier`、`NotificationToastCoordinator`、`NotificationToastHost`（ADR-010）
 - Transient：各 ViewModel 与 Page（Shell `GoToAsync` 解析）
 
+### Conversation
+
+PR Conversation 由 ViewModel 外壳组合三个内部模块：`PullRequestLifecycle`（合并/草稿/开合）、`PullRequestReviewComposer`、`PullRequestConversationMeta`（assignees / labels / requested reviewers）。Gate Rollup 仍为 `HeadGateRollup`。
+
 ### 导航
 
 - Shell TabBar：Repos、Notifications、Search、Settings
@@ -84,3 +88,4 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 ## 参考
 
 - [DEVELOPMENT.md](../DEVELOPMENT.md)
+

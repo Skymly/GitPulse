@@ -7,6 +7,21 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [Unreleased]
 
+### Changed
+
+- Group pull request Conversation into lifecycle, metadata, and review sections.
+- Route SearchBar filter/query and Repos remaining-items load more through
+  Observables.Events.R3 pipelines (SearchBar still uses the ADR-007 adapter).
+
+### Notes
+
+- Product versions 0.8.0–0.31.0 and 0.33.0 were closed without git tags.
+  GitHub Releases / MinVer stay on the latest `v*` tag (`v0.32.0`).
+
+## [0.33.0] - 2026-09-02
+
+Product version (no git tag).
+
 ### Added
 
 - Convert an open pull request to draft from Conversation.
@@ -14,147 +29,223 @@ Versions are derived automatically from Git tags by MinVer.
 
 ## [0.32.0] - 2026-09-02
 
+Git tag `v0.32.0`.
+
 ### Added
 
 - Mark a draft pull request ready for review from Conversation.
 - Roadmap M44 / v0.32.0: ready for review (docs).
+
+## [0.31.0] - 2026-08-31
+
+Product version (no git tag).
 
 ### Added
 
 - Update an out-of-date pull request branch from Conversation.
 - Roadmap M43 / v0.31.0: update pull request branch (docs).
 
+## [0.30.0]
+
+Product version (no git tag).
+
 ### Added
 
 - Show the repository homepage on repo detail and open it in the browser.
 - Roadmap M42 / v0.30.0: repo homepage (docs).
 
+## [0.29.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Show repository topics on repo detail.
 - Roadmap M41 / v0.29.0: repo topics (docs).
 
+## [0.28.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Dispatch a repository workflow from the Actions page.
 - Roadmap M40 / v0.28.0: workflow dispatch (docs).
 
+## [0.27.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Show repository language and SPDX license on repo detail.
 - Roadmap M39 / v0.27.0: repo language and license (docs).
 
+## [0.26.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Edit pull request labels from PR Conversation.
 - Roadmap M38 / v0.26.0: PR labels (docs).
 
+## [0.25.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Switch the Search tab to Mentions (open issues and PRs that mention you).
 - Roadmap M37 / v0.25.0: Mentions inbox on the Search tab (docs).
 
+## [0.24.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Add or remove pull request assignees from PR Conversation.
 - Roadmap M36 / v0.24.0: PR assignees (docs).
 
+## [0.23.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Fork a repository from repo detail and open the new fork in-app.
 - Roadmap M35 / v0.23.0: fork repository (docs).
 
+## [0.22.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Copy the HTTPS clone URL from repo detail.
 - Roadmap M34 / v0.22.0: copy clone URL (docs).
 
+## [0.21.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Add or remove issue assignees from issue detail.
 - Roadmap M33 / v0.21.0: Issue assignees (docs).
 
+## [0.20.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Rerequest a Check Run from the Check Run page.
 - Roadmap M32 / v0.20.0: Rerequest Check Run (docs).
 
+## [0.19.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Open a Check Run annotation file at the head SHA (Contents ?ref=, read-only).
 - Roadmap M31 / v0.19.0: annotation file at head SHA (docs).
 
+## [0.18.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Watch or unwatch a repository from repo detail.
 - Roadmap M30 / v0.18.0: Watch toggle (docs).
 
+## [0.17.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Switch the Search tab to Assigned (open issues and PRs assigned to you via assignee:@me).
 - Roadmap M29 / v0.17.0: Assigned inbox on the Search tab (docs).
 
+## [0.16.0]
+
+Product version (no git tag).
 
 ### Changed
 
 - Search and Review inbox paging now use Paged GitHub Session.
 - Roadmap M28 / v0.16.0: Search PagedGitHubSession (docs).
 
+## [0.15.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Show the first page of Check Run annotations on the Check Run page.
 - Roadmap M27 / v0.15.0: Check Run annotations (docs).
 
+## [0.14.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Show a Gate Rollup on the in-app commit page and open a Check Run in-app.
 - Roadmap M26 / v0.14.0: Commit Gate Rollup (docs).
 
+## [0.13.0]
+
+Product version (no git tag).
 
 ### Changed
 
 - Sort My repos by recently pushed (`sort=pushed`).
 - Roadmap M25 / v0.13.0: recently pushed My repos (docs).
 
+## [0.12.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Star or unstar a repository from repo detail.
 - Roadmap M24 / v0.12.0: Star toggle (docs).
 
+## [0.11.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Verify a PAT with GET /user before saving it, and show the signed-in login.
 - Roadmap M23 / v0.11.0: Verify PAT on save (docs).
 
+## [0.10.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Open a Check Run in-app from the PR Gate Rollup (output title, summary, text).
 - Roadmap M22 / v0.10.0: Check Run detail (docs).
 
+## [0.9.0]
+
+Product version (no git tag).
 
 ### Added
 
 - Request and remove pending pull request reviewers from PR detail Conversation.
 - Roadmap M21 / v0.9.0: request reviewers (docs).
 
+## [0.8.0]
+
+Product version (no git tag).
 
 ### Added
 
