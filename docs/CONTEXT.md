@@ -164,6 +164,18 @@ _Avoid_: review comment, line scroll
 The GitHub Contents `ref` query (commit SHA / branch / tag) used to read a file blob at that revision. Distinct from the Contents blob SHA required to update a file.
 _Avoid_: treating commit SHA as blob SHA
 
+
+**Conversation Lifecycle**:
+The Conversation composite for PR open/closed, mergeability, merge, Update Branch, Ready for Review, and Convert to Draft. Distinct from Pull Request Review and from Conversation Metadata.
+_Avoid_: conversation comments, files tab
+
+**Conversation Metadata**:
+The Conversation composite for PR assignees, labels, and pending Review Requests. Distinct from Conversation Lifecycle and from the Review composer.
+_Avoid_: review event, merge
+
+**Conversation Review Composer**:
+The Conversation composite for listing submitted Pull Request Reviews and submitting a Review Event. Distinct from Review Request (pending) and from the Review Inbox.
+_Avoid_: review comment (diff), pending review
 **Update Branch**:
 Updating a pull request head from its base with `PUT /repos/{owner}/{repo}/pulls/{number}/update-branch`. Shown on Conversation for open unmerged pull requests, including drafts. Distinct from merge and from Gate Rollup.
 _Avoid_: compare, behind_by, convert-to-draft
@@ -175,3 +187,4 @@ _Avoid_: pending review
 **Convert to Draft**:
 Converting an open non-draft pull request to draft with `POST /repos/{owner}/{repo}/pulls/{number}/convert_to_draft`. Shown on Conversation for open non-draft unmerged PRs. Distinct from Draft PR (create-time) and from Ready for Review.
 _Avoid_: GraphQL convertPullRequestToDraft, PATCH draft
+
