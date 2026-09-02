@@ -156,7 +156,6 @@
                             FontSize="14" />
                 </VerticalStackLayout>
 
-                <!-- Full-width actions stay tappable on narrow portrait widths. -->
                 <VerticalStackLayout Spacing="8">
                     <Button Text="Open in browser ↗"
                             Command="{Binding OpenInBrowserCommand}"
@@ -164,6 +163,17 @@
                             Padding="16,12"
                             FontSize="13"
                             HorizontalOptions="Fill" />
+                </VerticalStackLayout>
+
+                <!-- Conversation lifecycle: open/closed + merge/update/ready/draft -->
+                <Border StrokeShape="RoundRectangle 8"
+                         Stroke="{StaticResource Gray200}"
+                         Padding="16"
+                         IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Lifecycle"
+                               FontSize="16"
+                               FontAttributes="Bold" />
                     <Button Text="Close"
                             Command="{Binding ToggleStateCommand}"
                             IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}"
@@ -180,8 +190,124 @@
                             Padding="16,12"
                             FontSize="13"
                             HorizontalOptions="Fill" />
-                </VerticalStackLayout>
 
+                <!-- M6: PR merge section (spot-check only on phone; must not overflow/crash). -->
+                <Border StrokeShape="RoundRectangle 8"
+                         Stroke="{StaticResource Gray200}"
+                         Padding="16"
+                         IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
+                    <VerticalStackLayout Spacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Merge status:"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Gray600}" />
+                            <Label Text="{Binding MergeStatus.Value}"
+                                   FontSize="13"
+                                   TextColor="{StaticResource Primary}"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+
+                        <!-- PR stats: wrap-friendly stack on narrow widths -->
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{Binding PullRequest.Value.Commits, StringFormat='{0} commits'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}" />
+                            <Label Text="{Binding PullRequest.Value.Additions, StringFormat='+{0}'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Green700}" />
+                            <Label Text="{Binding PullRequest.Value.Deletions, StringFormat='-{0}'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Red900}" />
+                            <Label Text="{Binding PullRequest.Value.ChangedFiles, StringFormat='{0} files'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="8"
+                                             IsVisible="{Binding CanUpdateBranch.Value}">
+                            <Button Text="Update branch"
+                                    Command="{Binding UpdateBranchCommand}"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="White"
+                                    Padding="24,12"
+                                    FontSize="14"
+                                    HorizontalOptions="Fill" />
+                            <ActivityIndicator IsRunning="{Binding IsUpdatingBranch.Value}"
+                                               IsVisible="{Binding IsUpdatingBranch.Value}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="8"
+                                             IsVisible="{Binding CanMarkReadyForReview.Value}">
+                            <Button Text="Ready for review"
+                                    Command="{Binding MarkReadyForReviewCommand}"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="White"
+                                    Padding="24,12"
+                                    FontSize="14"
+                                    HorizontalOptions="Fill" />
+                            <ActivityIndicator IsRunning="{Binding IsMarkingReadyForReview.Value}"
+                                               IsVisible="{Binding IsMarkingReadyForReview.Value}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="8"
+                                             IsVisible="{Binding CanConvertToDraft.Value}">
+                            <Button Text="Convert to draft"
+                                    Command="{Binding ConvertToDraftCommand}"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="White"
+                                    Padding="24,12"
+                                    FontSize="14"
+                                    HorizontalOptions="Fill" />
+                            <ActivityIndicator IsRunning="{Binding IsConvertingToDraft.Value}"
+                                               IsVisible="{Binding IsConvertingToDraft.Value}" />
+                        </VerticalStackLayout>
+
+                        <!-- Merge method + button stacked so narrow phones don't clip. -->
+                        <VerticalStackLayout Spacing="8"
+                                             IsVisible="{Binding CanMerge.Value}">
+                            <Picker Title="Method"
+                                    SelectedItem="{Binding MergeMethod.Value}"
+                                    FontSize="13"
+                                    HorizontalOptions="Fill">
+                                <Picker.ItemsSource>
+                                    <x:Array Type="{x:Type x:String}">
+                                        <x:String>merge</x:String>
+                                        <x:String>squash</x:String>
+                                        <x:String>rebase</x:String>
+                                    </x:Array>
+                                </Picker.ItemsSource>
+                            </Picker>
+                            <Button Text="Merge"
+                                    Command="{Binding MergeCommand}"
+                                    BackgroundColor="{StaticResource Green700}"
+                                    TextColor="White"
+                                    Padding="24,12"
+                                    FontSize="14"
+                                    HorizontalOptions="Fill" />
+                            <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
+                                               IsVisible="{Binding IsSaving.Value}" />
+                        </VerticalStackLayout>
+
+                        <Label Text="✓ Merged successfully"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Green700}"
+                               IsVisible="{Binding IsMerged.Value}" />
+                    </VerticalStackLayout>
+                </Border>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Conversation metadata: assignees, labels, review requests -->
+                <Border StrokeShape="RoundRectangle 8"
+                         Stroke="{StaticResource Gray200}"
+                         Padding="16"
+                         IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Metadata"
+                               FontSize="16"
+                               FontAttributes="Bold" />
                 <!-- M36: PR assignees -->
                 <VerticalStackLayout Spacing="8"
                                      IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
@@ -309,7 +435,15 @@
                                 AutomationId="RequestReviewerButton" />
                     </Grid>
                 </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
 
+                <!-- Conversation review composer -->
+                <Border StrokeShape="RoundRectangle 8"
+                         Stroke="{StaticResource Gray200}"
+                         Padding="16"
+                         IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
+                    <VerticalStackLayout Spacing="10">
                 <!-- M15: submitted Pull Request Reviews + submit -->
                 <VerticalStackLayout Spacing="8"
                                      IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
@@ -385,6 +519,8 @@
                                 FontSize="14" />
                     </VerticalStackLayout>
                 </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
 
                 <!-- M16: PR-head Gate Rollup (Check Runs + Commit Statuses). -->
                 <Border StrokeShape="RoundRectangle 8"
@@ -460,112 +596,6 @@
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- M6: PR merge section (spot-check only on phone; must not overflow/crash). -->
-                <Border StrokeShape="RoundRectangle 8"
-                         Stroke="{StaticResource Gray200}"
-                         Padding="16"
-                         IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
-                    <VerticalStackLayout Spacing="10">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Merge status:"
-                                   FontSize="13"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource Gray600}" />
-                            <Label Text="{Binding MergeStatus.Value}"
-                                   FontSize="13"
-                                   TextColor="{StaticResource Primary}"
-                                   LineBreakMode="WordWrap" />
-                        </VerticalStackLayout>
-
-                        <!-- PR stats: wrap-friendly stack on narrow widths -->
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="{Binding PullRequest.Value.Commits, StringFormat='{0} commits'}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource Gray500}" />
-                            <Label Text="{Binding PullRequest.Value.Additions, StringFormat='+{0}'}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource Green700}" />
-                            <Label Text="{Binding PullRequest.Value.Deletions, StringFormat='-{0}'}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource Red900}" />
-                            <Label Text="{Binding PullRequest.Value.ChangedFiles, StringFormat='{0} files'}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource Gray500}" />
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Spacing="8"
-                                             IsVisible="{Binding CanUpdateBranch.Value}">
-                            <Button Text="Update branch"
-                                    Command="{Binding UpdateBranchCommand}"
-                                    BackgroundColor="{StaticResource Primary}"
-                                    TextColor="White"
-                                    Padding="24,12"
-                                    FontSize="14"
-                                    HorizontalOptions="Fill" />
-                            <ActivityIndicator IsRunning="{Binding IsUpdatingBranch.Value}"
-                                               IsVisible="{Binding IsUpdatingBranch.Value}" />
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Spacing="8"
-                                             IsVisible="{Binding CanMarkReadyForReview.Value}">
-                            <Button Text="Ready for review"
-                                    Command="{Binding MarkReadyForReviewCommand}"
-                                    BackgroundColor="{StaticResource Primary}"
-                                    TextColor="White"
-                                    Padding="24,12"
-                                    FontSize="14"
-                                    HorizontalOptions="Fill" />
-                            <ActivityIndicator IsRunning="{Binding IsMarkingReadyForReview.Value}"
-                                               IsVisible="{Binding IsMarkingReadyForReview.Value}" />
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Spacing="8"
-                                             IsVisible="{Binding CanConvertToDraft.Value}">
-                            <Button Text="Convert to draft"
-                                    Command="{Binding ConvertToDraftCommand}"
-                                    BackgroundColor="{StaticResource Primary}"
-                                    TextColor="White"
-                                    Padding="24,12"
-                                    FontSize="14"
-                                    HorizontalOptions="Fill" />
-                            <ActivityIndicator IsRunning="{Binding IsConvertingToDraft.Value}"
-                                               IsVisible="{Binding IsConvertingToDraft.Value}" />
-                        </VerticalStackLayout>
-
-                        <!-- Merge method + button stacked so narrow phones don't clip. -->
-                        <VerticalStackLayout Spacing="8"
-                                             IsVisible="{Binding CanMerge.Value}">
-                            <Picker Title="Method"
-                                    SelectedItem="{Binding MergeMethod.Value}"
-                                    FontSize="13"
-                                    HorizontalOptions="Fill">
-                                <Picker.ItemsSource>
-                                    <x:Array Type="{x:Type x:String}">
-                                        <x:String>merge</x:String>
-                                        <x:String>squash</x:String>
-                                        <x:String>rebase</x:String>
-                                    </x:Array>
-                                </Picker.ItemsSource>
-                            </Picker>
-                            <Button Text="Merge"
-                                    Command="{Binding MergeCommand}"
-                                    BackgroundColor="{StaticResource Green700}"
-                                    TextColor="White"
-                                    Padding="24,12"
-                                    FontSize="14"
-                                    HorizontalOptions="Fill" />
-                            <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
-                                               IsVisible="{Binding IsSaving.Value}" />
-                        </VerticalStackLayout>
-
-                        <Label Text="✓ Merged successfully"
-                               FontSize="14"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource Green700}"
-                               IsVisible="{Binding IsMerged.Value}" />
                     </VerticalStackLayout>
                 </Border>
 
@@ -648,6 +678,7 @@
 
             </VerticalStackLayout>
         </ScrollView>
+
 
         <!-- ── Files tab (M8: PR diff viewer; spot-check only — must not crash) ── -->
         <ScrollView x:Name="FilesSection" Grid.Row="2" IsVisible="False">

@@ -1,14 +1,13 @@
+using GitPulse.App.Events;
 using GitPulse.Core.Models;
 using GitPulse.ViewModels;
-using R3;
 
 namespace GitPulse.App.Views;
 
 public partial class SearchPage : ContentPage
 {
     private readonly SearchViewModel _viewModel;
-    private Subject<string>? _searchSubject;
-    private IDisposable? _searchSubscription;
+    private IDisposable? _searchPipeline;
 
     public SearchPage(SearchViewModel viewModel)
     {
@@ -35,34 +34,16 @@ public partial class SearchPage : ContentPage
 
     private void StartSearchBridge()
     {
-        if (_searchSubject is not null)
+        if (_searchPipeline is not null)
             return;
 
-        _searchSubject = new Subject<string>();
-        _searchSubscription = _searchSubject
-            .Debounce(TimeSpan.FromMilliseconds(300), TimeProvider.System)
-            .DistinctUntilChanged()
-            .ObserveOnCurrentSynchronizationContext()
-            .Subscribe(text =>
-            {
-                if (_viewModel.Query.Value != text)
-                    _viewModel.Query.Value = text;
-            });
-        SearchBar.TextChanged += OnSearchBarTextChanged;
+        _searchPipeline = UiEventPipelines.BindSearchText(SearchBar, _viewModel.Query);
     }
 
     private void StopSearchBridge()
     {
-        SearchBar.TextChanged -= OnSearchBarTextChanged;
-        _searchSubscription?.Dispose();
-        _searchSubscription = null;
-        _searchSubject?.Dispose();
-        _searchSubject = null;
-    }
-
-    private void OnSearchBarTextChanged(object? sender, TextChangedEventArgs e)
-    {
-        _searchSubject?.OnNext(e.NewTextValue ?? string.Empty);
+        _searchPipeline?.Dispose();
+        _searchPipeline = null;
     }
 
     private void OnSearchSubmitted(object? sender, EventArgs e)
@@ -286,4 +267,6 @@ public partial class SearchPage : ContentPage
         return true;
     }
 }
+
+
 
