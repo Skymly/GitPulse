@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GitPulse chrome prototype</title>
+  <!--
+    Chrome atoms: tab bar, list row, detail header.
+    A/B/C are structurally different alternatives. W is the picked mix:
+    A top NavigationView + A two-line rows + B detail header; TabBar
+    hidden on stacked detail. ?variant=A|B|C|W. Throwaway. Not App code.
+  -->
+  <style>
+    :root {
+      --accent: #0078D4;
+      --accent-hover: #106EBE;
+      --open: #107C10;
+      --done: #5C2D91;
+      --danger: #C42B1C;
+      --draft: #6E6E6E;
+      --attention: #9D5D00;
+      --skip: #5D5D5D;
+      --chrome-base: #F3F3F3;
+      --chrome-mica: rgba(243, 243, 243, 0.72);
+      --chrome-page: #FFFFFF;
+      --chrome-card: #F9F9F9;
+      --chrome-line: #E5E5E5;
+      --chrome-text: #1A1A1A;
+      --chrome-muted: #5D5D5D;
+      --chrome-fill: #E8E8E8;
+      --focus: #0078D4;
+      --row-h: 52px;
+      --tab-h: 48px;
+      --radius-ctrl: 4px;
+      --radius-surf: 8px;
+      --font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    }
+    [data-theme="dark"] {
+      --accent: #60CDFF;
+      --accent-hover: #99EBFF;
+      --open: #6CCB5F;
+      --done: #B9A0D0;
+      --danger: #FF99A4;
+      --draft: #9A9A9A;
+      --attention: #FCE100;
+      --skip: #C8C8C8;
+      --chrome-base: #202020;
+      --chrome-mica: rgba(32, 32, 32, 0.72);
+      --chrome-page: #2C2C2C;
+      --chrome-card: #323232;
+      --chrome-line: #3F3F3F;
+      --chrome-text: #FFFFFF;
+      --chrome-muted: #C8C8C8;
+      --chrome-fill: #3A3A3A;
+      --focus: #60CDFF;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%;
+      font-family: var(--font);
+      background: #6B7380;
+      color: var(--chrome-text);
+    }
+    [data-theme="dark"] html, [data-theme="dark"] body,
+    html:has([data-theme="dark"]), body:has([data-theme="dark"]) {
+      background: #0E0E10;
+    }
+    body { display: flex; flex-direction: column; min-height: 100%; }
+    button, a { font-family: inherit; }
+    button:focus-visible, [tabindex="0"]:focus-visible, .row:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .desktop {
+      flex: 1;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 16px;
+      min-height: 0;
+    }
+    .window {
+      width: min(1120px, 100%);
+      height: 100%;
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,.28);
+      background:
+        radial-gradient(1200px 400px at 10% -10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%),
+        var(--chrome-base);
+      color: var(--chrome-text);
+    }
+
+    .titlebar {
+      display: flex; align-items: center; gap: 8px;
+      height: 36px; padding: 0 0 0 12px;
+      background: var(--chrome-mica);
+      backdrop-filter: blur(28px) saturate(1.2);
+      font-size: 12px; color: var(--chrome-text);
+      user-select: none;
+    }
+    .mark { width: 16px; height: 16px; color: var(--chrome-text); flex: none; }
+    .titlebar .product { font-weight: 600; letter-spacing: .01em; }
+    .caption { margin-left: auto; display: flex; height: 100%; }
+    .caption span {
+      width: 46px; display: grid; place-items: center; font-size: 10px; color: var(--chrome-muted);
+    }
+    .caption span.close:hover { background: #C42B1C; color: #fff; }
+
+    .shell { flex: 1; display: flex; min-height: 0; background: var(--chrome-page); }
+
+    /* Shared type ramp */
+    .cap { font-size: 12px; line-height: 16px; color: var(--chrome-muted); }
+    .body { font-size: 14px; line-height: 20px; }
+    .section { font-size: 16px; line-height: 22px; font-weight: 600; }
+    .page-title { font-size: 20px; line-height: 26px; font-weight: 600; }
+
+    .icon16 { width: 16px; height: 16px; flex: none; }
+    .icon20 { width: 20px; height: 20px; flex: none; }
+    .icon24 { width: 24px; height: 24px; flex: none; }
+
+    /* Variant A — top NavigationView */
+    .a-shell { flex-direction: column; width: 100%; }
+    .a-tabs {
+      display: flex; gap: 4px; padding: 4px 12px 0;
+      background: var(--chrome-mica);
+      backdrop-filter: blur(28px);
+      border-bottom: 1px solid var(--chrome-line);
+    }
+    .a-tab {
+      display: flex; align-items: center; gap: 8px;
+      min-height: 44px; padding: 0 14px;
+      border: 0; background: transparent; color: var(--chrome-text);
+      font-size: 14px; border-radius: var(--radius-ctrl) var(--radius-ctrl) 0 0;
+      cursor: pointer;
+    }
+    .a-tab:hover { background: color-mix(in srgb, var(--chrome-text) 6%, transparent); }
+    .a-tab[aria-current="page"] {
+      color: var(--accent); font-weight: 600;
+      box-shadow: inset 0 -2px 0 var(--accent);
+    }
+    .a-page { flex: 1; display: flex; flex-direction: column; background: var(--chrome-page); min-width: 0; min-height: 0; }
+
+    /* Variant B — command rail */
+    .b-shell { flex-direction: row; width: 100%; }
+    .b-rail {
+      width: 56px; flex: none;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 8px 0;
+      background: var(--chrome-mica);
+      backdrop-filter: blur(28px);
+      border-right: 1px solid var(--chrome-line);
+    }
+    .b-tab {
+      width: 44px; height: 44px; border: 0; border-radius: var(--radius-ctrl);
+      background: transparent; color: var(--chrome-text); cursor: pointer;
+      display: grid; place-items: center;
+    }
+    .b-tab:hover { background: color-mix(in srgb, var(--chrome-text) 8%, transparent); }
+    .b-tab[aria-current="page"] { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+    .b-page { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--chrome-page); }
+
+    /* Variant C — bottom destinations */
+    .c-shell { flex-direction: column; width: 100%; }
+    .c-page { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--chrome-page); }
+    .c-tabs {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      min-height: 56px;
+      background: var(--chrome-mica);
+      backdrop-filter: blur(28px);
+      border-top: 1px solid var(--chrome-line);
+    }
+    .c-tab {
+      border: 0; background: transparent; color: var(--chrome-muted);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      font-size: 12px; cursor: pointer; min-height: 48px;
+    }
+    .c-tab[aria-current="page"] { color: var(--accent); font-weight: 600; }
+
+    /* List A — flush two-line */
+    .list-a { overflow: auto; flex: 1; }
+    .row-a {
+      display: grid;
+      grid-template-columns: 3px 16px 1fr auto;
+      column-gap: 10px; align-items: start;
+      min-height: 52px; padding: 8px 16px;
+      border-bottom: 1px solid var(--chrome-line);
+      cursor: pointer; background: transparent; width: 100%; text-align: left;
+      color: inherit; border-left: 0; border-right: 0; border-top: 0;
+    }
+    .row-a:hover { background: color-mix(in srgb, var(--chrome-text) 4%, transparent); }
+    .row-a .unread { background: var(--accent); align-self: stretch; border-radius: 1px; }
+    .row-a .unread.off { background: transparent; }
+    .row-a .title { font-size: 14px; font-weight: 600; line-height: 20px; }
+    .row-a .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+
+    /* List B — single-line compact */
+    .list-b { overflow: auto; flex: 1; }
+    .row-b {
+      display: grid;
+      grid-template-columns: 18px 52px 1fr auto;
+      column-gap: 10px; align-items: center;
+      min-height: 44px; padding: 0 16px;
+      border-bottom: 1px solid var(--chrome-line);
+      cursor: pointer; width: 100%; text-align: left; color: inherit;
+      background: transparent; border-left: 0; border-right: 0; border-top: 0;
+    }
+    .row-b:hover { background: color-mix(in srgb, var(--chrome-text) 4%, transparent); }
+    .row-b .num { font-size: 12px; color: var(--chrome-muted); font-variant-numeric: tabular-nums; }
+    .row-b .title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-b .state { display: flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
+
+    /* List C — 8px surfaces */
+    .list-c { overflow: auto; flex: 1; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+    .row-c {
+      display: flex; gap: 12px; align-items: flex-start;
+      min-height: 56px; padding: 12px 14px;
+      background: var(--chrome-card);
+      border: 1px solid var(--chrome-line);
+      border-radius: var(--radius-surf);
+      cursor: pointer; width: 100%; text-align: left; color: inherit;
+    }
+    .row-c:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--chrome-line)); }
+    .row-c .title { font-size: 14px; font-weight: 600; }
+    .row-c .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+    .state {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: var(--st, var(--chrome-muted));
+    }
+    .reason { font-size: 12px; color: var(--chrome-muted); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+
+    /* Headers */
+    .hdr-a {
+      display: grid;
+      grid-template-columns: 44px 16px 1fr;
+      column-gap: 10px; align-items: center;
+      min-height: 52px; padding: 8px 12px;
+      border-bottom: 1px solid var(--chrome-line);
+    }
+    .hdr-a .ident { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .hdr-b {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 12px 20px 16px;
+      border-bottom: 1px solid var(--chrome-line);
+    }
+    .hdr-b .crumb { display: flex; align-items: center; gap: 8px; }
+    .hdr-b .band {
+      display: grid; grid-template-columns: 16px 1fr; column-gap: 12px; align-items: start;
+    }
+    .hdr-c {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 8px 16px 16px;
+      border-bottom: 1px solid var(--chrome-line);
+    }
+    .ghost {
+      min-width: 44px; min-height: 44px; padding: 0 10px;
+      border: 0; background: transparent; color: var(--accent);
+      font-size: 14px; cursor: pointer; border-radius: var(--radius-ctrl);
+    }
+    .ghost:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+    .page-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 12px 16px 8px;
+    }
+    .placeholder {
+      flex: 1; margin: 16px; border-radius: var(--radius-surf);
+      background:
+        repeating-linear-gradient(-45deg, transparent, transparent 8px, color-mix(in srgb, var(--chrome-text) 3%, transparent) 8px, color-mix(in srgb, var(--chrome-text) 3%, transparent) 9px),
+        var(--chrome-card);
+      border: 1px dashed var(--chrome-line);
+      color: var(--chrome-muted); font-size: 12px;
+      display: grid; place-items: center; min-height: 220px;
+    }
+
+    /* Prototype switcher — not part of the design */
+    .switcher {
+      position: relative; left: auto; bottom: auto; transform: none;
+      display: flex; align-items: center; gap: 8px;
+      background: #111; color: #fff; border-radius: 999px;
+      padding: 6px 8px 6px 6px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.4);
+      z-index: 20; font-size: 12px;
+      margin: 0 auto 12px;
+    }
+    .switcher button {
+      min-width: 36px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px;
+      background: #333; color: #fff; cursor: pointer; font-size: 13px;
+    }
+    .switcher button:hover { background: #444; }
+    .switcher button.on { background: #fff; color: #111; }
+    .switcher .label { min-width: 210px; text-align: center; font-weight: 600; }
+    .switcher .sep { width: 1px; height: 20px; background: #444; }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="mark" viewBox="0 0 16 16">
+      <g fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round">
+        <circle cx="8" cy="8" r="3.15" opacity=".75"/>
+        <path d="M4.6 7.2 L7.1 4.7 M4.6 8.8 L7.1 11.3 M8.9 4.7 L11.4 7.2 M8.9 11.3 L11.4 8.8"/>
+      </g>
+      <circle cx="3.4" cy="8" r="1.15" fill="currentColor"/>
+      <circle cx="8" cy="3.4" r="1.15" fill="currentColor"/>
+      <circle cx="8" cy="12.6" r="1.15" fill="currentColor"/>
+      <circle cx="12.6" cy="8" r="1.15" fill="currentColor"/>
+    </symbol>
+    <symbol id="ic-repos" viewBox="0 0 20 20"><path fill="currentColor" d="M4 3.5A1.5 1.5 0 0 1 5.5 2h9A1.5 1.5 0 0 1 16 3.5V16l-3-1.5L10 16l-3-1.5L4 16V3.5Zm1.5-.5a.5.5 0 0 0-.5.5v10.6l2-1 3 1.5 3-1.5 2 1V3.5a.5.5 0 0 0-.5-.5h-9Z"/></symbol>
+    <symbol id="ic-repos-fill" viewBox="0 0 20 20"><path fill="currentColor" d="M5.5 2A1.5 1.5 0 0 0 4 3.5V16l3-1.5 3 1.5 3-1.5 3 1.5V3.5A1.5 1.5 0 0 0 14.5 2h-9Z"/></symbol>
+    <symbol id="ic-bell" viewBox="0 0 20 20"><path fill="currentColor" d="M10 2a6 6 0 0 0-6 6v2.3L2.6 13a1 1 0 0 0 .8 1.6H7a3 3 0 0 0 6 0h3.6a1 1 0 0 0 .8-1.6L16 10.3V8a6 6 0 0 0-6-6Zm0 14a2 2 0 0 1-1.9-1.4h3.8A2 2 0 0 1 10 16Zm-5-3.4.9-1.3V8a5 5 0 1 1 10 0v3.3l.9 1.3H5Z"/></symbol>
+    <symbol id="ic-bell-fill" viewBox="0 0 20 20"><path fill="currentColor" d="M10 2a6 6 0 0 0-6 6v2.3L2.6 13a1 1 0 0 0 .8 1.6H7a3 3 0 0 0 6 0h3.6a1 1 0 0 0 .8-1.6L16 10.3V8a6 6 0 0 0-6-6Zm0 14a2 2 0 0 1-1.9-1.4h3.8A2 2 0 0 1 10 16Z"/></symbol>
+    <symbol id="ic-search" viewBox="0 0 20 20"><path fill="currentColor" d="M8.5 3a5.5 5.5 0 0 1 4.4 8.8l3.6 3.7-1.4 1.4-3.7-3.6A5.5 5.5 0 1 1 8.5 3Zm0 1.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></symbol>
+    <symbol id="ic-search-fill" viewBox="0 0 20 20"><path fill="currentColor" d="M8.5 2a6.5 6.5 0 1 1 4.2 11.5l3.9 3.9-1.4 1.4-3.9-3.9A6.5 6.5 0 0 1 8.5 2Z"/></symbol>
+    <symbol id="ic-gear" viewBox="0 0 20 20"><path fill="currentColor" d="M8.2 2.1h3.6l.4 1.7a6 6 0 0 1 1.6.9l1.7-.5 1.8 3.1-1.3 1.2c.1.4.2.8.2 1.2s-.1.8-.2 1.2l1.3 1.2-1.8 3.1-1.7-.5a6 6 0 0 1-1.6.9l-.4 1.7H8.2l-.4-1.7a6 6 0 0 1-1.6-.9l-1.7.5-1.8-3.1 1.3-1.2A6 6 0 0 1 3.8 10c0-.4.1-.8.2-1.2L2.7 7.6l1.8-3.1 1.7.5a6 6 0 0 1 1.6-.9l.4-1.7ZM10 7.5A2.5 2.5 0 1 0 10 12.5 2.5 2.5 0 0 0 10 7.5Z"/></symbol>
+    <symbol id="ic-gear-fill" viewBox="0 0 20 20"><path fill="currentColor" d="M8.2 2.1h3.6l.4 1.7a6 6 0 0 1 1.6.9l1.7-.5 1.8 3.1-1.3 1.2c.1.4.2.8.2 1.2s-.1.8-.2 1.2l1.3 1.2-1.8 3.1-1.7-.5a6 6 0 0 1-1.6.9l-.4 1.7H8.2l-.4-1.7a6 6 0 0 1-1.6-.9l-1.7.5-1.8-3.1 1.3-1.2A6 6 0 0 1 3.8 10c0-.4.1-.8.2-1.2L2.7 7.6l1.8-3.1 1.7.5a6 6 0 0 1 1.6-.9l.4-1.7ZM10 7.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z"/></symbol>
+    <symbol id="oct-issue" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></symbol>
+    <symbol id="oct-issue-closed" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"/><path d="M5.2 8.2 7.1 10l3.7-4" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="oct-pr" viewBox="0 0 16 16"><circle cx="4.2" cy="3.4" r="1.5" fill="currentColor"/><circle cx="4.2" cy="12.6" r="1.5" fill="currentColor"/><circle cx="11.8" cy="12.6" r="1.5" fill="currentColor"/><path d="M4.2 4.9v6.2 M11.8 11.1V7.4c0-1.6-1.3-2.9-2.9-2.9H8" fill="none" stroke="currentColor" stroke-width="1.25"/></symbol>
+    <symbol id="oct-merge" viewBox="0 0 16 16"><circle cx="4.2" cy="3.4" r="1.5" fill="currentColor"/><circle cx="4.2" cy="12.6" r="1.5" fill="currentColor"/><circle cx="11.8" cy="8" r="1.5" fill="currentColor"/><path d="M4.2 4.9v6.2 M11.8 9.5v2.2c0 .7-.6 1.3-1.3 1.3H8 M4.2 4.9c0 2.4 2.4 3.1 7.6 3.1" fill="none" stroke="currentColor" stroke-width="1.25"/></symbol>
+    <symbol id="oct-pr-draft" viewBox="0 0 16 16"><circle cx="4.2" cy="3.4" r="1.5" fill="currentColor"/><circle cx="4.2" cy="12.6" r="1.5" fill="currentColor"/><circle cx="11.8" cy="12.6" r="1.5" fill="none" stroke="currentColor" stroke-width="1.25" stroke-dasharray="1.5 1.2"/><path d="M4.2 4.9v6.2 M11.8 11.1V7.4c0-1.6-1.3-2.9-2.9-2.9H8" fill="none" stroke="currentColor" stroke-width="1.25" stroke-dasharray="2 1.4"/></symbol>
+    <symbol id="oct-pr-closed" viewBox="0 0 16 16"><circle cx="4.2" cy="3.4" r="1.5" fill="currentColor"/><circle cx="4.2" cy="12.6" r="1.5" fill="currentColor"/><path d="M4.2 4.9v6.2 M10.2 10.2l3.2 3.2 M13.4 10.2l-3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></symbol>
+    <symbol id="oct-skip" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"/><path d="M5 8h6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/></symbol>
+  </svg>
+
+  <div class="desktop">
+    <div class="window" id="app"></div>
+  </div>
+
+  <div class="switcher" aria-label="Prototype switcher">
+    <button type="button" id="prev" title="Previous variant">←</button>
+    <div class="label" id="variantLabel"></div>
+    <button type="button" id="next" title="Next variant">→</button>
+    <div class="sep"></div>
+    <button type="button" id="sceneList">List</button>
+    <button type="button" id="sceneDetail">Detail</button>
+    <div class="sep"></div>
+    <button type="button" id="themeLight">Light</button>
+    <button type="button" id="themeDark">Dark</button>
+  </div>
+
+  <script>
+    const VARIANTS = [
+      { key: "A", name: "Top NavigationView" },
+      { key: "B", name: "Command rail" },
+      { key: "C", name: "Bottom destinations" },
+      { key: "W", name: "Pick: A tabs + A rows + B header" },
+    ];
+    const TABS = [
+      { id: "repos", label: "Repos", icon: "ic-repos", fill: "ic-repos-fill" },
+      { id: "notifications", label: "Notifications", icon: "ic-bell", fill: "ic-bell-fill" },
+      { id: "search", label: "Search", icon: "ic-search", fill: "ic-search-fill" },
+      { id: "settings", label: "Settings", icon: "ic-gear", fill: "ic-gear-fill" },
+    ];
+    const ROWS = [
+      { id: 1, kind: "pr", number: 444, title: "Group Conversation sections and route UI events", repo: "Skymly/GitPulse", reason: "review requested", unread: true, state: "open", stateLabel: "Open", icon: "oct-pr", color: "var(--open)" },
+      { id: 2, kind: "pr", number: 445, title: "Split product versions in the changelog", repo: "Skymly/GitPulse", reason: "subscribed", unread: false, state: "merged", stateLabel: "Merged", icon: "oct-merge", color: "var(--done)" },
+      { id: 3, kind: "issue", number: 401, title: "Mica flicker on resume from Tray Presence", repo: "Skymly/GitPulse", reason: "mention", unread: true, state: "open", stateLabel: "Open", icon: "oct-issue", color: "var(--open)" },
+      { id: 4, kind: "issue", number: 448, title: "GitHub domain visual semantics we must not contradict", repo: "Skymly/GitPulse", reason: "assign", unread: false, state: "completed", stateLabel: "Completed", icon: "oct-issue-closed", color: "var(--done)" },
+      { id: 5, kind: "pr", number: 460, title: "WIP: token catalog for Domain Color", repo: "Skymly/GitPulse", reason: "review requested", unread: true, state: "draft", stateLabel: "Draft", icon: "oct-pr-draft", color: "var(--draft)" },
+      { id: 6, kind: "pr", number: 399, title: "Experiment: bottom tabs on Windows", repo: "Skymly/GitPulse", reason: "subscribed", unread: false, state: "closed", stateLabel: "Closed", icon: "oct-pr-closed", color: "var(--danger)" },
+      { id: 7, kind: "issue", number: 318, title: "Ignore stale Check Run on skipped jobs", repo: "Skymly/GitPulse", reason: "mention", unread: false, state: "not-planned", stateLabel: "Not planned", icon: "oct-skip", color: "var(--skip)" },
+    ];
+
+    const state = {
+      variant: "W",
+      scene: "list",
+      theme: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+      tab: "notifications",
+      selected: 1,
+    };
+
+    function svg(id, cls) {
+      return `<svg class="${cls}" aria-hidden="true"><use href="#${id}"></use></svg>`;
+    }
+    function stateChip(row) {
+      return `<span class="state" style="--st:${row.color}">${svg(row.icon, "icon16")}<span>${row.stateLabel}</span></span>`;
+    }
+    function titlebar() {
+      return `<div class="titlebar">
+        ${svg("mark", "mark")}
+        <span class="product">GitPulse</span>
+        <div class="caption"><span>─</span><span>☐</span><span class="close">✕</span></div>
+      </div>`;
+    }
+    function tabIcon(tab, current) {
+      return svg(current ? tab.fill : tab.icon, "icon20");
+    }
+
+    function tabsA() {
+      return `<nav class="a-tabs">${TABS.map(t => {
+        const on = t.id === state.tab;
+        return `<button class="a-tab" data-tab="${t.id}" aria-current="${on ? "page" : "false"}">${tabIcon(t, on)}<span>${t.label}</span></button>`;
+      }).join("")}</nav>`;
+    }
+    function tabsB() {
+      return `<nav class="b-rail">${TABS.map(t => {
+        const on = t.id === state.tab;
+        return `<button class="b-tab" data-tab="${t.id}" title="${t.label}" aria-label="${t.label}" aria-current="${on ? "page" : "false"}">${tabIcon(t, on)}</button>`;
+      }).join("")}</nav>`;
+    }
+    function tabsC() {
+      return `<nav class="c-tabs">${TABS.map(t => {
+        const on = t.id === state.tab;
+        return `<button class="c-tab" data-tab="${t.id}" aria-current="${on ? "page" : "false"}">${tabIcon(t, on)}<span>${t.label}</span></button>`;
+      }).join("")}</nav>`;
+    }
+
+    function listToolbar() {
+      return `<div class="page-toolbar">
+        <div class="section">Notifications</div>
+        <span class="cap">3 unread</span>
+      </div>`;
+    }
+
+    function listA() {
+      return `<div class="list-a">${ROWS.map(r => `
+        <button class="row-a" data-row="${r.id}">
+          <span class="unread ${r.unread ? "" : "off"}"></span>
+          ${svg(r.icon, "icon16")}
+          <span>
+            <div class="title">${r.title}</div>
+            <div class="meta">${stateChip(r)}<span class="reason">${r.repo} · ${r.reason}</span></div>
+          </span>
+          <span class="cap">#${r.number}</span>
+        </button>`).join("")}</div>`;
+    }
+    function listB() {
+      return `<div class="list-b">${ROWS.map(r => `
+        <button class="row-b" data-row="${r.id}">
+          ${r.unread ? `<span class="dot"></span>` : `<span></span>`}
+          <span class="num">#${r.number}</span>
+          <span class="title">${r.title}</span>
+          <span class="state" style="--st:${r.color}">${svg(r.icon, "icon16")}${r.stateLabel}</span>
+        </button>`).join("")}</div>`;
+    }
+    function listC() {
+      return `<div class="list-c">${ROWS.map(r => `
+        <button class="row-c" data-row="${r.id}">
+          ${svg(r.icon, "icon16")}
+          <span style="flex:1;min-width:0">
+            <div class="title">${r.unread ? "● " : ""}${r.title}</div>
+            <div class="meta">${stateChip(r)}<span class="reason">${r.reason}</span><span class="cap">${r.repo} #${r.number}</span></div>
+          </span>
+        </button>`).join("")}</div>`;
+    }
+
+    function selectedRow() {
+      return ROWS.find(r => r.id === state.selected) || ROWS[0];
+    }
+
+    function headerA(row) {
+      return `<header class="hdr-a">
+        <button class="ghost" data-back>Back</button>
+        ${svg(row.icon, "icon16")}
+        <div>
+          <div class="ident">${stateChip(row)}<span class="page-title">${row.title}</span></div>
+          <div class="cap">${row.repo} · #${row.number} · Skymly · 2026-09-03</div>
+        </div>
+      </header>`;
+    }
+    function headerB(row) {
+      return `<header class="hdr-b">
+        <div class="crumb">
+          <button class="ghost" data-back>Back</button>
+          <span class="cap">Notifications</span>
+          <span class="cap">/</span>
+          <span class="cap">${row.repo} #${row.number}</span>
+        </div>
+        <div class="band">
+          ${svg(row.icon, "icon16")}
+          <div>
+            ${stateChip(row)}
+            <div class="page-title" style="margin-top:4px">${row.title}</div>
+            <div class="cap" style="margin-top:6px">Opened by Skymly · 2026-09-03 · ${row.reason}</div>
+          </div>
+        </div>
+      </header>`;
+    }
+    function headerC(row) {
+      return `<header class="hdr-c">
+        <button class="ghost" data-back aria-label="Back">←</button>
+        <div class="page-title">${row.title}</div>
+        <div class="meta" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+          ${stateChip(row)}
+          <span class="reason">${row.repo} #${row.number}</span>
+          <span class="cap">Skymly · 2026-09-03</span>
+        </div>
+      </header>`;
+    }
+
+    function pageBody() {
+      const row = selectedRow();
+      if (state.scene === "detail") {
+        const header = (state.variant === "B" || state.variant === "W") ? headerB(row)
+          : state.variant === "A" ? headerA(row)
+          : headerC(row);
+        return `${header}<div class="placeholder">Body is not this ticket — chrome header only</div>`;
+      }
+      const list = (state.variant === "A" || state.variant === "W") ? listA()
+        : state.variant === "B" ? listB()
+        : listC();
+      return `${listToolbar()}${list}`;
+    }
+
+    function render() {
+      const app = document.getElementById("app");
+      document.documentElement.setAttribute("data-theme", state.theme);
+      app.setAttribute("data-theme", state.theme);
+      const page = pageBody();
+      let shell;
+      if (state.variant === "A") {
+        shell = `<div class="shell a-shell">${tabsA()}<div class="a-page">${page}</div></div>`;
+      } else if (state.variant === "B") {
+        shell = `<div class="shell b-shell">${tabsB()}<div class="b-page">${page}</div></div>`;
+      } else if (state.variant === "W") {
+        const tabs = state.scene === "list" ? tabsA() : "";
+        shell = `<div class="shell a-shell">${tabs}<div class="a-page">${page}</div></div>`;
+      } else {
+        shell = `<div class="shell c-shell"><div class="c-page">${page}</div>${tabsC()}</div>`;
+      }
+      app.innerHTML = `${titlebar()}${shell}`;
+
+      const v = VARIANTS.find(x => x.key === state.variant);
+      document.getElementById("variantLabel").textContent = `${v.key} — ${v.name}`;
+      document.getElementById("sceneList").classList.toggle("on", state.scene === "list");
+      document.getElementById("sceneDetail").classList.toggle("on", state.scene === "detail");
+      document.getElementById("themeLight").classList.toggle("on", state.theme === "light");
+      document.getElementById("themeDark").classList.toggle("on", state.theme === "dark");
+      document.querySelector(".switcher").title =
+        `variant=${state.variant} scene=${state.scene} tab=${state.tab} row=${state.selected} theme=${state.theme}`;
+
+      const url = new URL(location.href);
+      url.searchParams.set("variant", state.variant);
+      url.searchParams.set("scene", state.scene);
+      url.searchParams.set("theme", state.theme);
+      history.replaceState(null, "", url);
+    }
+
+    function setVariant(key) {
+      state.variant = key;
+      render();
+    }
+    function cycle(dir) {
+      const i = VARIANTS.findIndex(v => v.key === state.variant);
+      const next = VARIANTS[(i + dir + VARIANTS.length) % VARIANTS.length];
+      setVariant(next.key);
+    }
+
+    document.getElementById("prev").onclick = () => cycle(-1);
+    document.getElementById("next").onclick = () => cycle(1);
+    document.getElementById("sceneList").onclick = () => { state.scene = "list"; render(); };
+    document.getElementById("sceneDetail").onclick = () => { state.scene = "detail"; render(); };
+    document.getElementById("themeLight").onclick = () => { state.theme = "light"; render(); };
+    document.getElementById("themeDark").onclick = () => { state.theme = "dark"; render(); };
+
+    document.getElementById("app").addEventListener("click", (e) => {
+      const tab = e.target.closest("[data-tab]");
+      if (tab) { state.tab = tab.getAttribute("data-tab"); state.scene = "list"; render(); return; }
+      const row = e.target.closest("[data-row]");
+      if (row) { state.selected = Number(row.getAttribute("data-row")); state.scene = "detail"; render(); return; }
+      if (e.target.closest("[data-back]")) { state.scene = "list"; render(); }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      const t = e.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (e.key === "ArrowLeft") cycle(-1);
+      if (e.key === "ArrowRight") cycle(1);
+    });
+
+    const params = new URLSearchParams(location.search);
+    if (["A", "B", "C", "W"].includes(params.get("variant"))) state.variant = params.get("variant");
+    if (["list", "detail"].includes(params.get("scene"))) state.scene = params.get("scene");
+    if (["light", "dark"].includes(params.get("theme"))) state.theme = params.get("theme");
+    render();
+  </script>
+</body>
+</html>

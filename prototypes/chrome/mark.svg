@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" aria-label="GitPulse Mark">
+  <g stroke="currentColor" stroke-width="1.25" stroke-linecap="round">
+    <circle cx="8" cy="8" r="3.15" opacity=".75"/>
+    <path d="M4.6 7.2 L7.1 4.7 M4.6 8.8 L7.1 11.3 M8.9 4.7 L11.4 7.2 M8.9 11.3 L11.4 8.8"/>
+  </g>
+  <circle cx="3.4" cy="8" r="1.15" fill="currentColor"/>
+  <circle cx="8" cy="3.4" r="1.15" fill="currentColor"/>
+  <circle cx="8" cy="12.6" r="1.15" fill="currentColor"/>
+  <circle cx="12.6" cy="8" r="1.15" fill="currentColor"/>
+</svg>
