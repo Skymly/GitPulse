@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GitPulse surfaces prototype</title>
+  <!--
+    Three variants of PR + Search, plus pick W.
+    W = B Conversation (strip + rail) + B Files (list|diff) + B one-row
+    Search hubs with A's SearchBar only on typed Search.
+    Locked chrome from prototype/ux-chrome W. Throwaway. Not App code.
+  -->
+  <style>
+    :root {
+      --accent: #0078D4;
+      --accent-hover: #106EBE;
+      --open: #107C10;
+      --done: #5C2D91;
+      --danger: #C42B1C;
+      --draft: #6E6E6E;
+      --attention: #9D5D00;
+      --skip: #5D5D5D;
+      --add: #107C10;
+      --del: #C42B1C;
+      --chrome-base: #F3F3F3;
+      --chrome-mica: rgba(243, 243, 243, 0.72);
+      --chrome-page: #FFFFFF;
+      --chrome-card: #F9F9F9;
+      --chrome-line: #E5E5E5;
+      --chrome-text: #1A1A1A;
+      --chrome-muted: #5D5D5D;
+      --chrome-fill: #E8E8E8;
+      --focus: #0078D4;
+      --radius-ctrl: 4px;
+      --radius-surf: 8px;
+      --font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+      --mono: "Cascadia Code", "Consolas", ui-monospace, monospace;
+    }
+    [data-theme="dark"] {
+      --accent: #60CDFF;
+      --accent-hover: #99EBFF;
+      --open: #6CCB5F;
+      --done: #B9A0D0;
+      --danger: #FF99A4;
+      --draft: #9A9A9A;
+      --attention: #FCE100;
+      --skip: #C8C8C8;
+      --add: #6CCB5F;
+      --del: #FF99A4;
+      --chrome-base: #202020;
+      --chrome-mica: rgba(32, 32, 32, 0.72);
+      --chrome-page: #2C2C2C;
+      --chrome-card: #323232;
+      --chrome-line: #3F3F3F;
+      --chrome-text: #FFFFFF;
+      --chrome-muted: #C8C8C8;
+      --chrome-fill: #3A3A3A;
+      --focus: #60CDFF;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%;
+      font-family: var(--font);
+      background: #6B7380;
+      color: var(--chrome-text);
+    }
+    body:has([data-theme="dark"]) { background: #0E0E10; }
+    body { display: flex; flex-direction: column; min-height: 100%; }
+    button, a, input, textarea, select { font-family: inherit; }
+    button:focus-visible, [tabindex="0"]:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, .row-a:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .desktop {
+      flex: 1; display: flex; align-items: stretch; justify-content: center;
+      padding: 16px; min-height: 0; height: calc(100vh - 64px);
+    }
+    .window {
+      width: min(1180px, 100%);
+      height: 100%; max-height: 100%;
+      display: flex; flex-direction: column;
+      border-radius: 8px; overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,.28);
+      background:
+        radial-gradient(1200px 400px at 10% -10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%),
+        var(--chrome-base);
+      color: var(--chrome-text);
+    }
+    .titlebar {
+      display: flex; align-items: center; gap: 8px;
+      height: 36px; padding: 0 0 0 12px;
+      background: var(--chrome-mica);
+      backdrop-filter: blur(28px) saturate(1.2);
+      font-size: 12px; user-select: none;
+    }
+    .mark { width: 16px; height: 16px; color: var(--chrome-text); flex: none; }
+    .titlebar .product { font-weight: 600; }
+    .caption { margin-left: auto; display: flex; height: 100%; }
+    .caption span { width: 46px; display: grid; place-items: center; font-size: 10px; color: var(--chrome-muted); }
+    .caption span.close:hover { background: #C42B1C; color: #fff; }
+
+    .shell { flex: 1; display: flex; flex-direction: column; min-height: 0; background: var(--chrome-page); }
+    .page { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--chrome-page); }
+
+    .cap { font-size: 12px; line-height: 16px; color: var(--chrome-muted); }
+    .body { font-size: 14px; line-height: 20px; }
+    .section { font-size: 16px; line-height: 22px; font-weight: 600; }
+    .page-title { font-size: 20px; line-height: 26px; font-weight: 600; }
+    .icon16 { width: 16px; height: 16px; flex: none; }
+    .icon20 { width: 20px; height: 20px; flex: none; }
+
+    .a-tabs {
+      display: flex; gap: 4px; padding: 4px 12px 0;
+      background: var(--chrome-mica);
+      backdrop-filter: blur(28px);
+      border-bottom: 1px solid var(--chrome-line);
+    }
+    .a-tab {
+      display: flex; align-items: center; gap: 8px;
+      min-height: 44px; padding: 0 14px;
+      border: 0; background: transparent; color: var(--chrome-text);
+      font-size: 14px; border-radius: var(--radius-ctrl) var(--radius-ctrl) 0 0;
+      cursor: pointer;
+    }
+    .a-tab:hover { background: color-mix(in srgb, var(--chrome-text) 6%, transparent); }
+    .a-tab[aria-current="page"] {
+      color: var(--accent); font-weight: 600;
+      box-shadow: inset 0 -2px 0 var(--accent);
+    }
+
+    .list-a { overflow: auto; flex: 1; }
+    .row-a {
+      display: grid;
+      grid-template-columns: 3px 16px 1fr auto;
+      column-gap: 10px; align-items: start;
+      min-height: 52px; padding: 8px 16px;
+      border-bottom: 1px solid var(--chrome-line);
+      cursor: pointer; background: transparent; width: 100%; text-align: left;
+      color: inherit; border-left: 0; border-right: 0; border-top: 0;
+    }
+    .row-a:hover { background: color-mix(in srgb, var(--chrome-text) 4%, transparent); }
+    .row-a .unread { background: var(--accent); align-self: stretch; border-radius: 1px; }
+    .row-a .unread.off { background: transparent; }
+    .row-a .title { font-size: 14px; font-weight: 600; line-height: 20px; }
+    .row-a .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+
+    .hdr-b {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 12px 20px 16px;
+      border-bottom: 1px solid var(--chrome-line);
+      flex: none;
+    }
+    .hdr-b .crumb { display: flex; align-items: center; gap: 8px; }
+    .hdr-b .band {
+      display: grid; grid-template-columns: 16px 1fr; column-gap: 12px; align-items: start;
+    }
+    .state {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: var(--st, var(--chrome-muted));
+    }
+    .reason { font-size: 12px; color: var(--chrome-muted); }
+
+    .ghost {
+      min-width: 44px; min-height: 44px; padding: 0 10px;
+      border: 0; background: transparent; color: var(--accent);
+      font-size: 14px; cursor: pointer; border-radius: var(--radius-ctrl);
+    }
+    .ghost:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .btn {
+      min-height: 44px; padding: 0 16px; border: 0; border-radius: var(--radius-ctrl);
+      font-size: 14px; cursor: pointer;
+      background: var(--chrome-fill); color: var(--chrome-text);
+    }
+    .btn:hover { filter: brightness(0.97); }
+    .btn-accent { background: var(--accent); color: #fff; }
+    [data-theme="dark"] .btn-accent { color: #1A1A1A; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-quiet { background: transparent; color: var(--accent); }
+    .seg {
+      display: flex; gap: 8px; padding: 8px 16px; flex: none;
+    }
+    .seg button {
+      flex: 1; min-height: 44px; border: 0; border-radius: var(--radius-ctrl);
+      background: var(--chrome-fill); color: var(--chrome-text); font-size: 14px; cursor: pointer;
+    }
+    .seg button[aria-current="true"] { background: var(--accent); color: #fff; font-weight: 600; }
+    [data-theme="dark"] .seg button[aria-current="true"] { color: #1A1A1A; }
+
+    .scroll { flex: 1; overflow: auto; min-height: 0; }
+    .stack { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 24px; }
+    .card {
+      border: 1px solid var(--chrome-line); border-radius: var(--radius-surf);
+      background: var(--chrome-page); padding: 14px 16px;
+    }
+    .md { font-size: 14px; line-height: 22px; }
+    .md p { margin: 0 0 8px; }
+    .md code { font-family: var(--mono); font-size: 12px; background: var(--chrome-fill); padding: 1px 4px; border-radius: 3px; }
+    .refs { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; color: var(--chrome-muted); }
+    .refs span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .label-swatch {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--chrome-text);
+    }
+    .label-swatch i {
+      width: 10px; height: 10px; border-radius: 2px; display: inline-block;
+      background: var(--sw, #d73a4a);
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .field { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--chrome-line);
+      border-radius: var(--radius-ctrl); background: var(--chrome-page); color: var(--chrome-text); font-size: 14px; }
+    textarea.field { min-height: 88px; resize: vertical; }
+    .searchbar {
+      display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 12px 16px 8px;
+    }
+    .searchbar input { min-height: 44px; }
+
+    .page-error {
+      margin: 12px 16px 0; padding: 12px 14px;
+      border-radius: var(--radius-surf);
+      background: color-mix(in srgb, var(--danger) 12%, var(--chrome-page));
+      border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--chrome-line));
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+    }
+    .page-error .msg { color: var(--danger); font-size: 14px; font-weight: 600; }
+    .field-error { font-size: 12px; color: var(--danger); padding: 0 16px 8px; }
+    .empty {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; padding: 32px 16px; text-align: center;
+    }
+    .empty h2 { margin: 0; font-size: 16px; }
+    .empty p { margin: 0; font-size: 14px; color: var(--chrome-muted); max-width: 360px; }
+
+    .more {
+      min-height: 44px; margin: 8px 16px 20px; width: calc(100% - 32px);
+      border: 1px solid var(--chrome-line); background: transparent; color: var(--accent);
+      border-radius: var(--radius-ctrl); cursor: pointer; font-size: 14px;
+    }
+
+    /* Variant B split */
+    .split { flex: 1; display: flex; min-height: 0; }
+    .rail {
+      width: 260px; flex: none; overflow: auto;
+      border-left: 1px solid var(--chrome-line);
+      padding: 12px 14px; display: flex; flex-direction: column; gap: 14px;
+      background: var(--chrome-page);
+    }
+    .file-col {
+      width: 240px; flex: none; overflow: auto;
+      border-right: 1px solid var(--chrome-line);
+    }
+    .file-item {
+      display: grid; grid-template-columns: 1fr auto; gap: 8px;
+      width: 100%; text-align: left; padding: 10px 12px; min-height: 44px;
+      border: 0; border-bottom: 1px solid var(--chrome-line);
+      background: transparent; color: inherit; cursor: pointer; font-size: 12px;
+    }
+    .file-item[aria-current="true"] { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    .file-item .path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); }
+    .pm { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .pm .a { color: var(--add); }
+    .pm .d { color: var(--del); }
+
+    /* Variant C */
+    .hub-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 8px 16px 16px; }
+    .hub-card {
+      min-height: 88px; padding: 14px; text-align: left; cursor: pointer;
+      border: 1px solid var(--chrome-line); border-radius: var(--radius-surf);
+      background: var(--chrome-card); color: inherit;
+    }
+    .hub-card .count { font-size: 20px; font-weight: 600; }
+    .c-search-hero { padding: 20px 16px 8px; }
+    .c-search-hero .field { font-size: 16px; min-height: 48px; }
+    .tree { width: 200px; flex: none; overflow: auto; border-right: 1px solid var(--chrome-line); padding: 8px 0; }
+    .tree button {
+      display: block; width: 100%; text-align: left; border: 0; background: transparent;
+      color: inherit; padding: 8px 12px; min-height: 36px; font-size: 12px; font-family: var(--mono); cursor: pointer;
+    }
+    .tree button[aria-current="true"] { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+    .life-strip {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      padding: 8px 20px 12px; border-bottom: 1px solid var(--chrome-line);
+    }
+
+    .diff {
+      font-family: var(--mono); font-size: 12px; line-height: 18px;
+      border: 1px solid var(--chrome-line); border-radius: var(--radius-ctrl); overflow: hidden;
+    }
+    .diff .h { padding: 8px 10px; background: var(--chrome-card); font-weight: 600; }
+    .diff .ln { display: grid; grid-template-columns: 40px 1fr; }
+    .diff .n { color: var(--chrome-muted); text-align: right; padding: 0 8px; user-select: none; }
+    .diff .ctx { background: transparent; }
+    .diff .add { background: color-mix(in srgb, var(--add) 14%, transparent); }
+    .diff .rem { background: color-mix(in srgb, var(--del) 14%, transparent); }
+    .diff .meta { color: var(--chrome-muted); padding: 4px 10px; background: var(--chrome-fill); }
+
+    .timeline { display: flex; flex-direction: column; gap: 12px; }
+    .who { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+    .who strong { font-size: 13px; }
+    .check { display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 13px; }
+
+    .overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,.35);
+      display: grid; place-items: center; z-index: 10;
+    }
+    .dialog {
+      width: min(440px, calc(100% - 32px));
+      background: var(--chrome-page); color: var(--chrome-text);
+      border-radius: var(--radius-surf); padding: 20px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.28);
+      border: 1px solid var(--chrome-line);
+    }
+    .dialog h2 { margin: 0 0 8px; font-size: 16px; }
+    .dialog p { margin: 0 0 16px; font-size: 14px; line-height: 20px; }
+    .dialog .row { display: flex; justify-content: flex-end; gap: 8px; }
+
+    .window { position: relative; }
+
+    .switcher {
+      position: relative; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      background: #111; color: #fff; border-radius: 999px;
+      padding: 6px 8px; box-shadow: 0 10px 30px rgba(0,0,0,.4);
+      z-index: 20; font-size: 12px; margin: 0 auto 12px; max-width: calc(100% - 24px); justify-content: center;
+    }
+    .switcher button {
+      min-width: 36px; min-height: 36px; padding: 0 10px; border: 0; border-radius: 999px;
+      background: #333; color: #fff; cursor: pointer; font-size: 12px;
+    }
+    .switcher button:hover { background: #444; }
+    .switcher button.on { background: #fff; color: #111; }
+    .switcher .label { min-width: 220px; text-align: center; font-weight: 600; }
+    .switcher .sep { width: 1px; height: 20px; background: #444; }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="mark" viewBox="0 0 16 16">
+      <g fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round">
+        <circle cx="8" cy="8" r="3.15" opacity=".75"/>
+        <path d="M4.6 7.2 L7.1 4.7 M4.6 8.8 L7.1 11.3 M8.9 4.7 L11.4 7.2 M8.9 11.3 L11.4 8.8"/>
+      </g>
+      <circle cx="3.4" cy="8" r="1.15" fill="currentColor"/>
+      <circle cx="8" cy="3.4" r="1.15" fill="currentColor"/>
+      <circle cx="8" cy="12.6" r="1.15" fill="currentColor"/>
+      <circle cx="12.6" cy="8" r="1.15" fill="currentColor"/>
+    </symbol>
+    <symbol id="ic-repos" viewBox="0 0 20 20"><path fill="currentColor" d="M4 3.5A1.5 1.5 0 0 1 5.5 2h9A1.5 1.5 0 0 1 16 3.5V16l-3-1.5L10 16l-3-1.5L4 16V3.5Zm1.5-.5a.5.5 0 0 0-.5.5v10.6l2-1 3 1.5 3-1.5 2 1V3.5a.5.5 0 0 0-.5-.5h-9Z"/></symbol>
+    <symbol id="ic-repos-fill" viewBox="0 0 20 20"><path fill="currentColor" d="M5.5 2A1.5 1.5 0 0 0 4 3.5V16l3-1.5 3 1.5 3-1.5 3 1.5V3.5A1.5 1.5 0 0 0 14.5 2h-9Z"/></symbol>
+    <symbol id="ic-bell" viewBox="0 0 20 20"><path fill="currentColor" d="M10 2a6 6 0 0 0-6 6v2.3L2.6 13a1 1 0 0 0 .8 1.6H7a3 3 0 0 0 6 0h3.6a1 1 0 0 0 .8-1.6L16 10.3V8a6 6 0 0 0-6-6Zm0 14a2 2 0 0 1-1.9-1.4h3.8A2 2 0 0 1 10 16Zm-5-3.4.9-1.3V8a5 5 0 1 1 10 0v3.3l.9 1.3H5Z"/></symbol>
+    <symbol id="ic-bell-fill" viewBox="0 0 20 20"><path fill="currentColor" d="M10 2a6 6 0 0 0-6 6v2.3L2.6 13a1 1 0 0 0 .8 1.6H7a3 3 0 0 0 6 0h3.6a1 1 0 0 0 .8-1.6L16 10.3V8a6 6 0 0 0-6-6Zm0 14a2 2 0 0 1-1.9-1.4h3.8A2 2 0 0 1 10 16Z"/></symbol>
+    <symbol id="ic-search" viewBox="0 0 20 20"><path fill="currentColor" d="M8.5 3a5.5 5.5 0 0 1 4.4 8.8l3.6 3.7-1.4 1.4-3.7-3.6A5.5 5.5 0 1 1 8.5 3Zm0 1.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></symbol>
+    <symbol id="ic-search-fill" viewBox="0 0 20 20"><path fill="currentColor" d="M8.5 2a6.5 6.5 0 1 1 4.2 11.5l3.9 3.9-1.4 1.4-3.9-3.9A6.5 6.5 0 0 1 8.5 2Z"/></symbol>
+    <symbol id="ic-gear" viewBox="0 0 20 20"><path fill="currentColor" d="M8.2 2.1h3.6l.4 1.7a6 6 0 0 1 1.6.9l1.7-.5 1.8 3.1-1.3 1.2c.1.4.2.8.2 1.2s-.1.8-.2 1.2l1.3 1.2-1.8 3.1-1.7-.5a6 6 0 0 1-1.6.9l-.4 1.7H8.2l-.4-1.7a6 6 0 0 1-1.6-.9l-1.7.5-1.8-3.1 1.3-1.2A6 6 0 0 1 3.8 10c0-.4.1-.8.2-1.2L2.7 7.6l1.8-3.1 1.7.5a6 6 0 0 1 1.6-.9l.4-1.7ZM10 7.5A2.5 2.5 0 1 0 10 12.5 2.5 2.5 0 0 0 10 7.5Z"/></symbol>
+    <symbol id="ic-gear-fill" viewBox="0 0 20 20"><path fill="currentColor" d="M8.2 2.1h3.6l.4 1.7a6 6 0 0 1 1.6.9l1.7-.5 1.8 3.1-1.3 1.2c.1.4.2.8.2 1.2s-.1.8-.2 1.2l1.3 1.2-1.8 3.1-1.7-.5a6 6 0 0 1-1.6.9l-.4 1.7H8.2l-.4-1.7a6 6 0 0 1-1.6-.9l-1.7.5-1.8-3.1 1.3-1.2A6 6 0 0 1 3.8 10c0-.4.1-.8.2-1.2L2.7 7.6l1.8-3.1 1.7.5a6 6 0 0 1 1.6-.9l.4-1.7ZM10 7.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z"/></symbol>
+    <symbol id="oct-pr" viewBox="0 0 16 16"><circle cx="4.2" cy="3.4" r="1.5" fill="currentColor"/><circle cx="4.2" cy="12.6" r="1.5" fill="currentColor"/><circle cx="11.8" cy="12.6" r="1.5" fill="currentColor"/><path d="M4.2 4.9v6.2 M11.8 11.1V7.4c0-1.6-1.3-2.9-2.9-2.9H8" fill="none" stroke="currentColor" stroke-width="1.25"/></symbol>
+    <symbol id="oct-issue" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></symbol>
+    <symbol id="oct-check" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"/><path d="M5.2 8.2 7.1 10l3.7-4" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="oct-x" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></symbol>
+    <symbol id="oct-dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"/><circle cx="8" cy="8" r="2" fill="currentColor"/></symbol>
+    <symbol id="oct-repo" viewBox="0 0 16 16"><path fill="currentColor" d="M3 2.5A1.5 1.5 0 0 1 4.5 1h7A1.5 1.5 0 0 1 13 2.5V14l-2.5-1.2L8 14l-2.5-1.2L3 14V2.5Z" opacity=".2"/><path fill="none" stroke="currentColor" stroke-width="1.25" d="M4.5 1.6h7A.9.9 0 0 1 12.4 2.5V13l-2.2-1L8 13.2 5.8 12l-2.2 1V2.5A.9.9 0 0 1 4.5 1.6Z"/></symbol>
+  </svg>
+
+  <div class="desktop">
+    <div class="window" id="app"></div>
+  </div>
+
+  <div class="switcher" aria-label="Prototype switcher">
+    <button type="button" id="prev" title="Previous variant">←</button>
+    <div class="label" id="variantLabel"></div>
+    <button type="button" id="next" title="Next variant">→</button>
+    <div class="sep"></div>
+    <button type="button" data-surface="pr">PR</button>
+    <button type="button" data-surface="search">Search</button>
+    <div class="sep"></div>
+    <button type="button" data-scene="conversation">Conversation</button>
+    <button type="button" data-scene="files">Files</button>
+    <button type="button" data-scene="confirm">Merge</button>
+    <button type="button" data-scene="typed">Typed</button>
+    <button type="button" data-scene="review">Review</button>
+    <button type="button" data-scene="empty">Empty</button>
+    <button type="button" data-scene="field">Field</button>
+    <button type="button" data-scene="page">Error</button>
+    <div class="sep"></div>
+    <button type="button" id="themeLight">Light</button>
+    <button type="button" id="themeDark">Dark</button>
+  </div>
+
+  <script>
+    const VARIANTS = [
+      { key: "A", name: "Stacked regions" },
+      { key: "B", name: "Split + rail" },
+      { key: "C", name: "Files-first / cards" },
+      { key: "W", name: "Pick: B PR + one-row Search" },
+    ];
+    const TABS = [
+      { id: "repos", label: "Repos", icon: "ic-repos", fill: "ic-repos-fill" },
+      { id: "notifications", label: "Notifications", icon: "ic-bell", fill: "ic-bell-fill" },
+      { id: "search", label: "Search", icon: "ic-search", fill: "ic-search-fill" },
+      { id: "settings", label: "Settings", icon: "ic-gear", fill: "ic-gear-fill" },
+    ];
+    const PR = {
+      number: 444,
+      title: "Group Conversation sections and route UI events",
+      repo: "Skymly/GitPulse",
+      author: "Skymly",
+      date: "2026-09-03",
+      head: "feature/conversation",
+      base: "main",
+      commits: 4, additions: 128, deletions: 40, files: 6,
+      body: "<p>Pull Conversation lifecycle, review, and metadata into composites. Route UI events through <code>Observables.Events</code>.</p><p>Keeps the Conversation tab as one Surface with Files.</p>",
+      labels: [{ name: "ux", color: "#1d76db" }, { name: "module", color: "#0e8a16" }],
+      assignees: ["Skymly"],
+      reviewers: ["alice"],
+      reviews: [{ user: "bob", state: "APPROVED", date: "2026-09-03 11:40", body: "Composites match the split we wanted." }],
+      comments: [{ user: "alice", date: "2026-09-03 10:12", body: "Can Conversation Review Composer stay on this page?" }],
+      checks: [
+        { name: "Windows CI", conclusion: "success", icon: "oct-check", color: "var(--open)" },
+        { name: "Android compile", conclusion: "success", icon: "oct-check", color: "var(--open)" },
+        { name: "UI smoke", conclusion: "failure", icon: "oct-x", color: "var(--danger)" },
+        { name: "docs lint", conclusion: "in_progress", icon: "oct-dot", color: "var(--attention)" },
+      ],
+    };
+    const FILES = [
+      { path: "src/GitPulse.App/Views/PullRequestDetailPage.xaml", add: 42, del: 18, status: "modified" },
+      { path: "src/GitPulse.ViewModels/PullRequestLifecycle.cs", add: 60, del: 12, status: "added" },
+      { path: "src/GitPulse.ViewModels/PullRequestConversationMeta.cs", add: 26, del: 10, status: "modified" },
+      { path: "docs/CONTEXT.md", add: 0, del: 0, status: "unchanged hunk" },
+    ];
+    const DIFF = [
+      { k: "meta", t: "@@ -12,8 +12,9 @@ PullRequestDetailPage" },
+      { k: "ctx", n: 12, t: "    <Grid RowDefinitions=\"Auto,Auto,*\">" },
+      { k: "rem", n: 13, t: "        Title=\"PR Detail\">" },
+      { k: "add", n: 13, t: "        Title=\"Pull request\">" },
+      { k: "ctx", n: 14, t: "            <Button Text=\"Back\" />" },
+      { k: "add", n: 15, t: "            <Label Text=\"{Binding Title}\" />" },
+      { k: "ctx", n: 16, t: "        </Grid>" },
+    ];
+    const INBOX = [
+      { number: 444, title: "Group Conversation sections and route UI events", repo: "Skymly/GitPulse", state: "Open", icon: "oct-pr", color: "var(--open)", kind: "pr" },
+      { number: 441, title: "Ready-for-review composer copy", repo: "Skymly/GitPulse", state: "Open", icon: "oct-pr", color: "var(--open)", kind: "pr" },
+      { number: 398, title: "Gate Rollup empty combined status", repo: "acme/api", state: "Open", icon: "oct-pr", color: "var(--open)", kind: "pr" },
+    ];
+    const ASSIGNED = [
+      { number: 401, title: "Mica flicker on resume from Tray Presence", repo: "Skymly/GitPulse", state: "Open", icon: "oct-issue", color: "var(--open)", kind: "issue" },
+      { number: 444, title: "Group Conversation sections and route UI events", repo: "Skymly/GitPulse", state: "Open", icon: "oct-pr", color: "var(--open)", kind: "pr" },
+    ];
+    const MENTIONS = [
+      { number: 318, title: "Ignore stale Check Run on skipped jobs", repo: "Skymly/GitPulse", state: "Open", icon: "oct-issue", color: "var(--open)", kind: "issue" },
+    ];
+    const TYPED = [
+      { number: null, title: "Skymly/GitPulse", repo: "Personal Windows-first GitHub client", state: "Repo", icon: "oct-repo", color: "var(--chrome-muted)", kind: "repo" },
+      { number: 444, title: "Group Conversation sections and route UI events", repo: "Skymly/GitPulse", state: "Open", icon: "oct-pr", color: "var(--open)", kind: "pr" },
+      { number: 448, title: "GitHub domain visual semantics we must not contradict", repo: "Skymly/GitPulse", state: "Open", icon: "oct-issue", color: "var(--open)", kind: "issue" },
+    ];
+
+    const state = {
+      variant: "W",
+      surface: "pr",
+      scene: "conversation",
+      theme: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+      file: 0,
+      mergeMethod: "squash",
+    };
+
+    function svg(id, cls) {
+      return `<svg class="${cls}" aria-hidden="true"><use href="#${id}"></use></svg>`;
+    }
+    function chip(label, color, icon) {
+      return `<span class="state" style="--st:${color}">${svg(icon, "icon16")}<span>${label}</span></span>`;
+    }
+    function titlebar() {
+      return `<div class="titlebar">${svg("mark", "mark")}<span class="product">GitPulse</span>
+        <div class="caption"><span>─</span><span>☐</span><span class="close">✕</span></div></div>`;
+    }
+    function tabsA() {
+      return `<nav class="a-tabs">${TABS.map(t => {
+        const on = t.id === "search";
+        return `<button class="a-tab" aria-current="${on ? "page" : "false"}">${svg(on ? t.fill : t.icon, "icon20")}<span>${t.label}</span></button>`;
+      }).join("")}</nav>`;
+    }
+    function headerB(parent) {
+      return `<header class="hdr-b">
+        <div class="crumb">
+          <button class="ghost" type="button">Back</button>
+          <span class="cap">${parent}</span>
+          <span class="cap">/</span>
+          <span class="cap">${PR.repo} #${PR.number}</span>
+        </div>
+        <div class="band">
+          ${svg("oct-pr", "icon16")}
+          <div>
+            ${chip("Open", "var(--open)", "oct-pr")}
+            <div class="page-title" style="margin-top:4px">${PR.title}</div>
+            <div class="cap" style="margin-top:6px">Opened by ${PR.author} · ${PR.date} · ${PR.commits} commits · <span class="pm"><span class="a">+${PR.additions}</span> <span class="d">−${PR.deletions}</span></span></div>
+          </div>
+        </div>
+      </header>`;
+    }
+    function labels() {
+      return PR.labels.map(l => `<span class="label-swatch" style="--sw:${l.color}"><i></i>${l.name}</span>`).join("");
+    }
+    function checks() {
+      return PR.checks.map(c => `<div class="check">${chip(c.conclusion.replace("_", " "), c.color, c.icon)}<span>${c.name}</span></div>`).join("");
+    }
+    function pageError(msg, action) {
+      return `<div class="page-error"><span class="msg">${msg}</span>${action ? `<button class="btn" type="button">${action}</button>` : ""}</div>`;
+    }
+    function confirmDialog() {
+      if (state.scene !== "confirm") return "";
+      return `<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="dialog">
+          <h2 id="confirmTitle">Merge pull request?</h2>
+          <p>Merge <strong>#${PR.number} ${PR.title}</strong> using <strong>${state.mergeMethod}</strong>. This cannot be undone in the app.</p>
+          <div class="row">
+            <button class="btn" type="button" data-cancel-merge>Cancel</button>
+            <button class="btn btn-danger" type="button" data-do-merge>Merge</button>
+          </div>
+        </div>
+      </div>`;
+    }
+    function diffBlock(file) {
+      const f = FILES[file] || FILES[0];
+      return `<div class="diff">
+        <div class="h">${f.path} · ${f.status} · <span class="pm"><span class="a">+${f.add}</span> <span class="d">−${f.del}</span></span></div>
+        ${DIFF.map(l => l.k === "meta"
+          ? `<div class="meta">${l.t}</div>`
+          : `<div class="ln ${l.k}"><span class="n">${l.n}</span><span>${escapeHtml(l.t)}</span></div>`).join("")}
+      </div>`;
+    }
+    function escapeHtml(s) {
+      return s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    }
+    function lifecycleA() {
+      return `<div class="card">
+        <div class="section" style="margin-bottom:8px">Lifecycle</div>
+        <div class="refs" style="margin-bottom:10px"><span>${PR.head}</span><span>→</span><span>${PR.base}</span></div>
+        <div class="cap" style="margin-bottom:10px">Mergeable · squash selected</div>
+        <div class="actions">
+          <select class="field" style="max-width:160px;min-height:44px" data-method>
+            <option value="merge">merge</option>
+            <option value="squash" selected>squash</option>
+            <option value="rebase">rebase</option>
+          </select>
+          <button class="btn btn-danger" type="button" data-open-merge>Merge</button>
+          <button class="btn" type="button">Close</button>
+          <button class="btn" type="button">Convert to draft</button>
+          <button class="btn btn-accent" type="button">Update branch</button>
+        </div>
+      </div>`;
+    }
+    function metaA() {
+      return `<div class="card">
+        <div class="section" style="margin-bottom:8px">Metadata</div>
+        <div class="cap">Assignees</div>
+        <div class="body" style="margin-bottom:8px">${PR.assignees.join(", ")}</div>
+        <div class="cap">Labels</div>
+        <div class="chip-row" style="margin-bottom:8px">${labels()}</div>
+        <div class="cap">Requested reviewers</div>
+        <div class="body">${PR.reviewers.join(", ")}</div>
+      </div>`;
+    }
+    function reviewsA() {
+      return `<div class="card">
+        <div class="section" style="margin-bottom:8px">Reviews</div>
+        ${PR.reviews.map(r => `<div class="who"><strong>${r.user}</strong><span class="state" style="--st:var(--open)">${svg("oct-check","icon16")}${r.state}</span></div>
+          <div class="cap">${r.date}</div><div class="md"><p>${r.body}</p></div>`).join("")}
+        <div class="section" style="margin:12px 0 8px">Submit a review</div>
+        <select class="field" style="margin-bottom:8px"><option>COMMENT</option><option>APPROVE</option><option>REQUEST_CHANGES</option></select>
+        <textarea class="field" placeholder="Summary (required except for APPROVE)"></textarea>
+        <div style="margin-top:8px"><button class="btn btn-accent" type="button">Submit review</button></div>
+      </div>`;
+    }
+    function commentsA() {
+      return `<div class="card">
+        <div class="section" style="margin-bottom:8px">Conversation</div>
+        ${PR.comments.map(c => `<div class="who"><strong>${c.user}</strong><span class="cap">${c.date}</span></div>
+          <div class="md"><p>${c.body}</p></div>`).join("")}
+        <div class="section" style="margin:12px 0 8px">Add a comment</div>
+        <textarea class="field" placeholder="Write a comment… (Markdown)"></textarea>
+        <div style="margin-top:8px"><button class="btn btn-accent" type="button">Comment</button></div>
+      </div>`;
+    }
+    function bodyCard() {
+      return `<div class="card">
+        <div class="refs" style="margin-bottom:10px"><span>${PR.head}</span><span>→</span><span>${PR.base}</span></div>
+        <div class="md">${PR.body}</div>
+      </div>`;
+    }
+    function gateCard() {
+      return `<div class="card">
+        <div class="section" style="margin-bottom:8px">Gate Rollup</div>
+        ${chip("failure", "var(--danger)", "oct-x")}
+        <div style="margin-top:8px">${checks()}</div>
+      </div>`;
+    }
+
+    function conversationA() {
+      return `<div class="seg">
+        <button type="button" aria-current="true">Conversation</button>
+        <button type="button" data-scene="files">Files</button>
+      </div>
+      <div class="scroll"><div class="stack">
+        ${bodyCard()}${lifecycleA()}${metaA()}${gateCard()}${reviewsA()}${commentsA()}
+      </div></div>`;
+    }
+    function filesA() {
+      return `<div class="seg">
+        <button type="button" data-scene="conversation">Conversation</button>
+        <button type="button" aria-current="true">Files</button>
+      </div>
+      <div class="scroll"><div class="stack">
+        ${FILES.map((f, i) => `<div class="card">
+          <button class="file-item" style="border:0;padding:0;min-height:44px" data-file="${i}">
+            <span class="path">${f.path}</span>
+            <span class="pm"><span class="a">+${f.add}</span> <span class="d">−${f.del}</span></span>
+          </button>
+          ${i === state.file ? `${diffBlock(i)}<div style="margin-top:8px"><button class="btn btn-quiet" type="button">Comment on this file</button></div>` : ""}
+        </div>`).join("")}
+      </div></div>`;
+    }
+
+    function conversationB() {
+      return `<div class="seg">
+        <button type="button" aria-current="true">Conversation</button>
+        <button type="button" data-scene="files">Files</button>
+      </div>
+      <div class="life-strip">
+        <span class="refs"><span>${PR.head}</span><span>→</span><span>${PR.base}</span></span>
+        ${chip("Mergeable", "var(--open)", "oct-check")}
+        <span class="cap">squash</span>
+        <button class="btn btn-danger" type="button" data-open-merge>Merge</button>
+        <button class="btn" type="button">Close</button>
+        <button class="btn" type="button">Convert to draft</button>
+      </div>
+      <div class="split">
+        <div class="scroll" style="flex:1"><div class="stack">
+          <div class="card"><div class="md">${PR.body}</div></div>
+          ${reviewsA()}${commentsA()}
+        </div></div>
+        <aside class="rail">
+          <div><div class="cap">Assignees</div><div class="body">${PR.assignees.join(", ")}</div></div>
+          <div><div class="cap">Labels</div><div class="chip-row">${labels()}</div></div>
+          <div><div class="cap">Reviewers</div><div class="body">${PR.reviewers.join(", ")}</div></div>
+          <div><div class="cap">Gate Rollup</div>${chip("failure", "var(--danger)", "oct-x")}${checks()}</div>
+        </aside>
+      </div>`;
+    }
+    function filesB() {
+      return `<div class="seg">
+        <button type="button" data-scene="conversation">Conversation</button>
+        <button type="button" aria-current="true">Files</button>
+      </div>
+      <div class="split">
+        <div class="file-col">${FILES.map((f, i) => `
+          <button class="file-item" data-file="${i}" aria-current="${i === state.file}">
+            <span class="path">${f.path.split("/").pop()}</span>
+            <span class="pm"><span class="a">+${f.add}</span> <span class="d">−${f.del}</span></span>
+          </button>`).join("")}</div>
+        <div class="scroll" style="flex:1;padding:16px">
+          ${diffBlock(state.file)}
+          <div class="card" style="margin-top:12px">
+            <div class="cap">Line comment (stub)</div>
+            <textarea class="field" placeholder="Comment on this hunk…"></textarea>
+            <div style="margin-top:8px"><button class="btn btn-accent" type="button">Comment</button></div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function conversationC() {
+      return `<div class="life-strip">
+        ${chip("Open", "var(--open)", "oct-pr")}
+        ${chip("Gate failure", "var(--danger)", "oct-x")}
+        <span class="refs"><span>${PR.head}</span>→<span>${PR.base}</span></span>
+        <button class="btn" type="button" data-scene="files">Files · ${PR.files}</button>
+        <button class="btn btn-danger" type="button" data-open-merge>Merge</button>
+      </div>
+      <div class="scroll"><div class="stack">
+        <div class="card"><div class="md">${PR.body}</div></div>
+        ${reviewsA()}${commentsA()}
+      </div></div>`;
+    }
+    function filesC() {
+      return `<div class="life-strip">
+        ${chip("Open", "var(--open)", "oct-pr")}
+        <span class="cap">${PR.files} files</span>
+        <button class="btn" type="button" data-scene="conversation">Conversation</button>
+      </div>
+      <div class="split">
+        <nav class="tree">${FILES.map((f, i) => `
+          <button type="button" data-file="${i}" aria-current="${i === state.file}">${f.path.split("/").slice(-2).join("/")}</button>`).join("")}
+        </nav>
+        <div class="scroll" style="flex:1;padding:16px">${diffBlock(state.file)}</div>
+      </div>`;
+    }
+
+    function listRows(items) {
+      return `<div class="list-a">${items.map(r => `
+        <button class="row-a" type="button">
+          <span class="unread off"></span>
+          ${svg(r.icon, "icon16")}
+          <span>
+            <div class="title">${r.title}</div>
+            <div class="meta">${chip(r.state, r.color, r.icon)}<span class="reason">${r.repo}${r.number ? " · #" + r.number : ""}</span></div>
+          </span>
+          <span class="cap">${r.number ? "#" + r.number : ""}</span>
+        </button>`).join("")}</div>
+        <button class="more" type="button">Load more · 12 remaining</button>`;
+    }
+    function typeTabs(on) {
+      const tabs = ["Repos", "Issues", "PRs", "Code"];
+      return `<div class="seg">${tabs.map(t => `<button type="button" aria-current="${t === on}">${t}</button>`).join("")}</div>`;
+    }
+    function searchBar(value, showSubmit) {
+      return `<div class="searchbar">
+        <input class="field" id="q" value="${value}" placeholder="Search GitHub…" />
+        ${showSubmit ? `<button class="btn btn-accent" type="button">Search</button>` : ""}
+      </div>`;
+    }
+
+    function searchA() {
+      const hubs = [
+        ["search", "Search"], ["review", "Review requested"],
+        ["assigned", "Assigned"], ["mentions", "Mentions"],
+      ];
+      const hub = state.scene === "review" ? "review" : state.scene === "typed" || state.scene === "empty" || state.scene === "field" || state.scene === "page" ? "search" : "search";
+      const grid = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px 0">
+        ${hubs.map(([id, label]) => `<button class="btn ${hub === id ? "btn-accent" : ""}" type="button" data-scene="${id === "search" ? "typed" : id === "review" ? "review" : id}" style="width:100%">${label}</button>`).join("")}
+      </div>`;
+      if (state.scene === "review") {
+        return `${grid}<div style="padding:12px 16px 8px"><div class="section">Review Inbox</div><span class="cap">3 open</span></div>${listRows(INBOX)}`;
+      }
+      if (state.scene === "assigned") {
+        return `${grid}<div style="padding:12px 16px 8px"><div class="section">Assigned Inbox</div><span class="cap">2 open</span></div>${listRows(ASSIGNED)}`;
+      }
+      if (state.scene === "mentions") {
+        return `${grid}<div style="padding:12px 16px 8px"><div class="section">Mentions Inbox</div><span class="cap">1 open</span></div>${listRows(MENTIONS)}`;
+      }
+      if (state.scene === "empty") {
+        return `${grid}${searchBar("xyzzy-no-hit", true)}${typeTabs("PRs")}
+          <div class="empty"><h2>No results</h2><p>No pull requests match this query. Change the SearchBar and search again.</p></div>`;
+      }
+      if (state.scene === "field") {
+        return `${grid}${searchBar("ab", true)}<div class="field-error">Enter at least 3 characters.</div>${typeTabs("PRs")}`;
+      }
+      if (state.scene === "page") {
+        return `${grid}${searchBar("GitPulse", true)}${pageError("Search rate limited. Try again later.", "")}${typeTabs("PRs")}${listRows(TYPED)}`;
+      }
+      return `${grid}${searchBar("GitPulse", true)}${typeTabs("PRs")}
+        <div class="cap" style="padding:0 16px 8px">1,204 results</div>${listRows(TYPED)}`;
+    }
+
+    function searchB() {
+      const hub = state.scene === "review" ? "Review" : state.scene === "assigned" ? "Assigned" : state.scene === "mentions" ? "Mentions" : "Search";
+      const segs = [
+        ["Search", "typed"], ["Review", "review"], ["Assigned", "assigned"], ["Mentions", "mentions"],
+      ];
+      const bar = searchBar(state.scene === "field" ? "ab" : state.scene === "empty" ? "xyzzy-no-hit" : "GitPulse", false);
+      const nav = `<div class="seg">${segs.map(([t, sc]) => `<button type="button" aria-current="${t === hub}" data-scene="${sc}">${t}</button>`).join("")}</div>`;
+      if (state.scene === "review") return `${bar}${nav}${listRows(INBOX)}`;
+      if (state.scene === "assigned") return `${bar}${nav}${listRows(ASSIGNED)}`;
+      if (state.scene === "mentions") return `${bar}${nav}${listRows(MENTIONS)}`;
+      if (state.scene === "empty") return `${bar}${nav}${typeTabs("PRs")}<div class="empty"><h2>No results</h2><p>No pull requests match this query. The SearchBar is the next step.</p></div>`;
+      if (state.scene === "field") return `${bar}<div class="field-error">Enter at least 3 characters.</div>${nav}${typeTabs("PRs")}`;
+      if (state.scene === "page") return `${bar}${nav}${pageError("Search rate limited. Try again later.", "")}${typeTabs("PRs")}${listRows(TYPED)}`;
+      return `${bar}${nav}${typeTabs("PRs")}<div class="cap" style="padding:0 16px 8px">1,204 results</div>${listRows(TYPED)}`;
+    }
+
+    function searchC() {
+      const cards = `<div class="hub-cards">
+          <button class="hub-card" type="button" data-scene="review"><div class="count">3</div><div class="body">Review Inbox</div><div class="cap">open PRs waiting on you</div></button>
+          <button class="hub-card" type="button" data-scene="assigned"><div class="count">2</div><div class="body">Assigned Inbox</div><div class="cap">open issues and PRs</div></button>
+          <button class="hub-card" type="button" data-scene="mentions"><div class="count">1</div><div class="body">Mentions Inbox</div><div class="cap">open items that mention you</div></button>
+        </div>`;
+      if (state.scene === "review") {
+        return `<div class="c-search-hero">${searchBar("", false)}</div>
+          <div style="padding:8px 16px"><div class="section">Review Inbox</div><span class="cap">open PRs waiting on you</span></div>
+          ${listRows(INBOX)}`;
+      }
+      if (state.scene === "assigned") {
+        return `<div class="c-search-hero">${searchBar("", false)}</div>
+          <div style="padding:8px 16px"><div class="section">Assigned Inbox</div></div>${listRows(ASSIGNED)}`;
+      }
+      if (state.scene === "mentions") {
+        return `<div class="c-search-hero">${searchBar("", false)}</div>
+          <div style="padding:8px 16px"><div class="section">Mentions Inbox</div></div>${listRows(MENTIONS)}`;
+      }
+      if (state.scene === "empty") {
+        return `<div class="c-search-hero">${searchBar("xyzzy-no-hit", false)}</div>
+          <div class="empty"><h2>No results</h2><p>No items match this query. Change the SearchBar — do not create an issue from Search.</p></div>`;
+      }
+      if (state.scene === "field") {
+        return `<div class="c-search-hero">${searchBar("ab", false)}</div><div class="field-error">Enter at least 3 characters.</div>`;
+      }
+      if (state.scene === "page") {
+        return `<div class="c-search-hero">${searchBar("GitPulse", false)}</div>${pageError("Search rate limited. Try again later.", "")}${listRows(TYPED)}`;
+      }
+      return `<div class="c-search-hero">${searchBar("", false)}</div>${cards}`;
+    }
+
+    function searchW() {
+      const hub = state.scene === "review" ? "Review" : state.scene === "assigned" ? "Assigned" : state.scene === "mentions" ? "Mentions" : "Search";
+      const segs = [
+        ["Search", "typed"], ["Review", "review"], ["Assigned", "assigned"], ["Mentions", "mentions"],
+      ];
+      const nav = `<div class="seg">${segs.map(([t, sc]) => `<button type="button" aria-current="${t === hub}" data-scene="${sc}">${t}</button>`).join("")}</div>`;
+      if (state.scene === "review") return `${nav}${listRows(INBOX)}`;
+      if (state.scene === "assigned") return `${nav}${listRows(ASSIGNED)}`;
+      if (state.scene === "mentions") return `${nav}${listRows(MENTIONS)}`;
+      const bar = searchBar(state.scene === "field" ? "ab" : state.scene === "empty" ? "xyzzy-no-hit" : "GitPulse", true);
+      if (state.scene === "empty") {
+        return `${nav}${bar}${typeTabs("PRs")}<div class="empty"><h2>No results</h2><p>No pull requests match this query. The SearchBar is the next step.</p></div>`;
+      }
+      if (state.scene === "field") {
+        return `${nav}${bar}<div class="field-error">Enter at least 3 characters.</div>${typeTabs("PRs")}`;
+      }
+      if (state.scene === "page") {
+        return `${nav}${bar}${pageError("Search rate limited. Try again later.", "")}${typeTabs("PRs")}${listRows(TYPED)}`;
+      }
+      return `${nav}${bar}${typeTabs("PRs")}<div class="cap" style="padding:0 16px 8px">1,204 results</div>${listRows(TYPED)}`;
+    }
+
+    function prBody() {
+      const v = state.variant;
+      const scene = state.scene === "confirm" ? "conversation" : state.scene;
+      if (v === "A") return scene === "files" ? filesA() : conversationA();
+      if (v === "C") return scene === "files" ? filesC() : conversationC();
+      return scene === "files" ? filesB() : conversationB();
+    }
+    function searchBody() {
+      if (state.variant === "A") return searchA();
+      if (state.variant === "B") return searchB();
+      if (state.variant === "C") return searchC();
+      return searchW();
+    }
+
+    function render() {
+      const app = document.getElementById("app");
+      document.documentElement.setAttribute("data-theme", state.theme);
+      app.setAttribute("data-theme", state.theme);
+      const isPr = state.surface === "pr";
+      const tabs = isPr ? "" : tabsA();
+      const page = isPr
+        ? `${headerB("Pull requests")}${prBody()}`
+        : searchBody();
+      app.innerHTML = `${titlebar()}<div class="shell">${tabs}<div class="page">${page}</div></div>${confirmDialog()}`;
+
+      const v = VARIANTS.find(x => x.key === state.variant);
+      document.getElementById("variantLabel").textContent = `${v.key} — ${v.name}`;
+      document.querySelectorAll("[data-surface]").forEach(b => b.classList.toggle("on", b.dataset.surface === state.surface));
+      document.querySelectorAll("[data-scene]").forEach(b => {
+        if (!b.closest(".switcher")) return;
+        b.classList.toggle("on", b.dataset.scene === state.scene);
+        const prScenes = ["conversation", "files", "confirm"];
+        const searchScenes = ["typed", "review", "empty", "field", "page"];
+        b.hidden = isPr ? !prScenes.includes(b.dataset.scene) : !searchScenes.includes(b.dataset.scene);
+      });
+      document.getElementById("themeLight").classList.toggle("on", state.theme === "light");
+      document.getElementById("themeDark").classList.toggle("on", state.theme === "dark");
+
+      const url = new URL(location.href);
+      url.searchParams.set("variant", state.variant);
+      url.searchParams.set("surface", state.surface);
+      url.searchParams.set("scene", state.scene);
+      url.searchParams.set("theme", state.theme);
+      history.replaceState(null, "", url);
+    }
+
+    function setVariant(key) { state.variant = key; render(); }
+    function cycle(dir) {
+      const i = VARIANTS.findIndex(v => v.key === state.variant);
+      setVariant(VARIANTS[(i + dir + VARIANTS.length) % VARIANTS.length].key);
+    }
+
+    document.getElementById("prev").onclick = () => cycle(-1);
+    document.getElementById("next").onclick = () => cycle(1);
+    document.getElementById("themeLight").onclick = () => { state.theme = "light"; render(); };
+    document.getElementById("themeDark").onclick = () => { state.theme = "dark"; render(); };
+    document.querySelector(".switcher").addEventListener("click", (e) => {
+      const s = e.target.closest("[data-surface]");
+      if (s) {
+        state.surface = s.dataset.surface;
+        state.scene = state.surface === "pr" ? "conversation" : "typed";
+        render();
+      }
+      const sc = e.target.closest("[data-scene]");
+      if (sc && sc.closest(".switcher")) { state.scene = sc.dataset.scene; render(); }
+    });
+    document.getElementById("app").addEventListener("click", (e) => {
+      const scene = e.target.closest("[data-scene]");
+      if (scene) { state.scene = scene.dataset.scene; render(); return; }
+      const file = e.target.closest("[data-file]");
+      if (file) { state.file = Number(file.dataset.file); render(); return; }
+      if (e.target.closest("[data-open-merge]")) { state.scene = "confirm"; render(); return; }
+      if (e.target.closest("[data-cancel-merge]")) { state.scene = "conversation"; render(); return; }
+      if (e.target.closest("[data-do-merge]")) { state.scene = "conversation"; render(); }
+    });
+    document.getElementById("app").addEventListener("change", (e) => {
+      if (e.target.matches("[data-method]")) state.mergeMethod = e.target.value;
+    });
+    document.addEventListener("keydown", (e) => {
+      const t = e.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable || t.tagName === "SELECT")) return;
+      if (e.key === "ArrowLeft") cycle(-1);
+      if (e.key === "ArrowRight") cycle(1);
+      if (e.key === "Escape" && state.scene === "confirm") { state.scene = "conversation"; render(); }
+    });
+
+    const params = new URLSearchParams(location.search);
+    if (["A", "B", "C", "W"].includes(params.get("variant"))) state.variant = params.get("variant");
+    if (["pr", "search"].includes(params.get("surface"))) state.surface = params.get("surface");
+    if (params.get("scene")) state.scene = params.get("scene");
+    if (["light", "dark"].includes(params.get("theme"))) state.theme = params.get("theme");
+    render();
+  </script>
+</body>
+</html>
