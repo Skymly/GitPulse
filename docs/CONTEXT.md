@@ -188,3 +188,52 @@ _Avoid_: pending review
 Converting an open non-draft pull request to draft with `POST /repos/{owner}/{repo}/pulls/{number}/convert_to_draft`. Shown on Conversation for open non-draft unmerged PRs. Distinct from Draft PR (create-time) and from Ready for Review.
 _Avoid_: GraphQL convertPullRequestToDraft, PATCH draft
 
+
+**Page Error**:
+An in-page failure for a GitHub request that did not succeed. The user remains on the current page. Distinct from Field Error, Empty State, and Toast.
+_Avoid_: toast, snackbar, error dialog, using the error banner for success
+
+**Field Error**:
+A client-side validation failure shown next to the control that must change. Distinct from Page Error; not used for HTTP failures.
+_Avoid_: page banner, toast, alert
+
+**Empty State**:
+A successful load or search with zero items, shown as a title and a reason. Distinct from Page Error and from a blank list. A Create next step is required only when this page can create the first item.
+_Avoid_: blank list, blankslate, no-results-only label
+
+**Stay-on-page**:
+The rule that a GitHub request failure does not navigate away from the current page. Distinct from user-initiated Back.
+_Avoid_: swallow error, auto-pop on 404, auto-navigate to Settings on 401
+
+**Destructive Confirm**:
+An extra confirmation step before Merge or Delete file — writes that cannot be undone in the app. Distinct from Field Error and from confirming every write.
+_Avoid_: confirm-all-writes, DisplayAlert (implementation)
+
+**Accent**:
+GitPulse's product color for selection, focus ring, links, and primary chrome actions. Distinct from Domain Color.
+_Avoid_: Primary (MAUI template key), Magenta tab color, GitHub green as the product color, OS accent (can collide with Domain Color)
+
+**Domain Color**:
+Color used only for GitHub object states (Issue, PR, Checks, and related). Follows GitHub owner roles: open/success, done, closed-unmerged/danger, draft/muted, attention. Distinct from Accent.
+_Avoid_: semantic color (vague), using Accent for states, treating template Green700/Purple700/Orange900 as the language
+
+**Chrome Neutral**:
+Surface, text, and separator color for the shell and page chrome. Distinct from Accent and Domain Color.
+_Avoid_: Gray100 as the language, Primer canvas as GitPulse chrome
+
+**GitPulse Mark**:
+The product's own brand mark, used as app icon, splash, and Tray icon. Distinct from Chrome Icon and from GitHub's Invertocat.
+_Avoid_: dotnet_bot, Invertocat, .NET wordmark, using the mark as every tab icon
+
+**Domain Icon**:
+An Octicon whose GitHub meaning is locked (Issue, PR, pass/fail, and related). Distinct from Chrome Icon.
+_Avoid_: inventing GitHub state glyphs, stretching 16px Octicons as decoration
+
+**Chrome Icon**:
+A shippable icon for shell destinations and chrome actions. Distinct from Domain Icon and from the GitPulse Mark.
+_Avoid_: Segoe Fluent Icons as the Android source, dotnet_bot tab icons
+
+**Surface**:
+A first-class, user-reachable place: a Shell tab, a stacked page, or Windows-only Tray Presence / Tray Menu / Toast. Hubs and regions inside it are not Surfaces; nor are embedded Diff view / Markdown, chrome atoms (tab bar, list row, detail header), or Chrome Neutral (the color layer).
+_Avoid_: page, screen, view, ContentPage, ranking Diff view or Markdown, ranking Search Inboxes as their own Surfaces
+
