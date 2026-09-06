@@ -108,8 +108,8 @@
                                         HorizontalOptions="Fill" />
                                 <Button Grid.Column="1"
                                         Text="Open →"
-                                        Command="{Binding BindingContext.OpenInBrowserCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                                        CommandParameter="{Binding Subject.LatestCommentUrl}"
+                                        Command="{Binding BindingContext.OpenNotificationCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                        CommandParameter="{Binding .}"
                                         BackgroundColor="Transparent"
                                         TextColor="{StaticResource Primary}"
                                         Padding="8,10"

@@ -42,10 +42,7 @@ public partial class NotificationsPage : ContentPage
         {
             ((CollectionView)sender!).SelectedItem = null;
 
-            // Open the notification subject in the browser.
-            var url = notification.Subject.LatestCommentUrl ?? notification.Repository.HtmlUrl;
-            if (!string.IsNullOrEmpty(url))
-                await _viewModel.OpenInBrowserCommand.ExecuteAsync(url);
+            await _viewModel.OpenNotificationCommand.ExecuteAsync(notification);
         }
     }
 }

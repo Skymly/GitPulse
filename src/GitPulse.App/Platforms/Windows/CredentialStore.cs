@@ -31,6 +31,14 @@ public sealed class WindowsCredentialStore : ICredentialStore
             // The data could not be decrypted (e.g. different user profile).
             return Task.FromResult<string?>(null);
         }
+        catch (IOException)
+        {
+            return Task.FromResult<string?>(null);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Task.FromResult<string?>(null);
+        }
     }
 
     public Task SetTokenAsync(string token, CancellationToken ct = default)
