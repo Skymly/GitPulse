@@ -33,6 +33,7 @@ public sealed partial class NotificationsViewModel : IDisposable
     private readonly IGitHubClientFactory _clientFactory;
     private readonly INotificationPoller _poller;
     private readonly IBrowserLauncher _browserLauncher;
+    private readonly SynchronizationContext? _uiContext = SynchronizationContext.Current;
 
     /// <summary>Notifications currently displayed.</summary>
     public ObservableCollection<Notification> Notifications { get; } = [];
@@ -71,21 +72,35 @@ public sealed partial class NotificationsViewModel : IDisposable
 
     private async Task CheckAuthAsync()
     {
-        var client = await _clientFactory.CreateClientAsync();
+        using var client = await _clientFactory.CreateClientAsync();
         IsAuthenticated.Value = client.DefaultRequestHeaders.Authorization is not null;
     }
 
     private void OnNotificationsUpdated(Notification[] notifications, int unreadCount)
     {
-        Notifications.Clear();
-        foreach (var n in notifications)
-            Notifications.Add(n);
-        UnreadCount.Value = unreadCount;
+        RunOnUi(() =>
+        {
+            Notifications.Clear();
+            foreach (var n in notifications)
+                Notifications.Add(n);
+            UnreadCount.Value = unreadCount;
+        });
     }
 
     private void OnPollingChanged(bool isPolling)
     {
-        IsPolling.Value = isPolling;
+        RunOnUi(() => IsPolling.Value = isPolling);
+    }
+
+    private void RunOnUi(Action action)
+    {
+        if (_uiContext is null || ReferenceEquals(SynchronizationContext.Current, _uiContext))
+        {
+            action();
+            return;
+        }
+
+        _uiContext.Post(_ => action(), null);
     }
 
     /// <summary>Start polling (called when the page appears).</summary>
@@ -134,7 +149,7 @@ public sealed partial class NotificationsViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var client = await _clientFactory.CreateClientAsync();
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured.";
@@ -176,7 +191,7 @@ public sealed partial class NotificationsViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var client = await _clientFactory.CreateClientAsync();
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured.";
@@ -211,6 +226,22 @@ public sealed partial class NotificationsViewModel : IDisposable
     [RelayCommand]
     private async Task OpenInBrowserAsync(string url)
     {
+        if (!string.IsNullOrEmpty(url))
+            await _browserLauncher.OpenAsync(url);
+    }
+
+    /// <summary>
+    /// Open the notification subject on github.com. GitHub's notification payload
+    /// only has API URLs on <see cref="NotificationSubject"/>; those must not be
+    /// launched in a browser.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenNotificationAsync(Notification? notification)
+    {
+        if (notification is null)
+            return;
+
+        var url = GitHubWebUrl.FromNotification(notification);
         if (!string.IsNullOrEmpty(url))
             await _browserLauncher.OpenAsync(url);
     }

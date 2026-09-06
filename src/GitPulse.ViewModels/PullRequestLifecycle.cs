@@ -87,15 +87,15 @@ internal sealed class PullRequestLifecycle(
 
         try
         {
-            var (api, cts) = await io.OpenAsync(requireToken: false);
-            if (api is null || cts is null)
+            using var call = await io.OpenAsync(requireToken: false);
+            if (call is null)
                 return;
 
-            using (cts)
+            var api = call.Api;
             {
                 var newState = pullRequest.Value.State == "open" ? "closed" : "open";
                 var request = new IssueUpdateRequest { State = newState };
-                await api.UpdateIssue(io.Owner, io.Repo, io.Number, request).FirstAsync(cts.Token);
+                await api.UpdateIssue(io.Owner, io.Repo, io.Number, request).FirstAsync(call.Token);
 
                 var pr = pullRequest.Value;
                 pullRequest.Value = new PullRequest
@@ -141,11 +141,11 @@ internal sealed class PullRequestLifecycle(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            using var call = await io.OpenAsync();
+            if (call is null)
                 return;
 
-            using (cts)
+            var api = call.Api;
             {
                 var request = new MergeRequest
                 {
@@ -154,7 +154,7 @@ internal sealed class PullRequestLifecycle(
                 };
 
                 var response = await api.MergePullRequest(io.Owner, io.Repo, io.Number, request)
-                    .FirstAsync(cts.Token);
+                    .FirstAsync(call.Token);
 
                 if (response.Merged)
                 {
@@ -215,11 +215,11 @@ internal sealed class PullRequestLifecycle(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            using var call = await io.OpenAsync();
+            if (call is null)
                 return;
 
-            using (cts)
+            var api = call.Api;
             {
                 var headSha = pullRequest.Value.Head?.Sha;
                 var request = new UpdatePullRequestBranchRequest
@@ -227,11 +227,11 @@ internal sealed class PullRequestLifecycle(
                     ExpectedHeadSha = string.IsNullOrEmpty(headSha) ? null : headSha,
                 };
                 var response = await api.UpdatePullRequestBranch(io.Owner, io.Repo, io.Number, request)
-                    .FirstAsync(cts.Token);
+                    .FirstAsync(call.Token);
                 var code = (int)(response.StatusCode ?? 0);
                 if (code is >= 200 and < 300)
                 {
-                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(cts.Token);
+                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(call.Token);
                     apply(pr);
                     return;
                 }
@@ -268,18 +268,18 @@ internal sealed class PullRequestLifecycle(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            using var call = await io.OpenAsync();
+            if (call is null)
                 return;
 
-            using (cts)
+            var api = call.Api;
             {
                 var response = await api.MarkPullRequestReadyForReview(io.Owner, io.Repo, io.Number)
-                    .FirstAsync(cts.Token);
+                    .FirstAsync(call.Token);
                 var code = (int)(response.StatusCode ?? 0);
                 if (code is >= 200 and < 300)
                 {
-                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(cts.Token);
+                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(call.Token);
                     apply(pr);
                     return;
                 }
@@ -316,18 +316,18 @@ internal sealed class PullRequestLifecycle(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            using var call = await io.OpenAsync();
+            if (call is null)
                 return;
 
-            using (cts)
+            var api = call.Api;
             {
                 var response = await api.ConvertPullRequestToDraft(io.Owner, io.Repo, io.Number)
-                    .FirstAsync(cts.Token);
+                    .FirstAsync(call.Token);
                 var code = (int)(response.StatusCode ?? 0);
                 if (code is >= 200 and < 300)
                 {
-                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(cts.Token);
+                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(call.Token);
                     apply(pr);
                     return;
                 }

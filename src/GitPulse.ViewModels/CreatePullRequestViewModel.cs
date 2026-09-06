@@ -74,7 +74,7 @@ public sealed partial class CreatePullRequestViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var client = await _clientFactory.CreateClientAsync();
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured.";
@@ -132,7 +132,7 @@ public sealed partial class CreatePullRequestViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var client = await _clientFactory.CreateClientAsync();
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured.";

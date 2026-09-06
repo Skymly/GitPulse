@@ -70,20 +70,20 @@ internal sealed class PullRequestConversationMeta(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            using var call = await io.OpenAsync();
+            if (call is null)
                 return;
 
-            using (cts)
+            var api = call.Api;
             {
                 var request = new ReviewersRequest { Reviewers = [login] };
                 var response = await api.RequestReviewers(io.Owner, io.Repo, io.Number, request)
-                    .FirstAsync(cts.Token);
+                    .FirstAsync(call.Token);
                 if (!ApplyReviewerWriteStatus(response.StatusCode, requesting: true))
                     return;
 
                 ReviewerLogin.Value = string.Empty;
-                await LoadRequestedAsync(api, cts.Token);
+                await LoadRequestedAsync(api, call.Token);
             }
         }
         catch (OperationCanceledException)
@@ -111,19 +111,19 @@ internal sealed class PullRequestConversationMeta(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            using var call = await io.OpenAsync();
+            if (call is null)
                 return;
 
-            using (cts)
+            var api = call.Api;
             {
                 var request = new ReviewersRequest { Reviewers = [login] };
                 var response = await api.RemoveRequestedReviewers(io.Owner, io.Repo, io.Number, request)
-                    .FirstAsync(cts.Token);
+                    .FirstAsync(call.Token);
                 if (!ApplyReviewerWriteStatus(response.StatusCode, requesting: false))
                     return;
 
-                await LoadRequestedAsync(api, cts.Token);
+                await LoadRequestedAsync(api, call.Token);
             }
         }
         catch (OperationCanceledException)
@@ -178,17 +178,17 @@ internal sealed class PullRequestConversationMeta(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            using var call = await io.OpenAsync();
+            if (call is null)
                 return;
 
-            using (cts)
+            var api = call.Api;
             {
                 var names = LabelInput.Value
                     .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
                     .ToArray();
                 var updated = await api.ReplaceIssueLabels(io.Owner, io.Repo, io.Number, new LabelsReplaceRequest { Labels = names })
-                    .FirstAsync(cts.Token);
+                    .FirstAsync(call.Token);
                 ApplyLabels(updated);
             }
         }
@@ -224,13 +224,13 @@ internal sealed class PullRequestConversationMeta(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            using var opened = await io.OpenAsync();
+            if (opened is null)
                 return;
 
-            using (cts)
+            var api = opened.Api;
             {
-                var response = await call(api).FirstAsync(cts.Token);
+                var response = await call(api).FirstAsync(opened.Token);
                 var code = (int)(response.StatusCode ?? 0);
                 if (code is < 200 or >= 300)
                 {

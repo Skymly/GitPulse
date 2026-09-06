@@ -97,7 +97,7 @@ public sealed partial class ReposViewModel : IDisposable
 
     private async Task CheckAuthAsync()
     {
-        var client = await _clientFactory.CreateClientAsync();
+        using var client = await _clientFactory.CreateClientAsync();
         IsAuthenticated.Value = client.DefaultRequestHeaders.Authorization is not null;
     }
 

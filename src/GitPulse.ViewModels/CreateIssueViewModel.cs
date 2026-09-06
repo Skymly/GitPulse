@@ -61,7 +61,7 @@ public sealed partial class CreateIssueViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var client = await _clientFactory.CreateClientAsync();
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured.";

@@ -152,7 +152,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var client = await _clientFactory.CreateClientAsync();
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";

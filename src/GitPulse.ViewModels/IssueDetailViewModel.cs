@@ -90,7 +90,7 @@ public sealed partial class IssueDetailViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var client = await _clientFactory.CreateClientAsync();
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured.";
@@ -142,7 +142,7 @@ public sealed partial class IssueDetailViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var client = await _clientFactory.CreateClientAsync();
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
@@ -179,7 +179,7 @@ public sealed partial class IssueDetailViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var client = await _clientFactory.CreateClientAsync();
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
@@ -216,7 +216,7 @@ public sealed partial class IssueDetailViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var client = await _clientFactory.CreateClientAsync();
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
@@ -290,7 +290,7 @@ public sealed partial class IssueDetailViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var client = await _clientFactory.CreateClientAsync();
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured.";

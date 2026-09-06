@@ -110,11 +110,11 @@ internal sealed class PullRequestReviewComposer(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            using var call = await io.OpenAsync();
+            if (call is null)
                 return;
 
-            using (cts)
+            var api = call.Api;
             {
                 var request = new PullRequestReviewCreateRequest
                 {
@@ -123,14 +123,14 @@ internal sealed class PullRequestReviewComposer(
                     CommitId = pullRequest.Value.Head?.Sha,
                 };
                 await api.CreatePullRequestReview(io.Owner, io.Repo, io.Number, request)
-                    .FirstAsync(cts.Token);
+                    .FirstAsync(call.Token);
 
                 ReviewBody.Value = string.Empty;
 
                 try
                 {
                     var reviews = await api.ListPullRequestReviews(io.Owner, io.Repo, io.Number)
-                        .FirstAsync(cts.Token);
+                        .FirstAsync(call.Token);
                     Replace(reviews);
                 }
                 catch
@@ -138,11 +138,11 @@ internal sealed class PullRequestReviewComposer(
                     // Keep the local list; submit already succeeded.
                 }
 
-                await reloadRequestedReviewers(api, cts.Token);
+                await reloadRequestedReviewers(api, call.Token);
 
                 try
                 {
-                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(cts.Token);
+                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(call.Token);
                     apply(pr);
                 }
                 catch

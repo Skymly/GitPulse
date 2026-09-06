@@ -343,6 +343,122 @@ public class FileEditorViewModelTests
         Assert.False(vm.IsEditing.Value);
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task Load_PngBytes_MarksBinaryAndDisablesEditing()
+    {
+        var png = Convert.ToBase64String(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+        var handler = new MockHttpHandler()
+            .When("/contents/icon.png", FileJson("icon.png", "icon.png", "blob-png", png));
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "icon.png", "blob-png");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.True(vm.IsBinary.Value);
+        Assert.False(vm.IsEditing.Value);
+        Assert.Contains("Binary file", vm.FileContent.Value, StringComparison.Ordinal);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_NulBytes_MarksBinary()
+    {
+        var binary = Convert.ToBase64String(new byte[] { 0x48, 0x00, 0x69 });
+        var handler = new MockHttpHandler()
+            .When("/contents/data.bin", FileJson("data.bin", "data.bin", "blob-bin", binary));
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "data.bin", "blob-bin");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.True(vm.IsBinary.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Save_BinaryFile_IsNoOp()
+    {
+        var png = Convert.ToBase64String(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+        HttpRequestMessage? put = null;
+        var handler = new MockHttpHandler()
+            .When("/contents/icon.png", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                {
+                    put = req;
+                    return new MockResponse(CommitJson("should-not-save"));
+                }
+
+                return new MockResponse(FileJson("icon.png", "icon.png", "blob-png", png));
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "icon.png", "blob-png");
+        await vm.LoadCommand.ExecuteAsync(null);
+        vm.CommitMessage.Value = "corrupt the png";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.Null(put);
+        Assert.True(vm.IsBinary.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Save_WhenContentShaMissing_DoesNotUseCommitShaOnNextSave()
+    {
+        var puts = new List<string>();
+        var handler = new MockHttpHandler()
+            .When("/contents/file.txt", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                {
+                    puts.Add(req.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+                    return new MockResponse(
+                        "{\"content\":null,\"commit\":{\"sha\":\"commit-not-blob\"," +
+                        "\"html_url\":\"https://github.com/o/r/commit/x\",\"message\":\"Update file\"}}");
+                }
+
+                return new MockResponse(FileJson("file.txt", "file.txt", "blob-original", B64("old")));
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "file.txt", "blob-original");
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.FileContent.Value = "first";
+        vm.CommitMessage.Value = "first save";
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        vm.IsEditing.Value = true;
+        vm.FileContent.Value = "second";
+        vm.CommitMessage.Value = "second save";
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, puts.Count);
+        Assert.Contains("blob-original", puts[1], StringComparison.Ordinal);
+        Assert.DoesNotContain("commit-not-blob", puts[1], StringComparison.Ordinal);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task OpenInBrowser_EncodesPathSegments()
+    {
+        var launcher = new FakeBrowserLauncher();
+        var vm = new FileEditorViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()), launcher);
+        vm.Initialize("own er", "re/po", "src/foo bar.cs");
+
+        await vm.OpenInBrowserCommand.ExecuteAsync(null);
+
+        Assert.Equal(
+            "https://github.com/own%20er/re%2Fpo/blob/HEAD/src/foo%20bar.cs",
+            Assert.Single(launcher.OpenedUrls));
+        vm.Dispose();
+    }
 }
 
 public class ContentModelTests
