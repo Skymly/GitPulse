@@ -154,12 +154,19 @@ public class NotificationPollerTests
     }
 
     [Fact]
-    public void PollInterval_DefaultIs60Seconds()
+    public async Task RefreshAsync_CanRunTwice_AfterDisposingEachClient()
     {
-        var factory = new FakeGitHubClientFactory(new MockHttpHandler());
+        var handler = new MockHttpHandler()
+            .When("/notifications", "[]");
+        var factory = new FakeGitHubClientFactory(handler);
         var poller = new NotificationPoller(factory);
+        var counts = new List<int>();
+        poller.NotificationsUpdated += (_, unread) => counts.Add(unread);
 
-        Assert.Equal(TimeSpan.FromSeconds(60), poller.PollInterval);
+        await poller.RefreshAsync();
+        await poller.RefreshAsync();
+
+        Assert.Equal([0, 0], counts);
         poller.Dispose();
     }
 }

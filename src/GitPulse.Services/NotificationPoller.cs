@@ -119,7 +119,7 @@ public sealed class NotificationPoller : INotificationPoller
     {
         try
         {
-            var client = await _clientFactory.CreateClientAsync(ct);
+            using var client = await _clientFactory.CreateClientAsync(ct);
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 OnNotificationsUpdated([], 0);
