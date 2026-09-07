@@ -22,6 +22,19 @@
             <conv:StringTruncateConverter x:Key="StringTruncateConverter" />
             <conv:JoinStringsConverter x:Key="JoinStringsConverter" />
             <conv:CollectionToBoolConverter x:Key="CollectionToBoolConverter" />
+            <conv:PullRequestStateTextConverter x:Key="PullRequestStateTextConverter" />
+            <conv:PullRequestStateColorConverter x:Key="PullRequestStateColorConverter" />
+            <conv:PullRequestIconConverter x:Key="PullRequestIconConverter" />
+            <conv:IssueStateTextConverter x:Key="IssueStateTextConverter" />
+            <conv:IssueStateColorConverter x:Key="IssueStateColorConverter" />
+            <conv:IssueIconConverter x:Key="IssueIconConverter" />
+            <conv:NotificationIconConverter x:Key="NotificationIconConverter" />
+            <conv:NotificationNumberConverter x:Key="NotificationNumberConverter" />
+            <conv:NotificationReasonConverter x:Key="NotificationReasonConverter" />
+            <conv:UnreadEdgeConverter x:Key="UnreadEdgeConverter" />
+            <conv:HexColorConverter x:Key="HexColorConverter" />
+            <conv:CheckConclusionColorConverter x:Key="CheckConclusionColorConverter" />
+            <conv:CheckRunStateTextConverter x:Key="CheckRunStateTextConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

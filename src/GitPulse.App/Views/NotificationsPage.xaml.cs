@@ -24,6 +24,7 @@ public partial class NotificationsPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        PullToRefresh.WindowsOff(ListRefresh);
         // Idempotent: host already starts the poller; this covers early navigation.
         _viewModel.StartPollingCommand.Execute(null);
     }
@@ -38,14 +39,62 @@ public partial class NotificationsPage : ContentPage
 
     private async void OnNotificationSelected(object? sender, SelectionChangedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is Notification notification)
-        {
-            ((CollectionView)sender!).SelectedItem = null;
+        if (e.CurrentSelection.FirstOrDefault() is not Notification notification)
+            return;
 
-            // Open the notification subject in the browser.
-            var url = notification.Subject.LatestCommentUrl ?? notification.Repository.HtmlUrl;
-            if (!string.IsNullOrEmpty(url))
-                await _viewModel.OpenInBrowserCommand.ExecuteAsync(url);
+        ((CollectionView)sender!).SelectedItem = null;
+
+        if (TryGetInAppRoute(notification, out var route))
+        {
+            await AppNavigation.GoToAsync(route);
+            return;
         }
+
+        var url = notification.Subject.LatestCommentUrl ?? notification.Repository.HtmlUrl;
+        if (!string.IsNullOrEmpty(url))
+            await _viewModel.OpenInBrowserCommand.ExecuteAsync(url);
+    }
+
+    private static bool TryGetInAppRoute(Notification notification, out string route)
+    {
+        route = string.Empty;
+        var parts = notification.Repository.FullName.Split('/', 2);
+        if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0)
+            return false;
+
+        var owner = Uri.EscapeDataString(parts[0]);
+        var repo = Uri.EscapeDataString(parts[1]);
+        var type = notification.Subject.Type;
+        var tail = notification.Subject.Url.TrimEnd('/').Split('/')[^1];
+        if (string.IsNullOrEmpty(tail))
+            return false;
+
+        if (type.Equals("Issue", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(tail, out var issueNumber))
+        {
+            route = $"IssueDetailPage?owner={owner}&repo={repo}&number={issueNumber}";
+            return true;
+        }
+
+        if (type.Equals("PullRequest", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(tail, out var prNumber))
+        {
+            route = $"PullRequestDetailPage?owner={owner}&repo={repo}&number={prNumber}";
+            return true;
+        }
+
+        if (type.Equals("Commit", StringComparison.OrdinalIgnoreCase)
+            && tail.Length >= 7)
+        {
+            route = $"CommitDetailPage?owner={owner}&repo={repo}&sha={Uri.EscapeDataString(tail)}";
+            return true;
+        }
+
+        return false;
+    }
+
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
     }
 }

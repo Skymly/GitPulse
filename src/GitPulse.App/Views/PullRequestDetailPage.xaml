@@ -10,31 +10,182 @@
              x:DataType="vm:PullRequestDetailViewModel"
              Title="PR Detail">
 
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
 
-        <!-- Back + title: Grid so long titles truncate instead of clipping Back. -->
-        <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*"
-              ColumnSpacing="12"
-              Padding="16,12,16,4">
-            <Button Grid.Column="0"
-                    Text="Back"
-                    Clicked="OnBackClicked"
-                    BackgroundColor="Transparent"
-                    TextColor="{StaticResource Primary}"
-                    Padding="8,4"
-                    VerticalOptions="Center" />
-            <Label Grid.Column="1"
-                   Text="{Binding Title.Value}"
-                   FontSize="18"
+        <VerticalStackLayout Grid.Row="0" Spacing="4" Padding="16,8,16,4">
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                <Button Text="Back"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="8,10"
+                        VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="Pull requests"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center" />
+                <Label Grid.Column="2"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1"
+                       VerticalOptions="Center">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="{Binding Owner.Value}" />
+                            <Span Text="/" />
+                            <Span Text="{Binding RepoName.Value}" />
+                            <Span Text=" #" />
+                            <Span Text="{Binding PullRequest.Value.Number}" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+            </Grid>
+            <HorizontalStackLayout Spacing="6">
+                <Image Source="{Binding PullRequest.Value, Converter={StaticResource PullRequestIconConverter}}"
+                       WidthRequest="16"
+                       HeightRequest="16"
+                       VerticalOptions="Center" />
+                <Label Text="{Binding PullRequest.Value, Converter={StaticResource PullRequestStateTextConverter}}"
+                       FontSize="12"
+                       FontAttributes="Bold"
+                       TextColor="{Binding PullRequest.Value, Converter={StaticResource PullRequestStateColorConverter}}"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
+            <Label Text="{Binding Title.Value}"
+                   FontSize="20"
                    FontAttributes="Bold"
-                   VerticalOptions="Center"
+                   LineBreakMode="WordWrap" />
+            <Label Text="{Binding PullRequest.Value.User.Login, StringFormat='{0}'}"
+                   FontSize="12"
+                   TextColor="{StaticResource Gray500}"
                    LineBreakMode="TailTruncation"
                    MaxLines="1" />
-        </Grid>
+            <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                    BackgroundColor="{StaticResource Red100}"
+                    Stroke="Transparent"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12"
+                    Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                    <Label Text="{Binding ErrorMessage.Value}"
+                           TextColor="{StaticResource Red900}"
+                           FontSize="13"
+                           LineBreakMode="WordWrap"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="Retry"
+                            Command="{Binding LoadCommand}"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13" />
+                    <Button Grid.Column="2"
+                            Text="Back"
+                            Clicked="OnLeavePageClicked"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13" />
+                </Grid>
+            </Border>
+        </VerticalStackLayout>
+
+        <ScrollView Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalScrollBarVisibility="Never"
+                    Padding="16,4,16,8">
+            <HorizontalStackLayout Spacing="8">
+                <Label Text="{Binding PullRequest.Value.HeadRef}"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1" />
+                <Label Text="→"
+                       FontSize="13"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center" />
+                <Label Text="{Binding PullRequest.Value.BaseRef}"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1" />
+                <Label Text="{Binding MergeStatus.Value}"
+                       FontSize="12"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1" />
+                <Picker Title="Method"
+                        SelectedItem="{Binding MergeMethod.Value}"
+                        FontSize="13"
+                        WidthRequest="120"
+                        VerticalOptions="Center"
+                        IsVisible="{Binding CanMerge.Value}">
+                    <Picker.ItemsSource>
+                        <x:Array Type="{x:Type x:String}">
+                            <x:String>merge</x:String>
+                            <x:String>squash</x:String>
+                            <x:String>rebase</x:String>
+                        </x:Array>
+                    </Picker.ItemsSource>
+                </Picker>
+                <Button Text="Merge"
+                        Clicked="OnMergeClicked"
+                        BackgroundColor="{StaticResource Red900}"
+                        TextColor="White"
+                        Padding="16,10"
+                        FontSize="13"
+                        VerticalOptions="Center"
+                        IsVisible="{Binding CanMerge.Value}" />
+                <Button Text="Close"
+                        Command="{Binding ToggleStateCommand}"
+                        IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Gray900}"
+                        Padding="16,10"
+                        FontSize="13"
+                        VerticalOptions="Center" />
+                <Button Text="Reopen"
+                        Command="{Binding ToggleStateCommand}"
+                        IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}"
+                        BackgroundColor="{StaticResource Green700}"
+                        TextColor="White"
+                        Padding="16,10"
+                        FontSize="13"
+                        VerticalOptions="Center" />
+                <Button Text="Convert to draft"
+                        Command="{Binding ConvertToDraftCommand}"
+                        IsVisible="{Binding CanConvertToDraft.Value}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="16,10"
+                        FontSize="13"
+                        VerticalOptions="Center" />
+                <Button Text="Ready for review"
+                        Command="{Binding MarkReadyForReviewCommand}"
+                        IsVisible="{Binding CanMarkReadyForReview.Value}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="16,10"
+                        FontSize="13"
+                        VerticalOptions="Center" />
+                <Button Text="Update branch"
+                        Command="{Binding UpdateBranchCommand}"
+                        IsVisible="{Binding CanUpdateBranch.Value}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="16,10"
+                        FontSize="13"
+                        VerticalOptions="Center" />
+            </HorizontalStackLayout>
+        </ScrollView>
 
         <!-- Equal-width tabs stay tappable on narrow portrait widths. -->
-        <Grid Grid.Row="1"
+        <Grid Grid.Row="2"
               ColumnDefinitions="*,*"
               ColumnSpacing="8"
               Padding="16,0,16,8">
@@ -59,35 +210,28 @@
         </Grid>
 
         <!-- ── Conversation tab ────────────────────────────────────── -->
-        <ScrollView x:Name="ConversationSection" Grid.Row="2">
-            <VerticalStackLayout Padding="16" Spacing="12">
+        <ScrollView x:Name="ConversationSection" Grid.Row="3">
+            <Grid x:Name="ConversationBody"
+                  ColumnDefinitions="*"
+                  RowDefinitions="Auto,Auto"
+                  ColumnSpacing="24"
+                  Padding="16">
+                <VerticalStackLayout x:Name="ConversationMain" Spacing="12">
 
                 <!-- PR header -->
-                <Border StrokeShape="RoundRectangle 8"
-                         Stroke="{StaticResource Gray200}"
-                         Padding="16">
-                    <VerticalStackLayout Spacing="8">
+                <VerticalStackLayout Spacing="8">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="{Binding PullRequest.Value.State}"
-                                   FontSize="12"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource Green700}"
-                                   IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}" />
-                            <Label Text="{Binding PullRequest.Value.State}"
-                                   FontSize="12"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource Purple700}"
-                                   IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}" />
-                            <Label Text="draft"
-                                   FontSize="12"
-                                   FontAttributes="Italic"
-                                   TextColor="{StaticResource Orange900}"
-                                   IsVisible="{Binding PullRequest.Value.Draft}" />
-                            <Label Text="merged"
-                                   FontSize="12"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource Purple700}"
-                                   IsVisible="{Binding PullRequest.Value.Merged}" />
+                            <HorizontalStackLayout Spacing="6">
+                                <Image Source="{Binding PullRequest.Value, Converter={StaticResource PullRequestIconConverter}}"
+                                       WidthRequest="16"
+                                       HeightRequest="16"
+                                       VerticalOptions="Center" />
+                                <Label Text="{Binding PullRequest.Value, Converter={StaticResource PullRequestStateTextConverter}}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="{Binding PullRequest.Value, Converter={StaticResource PullRequestStateColorConverter}}"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
                             <Label Text="{Binding PullRequest.Value.User.Login, StringFormat='by {0}'}"
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}"
@@ -129,8 +273,7 @@
                                           H2FontSize="18"
                                           H3FontSize="16"
                                           TextFontSize="14" />
-                    </VerticalStackLayout>
-                </Border>
+                </VerticalStackLayout>
 
                 <!-- Edit title/body (M14); save refreshes Title + Markdown body above. -->
                 <VerticalStackLayout Spacing="8"
@@ -165,149 +308,205 @@
                             HorizontalOptions="Fill" />
                 </VerticalStackLayout>
 
-                <!-- Conversation lifecycle: open/closed + merge/update/ready/draft -->
-                <Border StrokeShape="RoundRectangle 8"
-                         Stroke="{StaticResource Gray200}"
-                         Padding="16"
+                <HorizontalStackLayout Spacing="12"
+                                       IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
+                    <Label Text="{Binding PullRequest.Value.Commits, StringFormat='{0} commits'}"
+                           FontSize="12"
+                           TextColor="{StaticResource Gray500}" />
+                    <Label Text="{Binding PullRequest.Value.Additions, StringFormat='+{0}'}"
+                           FontSize="12"
+                           TextColor="{StaticResource Green700}" />
+                    <Label Text="{Binding PullRequest.Value.Deletions, StringFormat='-{0}'}"
+                           FontSize="12"
+                           TextColor="{StaticResource Red900}" />
+                    <Label Text="{Binding PullRequest.Value.ChangedFiles, StringFormat='{0} files'}"
+                           FontSize="12"
+                           TextColor="{StaticResource Gray500}" />
+                    <Label Text="Merged"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource Purple700}"
+                           IsVisible="{Binding IsMerged.Value}" />
+                </HorizontalStackLayout>
+
+                <!-- Conversation review composer -->
+                <VerticalStackLayout Spacing="10"
                          IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Lifecycle"
+                <!-- M15: submitted Pull Request Reviews + submit -->
+                <VerticalStackLayout Spacing="8"
+                                     IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
+                    <Label Text="Reviews"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           Margin="0,8,0,4" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Reviews}"
+                                         Spacing="8">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:PullRequestReview">
+                                <VerticalStackLayout Spacing="0">
+                                    <VerticalStackLayout Spacing="6" Padding="0,12">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding User.Login}"
+                                                   FontSize="14"
+                                                   FontAttributes="Bold"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1"
+                                                   VerticalOptions="Center" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding State}"
+                                                   FontSize="12"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource Gray500}"
+                                                   VerticalOptions="Center" />
+                                        </Grid>
+                                        <Label Text="{Binding SubmittedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Gray500}" />
+                                        <idk:MarkdownView MarkdownText="{Binding Body}"
+                                                          UseAppTheme="True"
+                                                          H1FontSize="16"
+                                                          H2FontSize="15"
+                                                          H3FontSize="14"
+                                                          TextFontSize="13" />
+                                    </VerticalStackLayout>
+                                    <BoxView Style="{StaticResource Hairline}" Margin="0" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout
+                            IsVisible="{Binding Reviews.Count, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
+                            Spacing="4"
+                            Padding="0,8">
+                        <Label Text="No reviews"
                                FontSize="16"
-                               FontAttributes="Bold" />
-                    <Button Text="Close"
-                            Command="{Binding ToggleStateCommand}"
-                            IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}"
-                            BackgroundColor="{StaticResource Purple700}"
-                            TextColor="White"
-                            Padding="16,12"
-                            FontSize="13"
-                            HorizontalOptions="Fill" />
-                    <Button Text="Reopen"
-                            Command="{Binding ToggleStateCommand}"
-                            IsVisible="{Binding PullRequest.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}"
-                            BackgroundColor="{StaticResource Green700}"
-                            TextColor="White"
-                            Padding="16,12"
-                            FontSize="13"
-                            HorizontalOptions="Fill" />
-
-                <!-- M6: PR merge section (spot-check only on phone; must not overflow/crash). -->
-                <Border StrokeShape="RoundRectangle 8"
-                         Stroke="{StaticResource Gray200}"
-                         Padding="16"
-                         IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
-                    <VerticalStackLayout Spacing="10">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Merge status:"
-                                   FontSize="13"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource Gray600}" />
-                            <Label Text="{Binding MergeStatus.Value}"
-                                   FontSize="13"
-                                   TextColor="{StaticResource Primary}"
-                                   LineBreakMode="WordWrap" />
-                        </VerticalStackLayout>
-
-                        <!-- PR stats: wrap-friendly stack on narrow widths -->
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="{Binding PullRequest.Value.Commits, StringFormat='{0} commits'}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource Gray500}" />
-                            <Label Text="{Binding PullRequest.Value.Additions, StringFormat='+{0}'}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource Green700}" />
-                            <Label Text="{Binding PullRequest.Value.Deletions, StringFormat='-{0}'}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource Red900}" />
-                            <Label Text="{Binding PullRequest.Value.ChangedFiles, StringFormat='{0} files'}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource Gray500}" />
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Spacing="8"
-                                             IsVisible="{Binding CanUpdateBranch.Value}">
-                            <Button Text="Update branch"
-                                    Command="{Binding UpdateBranchCommand}"
-                                    BackgroundColor="{StaticResource Primary}"
-                                    TextColor="White"
-                                    Padding="24,12"
-                                    FontSize="14"
-                                    HorizontalOptions="Fill" />
-                            <ActivityIndicator IsRunning="{Binding IsUpdatingBranch.Value}"
-                                               IsVisible="{Binding IsUpdatingBranch.Value}" />
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Spacing="8"
-                                             IsVisible="{Binding CanMarkReadyForReview.Value}">
-                            <Button Text="Ready for review"
-                                    Command="{Binding MarkReadyForReviewCommand}"
-                                    BackgroundColor="{StaticResource Primary}"
-                                    TextColor="White"
-                                    Padding="24,12"
-                                    FontSize="14"
-                                    HorizontalOptions="Fill" />
-                            <ActivityIndicator IsRunning="{Binding IsMarkingReadyForReview.Value}"
-                                               IsVisible="{Binding IsMarkingReadyForReview.Value}" />
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Spacing="8"
-                                             IsVisible="{Binding CanConvertToDraft.Value}">
-                            <Button Text="Convert to draft"
-                                    Command="{Binding ConvertToDraftCommand}"
-                                    BackgroundColor="{StaticResource Primary}"
-                                    TextColor="White"
-                                    Padding="24,12"
-                                    FontSize="14"
-                                    HorizontalOptions="Fill" />
-                            <ActivityIndicator IsRunning="{Binding IsConvertingToDraft.Value}"
-                                               IsVisible="{Binding IsConvertingToDraft.Value}" />
-                        </VerticalStackLayout>
-
-                        <!-- Merge method + button stacked so narrow phones don't clip. -->
-                        <VerticalStackLayout Spacing="8"
-                                             IsVisible="{Binding CanMerge.Value}">
-                            <Picker Title="Method"
-                                    SelectedItem="{Binding MergeMethod.Value}"
-                                    FontSize="13"
-                                    HorizontalOptions="Fill">
-                                <Picker.ItemsSource>
-                                    <x:Array Type="{x:Type x:String}">
-                                        <x:String>merge</x:String>
-                                        <x:String>squash</x:String>
-                                        <x:String>rebase</x:String>
-                                    </x:Array>
-                                </Picker.ItemsSource>
-                            </Picker>
-                            <Button Text="Merge"
-                                    Command="{Binding MergeCommand}"
-                                    BackgroundColor="{StaticResource Green700}"
-                                    TextColor="White"
-                                    Padding="24,12"
-                                    FontSize="14"
-                                    HorizontalOptions="Fill" />
-                            <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
-                                               IsVisible="{Binding IsSaving.Value}" />
-                        </VerticalStackLayout>
-
-                        <Label Text="✓ Merged successfully"
+                               TextColor="{StaticResource Gray500}"
+                               HorizontalOptions="Center" />
+                        <Label Text="Submit a review below."
                                FontSize="14"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource Green700}"
-                               IsVisible="{Binding IsMerged.Value}" />
+                               TextColor="{StaticResource Gray400}"
+                               HorizontalOptions="Center" />
                     </VerticalStackLayout>
-                </Border>
-                    </VerticalStackLayout>
-                </Border>
 
-                <!-- Conversation metadata: assignees, labels, review requests -->
-                <Border StrokeShape="RoundRectangle 8"
-                         Stroke="{StaticResource Gray200}"
-                         Padding="16"
-                         IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Metadata"
-                               FontSize="16"
+                    <VerticalStackLayout Spacing="8"
+                                         IsVisible="{Binding CanReview.Value}">
+                        <Label Text="Submit a review"
+                               FontSize="14"
                                FontAttributes="Bold" />
+                        <Label Text="You can only comment on your own pull request."
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               LineBreakMode="WordWrap"
+                               IsVisible="{Binding CanApproveOrRequestChanges.Value, Converter={StaticResource InvertedBoolConverter}}" />
+                        <Picker Title="Event"
+                                ItemsSource="{Binding ReviewEventOptions}"
+                                SelectedItem="{Binding ReviewEvent.Value}"
+                                FontSize="13"
+                                HorizontalOptions="Fill" />
+                        <Editor Text="{Binding ReviewBody.Value}"
+                                Placeholder="Summary (required except for APPROVE)"
+                                AutoSize="TextChanges"
+                                FontSize="14"
+                                MinimumHeightRequest="80"
+                                HorizontalOptions="Fill" />
+                        <Button Text="Submit review"
+                                Command="{Binding SubmitReviewCommand}"
+                                IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
+                                HorizontalOptions="Fill"
+                                Padding="24,12"
+                                FontSize="14" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+                </VerticalStackLayout>
+
+                <!-- Comments section header -->
+                <Label Text="Conversation"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       Margin="0,8,0,4" />
+
+                <!-- Comments list via BindableLayout -->
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Comments}"
+                                     Spacing="8">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:Comment">
+                            <VerticalStackLayout Spacing="0">
+                                <VerticalStackLayout Spacing="6" Padding="0,12">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding User.Login}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Gray500}"
+                                               VerticalOptions="Center" />
+                                    </Grid>
+                                    <idk:MarkdownView MarkdownText="{Binding Body}"
+                                                      UseAppTheme="True"
+                                                      H1FontSize="16"
+                                                      H2FontSize="15"
+                                                      H3FontSize="14"
+                                                      TextFontSize="13" />
+                                </VerticalStackLayout>
+                                <BoxView Style="{StaticResource Hairline}" Margin="0" />
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout
+                        IsVisible="{Binding Comments.Count, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
+                        Spacing="4"
+                        Padding="0,8">
+                    <Label Text="No comments"
+                           FontSize="16"
+                           TextColor="{StaticResource Gray500}"
+                           HorizontalOptions="Center" />
+                    <Label Text="Start the conversation below."
+                           FontSize="14"
+                           TextColor="{StaticResource Gray400}"
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+
+                <!-- Comment input: full-width Comment stays reachable after AdjustResize + scroll. -->
+                <VerticalStackLayout Spacing="8" Margin="0,8,0,0">
+                    <Label Text="Add a comment"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Editor Text="{Binding CommentInput.Value}"
+                            Placeholder="Write a comment... (Markdown supported)"
+                            AutoSize="TextChanges"
+                            FontSize="14"
+                            MinimumHeightRequest="80"
+                            HorizontalOptions="Fill" />
+                    <Button Text="Comment"
+                            Command="{Binding AddCommentCommand}"
+                            IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
+                            HorizontalOptions="Fill"
+                            Padding="24,12"
+                            FontSize="14" />
+                    <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
+                                       IsVisible="{Binding IsSaving.Value}" />
+                </VerticalStackLayout>
+
+                <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
+                                   IsVisible="{Binding IsLoading.Value}" />
+
+
+                </VerticalStackLayout>
+                <VerticalStackLayout x:Name="ConversationRail"
+                                     Grid.Row="1"
+                                     Spacing="12"
+                                     VerticalOptions="Start">
+                <!-- Conversation metadata: assignees, labels, review requests -->
+                <VerticalStackLayout Spacing="10"
+                         IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
                 <!-- M36: PR assignees -->
                 <VerticalStackLayout Spacing="8"
                                      IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
@@ -361,6 +560,23 @@
                            FontSize="16"
                            FontAttributes="Bold"
                            Margin="0,8,0,4" />
+                    <HorizontalStackLayout BindableLayout.ItemsSource="{Binding PullRequest.Value.Labels}"
+                                           Spacing="10">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:Label">
+                                <HorizontalStackLayout Spacing="4">
+                                    <BoxView WidthRequest="10"
+                                             HeightRequest="10"
+                                             CornerRadius="2"
+                                             Color="{Binding Color, Converter={StaticResource HexColorConverter}}"
+                                             VerticalOptions="Center" />
+                                    <Label Text="{Binding Name}"
+                                           FontSize="12"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </HorizontalStackLayout>
                     <Entry Text="{Binding LabelInput.Value}"
                            Placeholder="bug, enhancement, ..."
                            FontSize="13"
@@ -435,99 +651,11 @@
                                 AutomationId="RequestReviewerButton" />
                     </Grid>
                 </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- Conversation review composer -->
-                <Border StrokeShape="RoundRectangle 8"
-                         Stroke="{StaticResource Gray200}"
-                         Padding="16"
-                         IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
-                    <VerticalStackLayout Spacing="10">
-                <!-- M15: submitted Pull Request Reviews + submit -->
-                <VerticalStackLayout Spacing="8"
-                                     IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
-                    <Label Text="Reviews"
-                           FontSize="16"
-                           FontAttributes="Bold"
-                           Margin="0,8,0,4" />
-                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Reviews}"
-                                         Spacing="8">
-                        <BindableLayout.ItemTemplate>
-                            <DataTemplate x:DataType="models:PullRequestReview">
-                                <Border Padding="14"
-                                        StrokeShape="RoundRectangle 8"
-                                        Stroke="{StaticResource Gray200}">
-                                    <VerticalStackLayout Spacing="6">
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                            <Label Grid.Column="0"
-                                                   Text="{Binding User.Login}"
-                                                   FontSize="13"
-                                                   FontAttributes="Bold"
-                                                   TextColor="{StaticResource Primary}"
-                                                   LineBreakMode="TailTruncation"
-                                                   MaxLines="1"
-                                                   VerticalOptions="Center" />
-                                            <Label Grid.Column="1"
-                                                   Text="{Binding State}"
-                                                   FontSize="12"
-                                                   FontAttributes="Bold"
-                                                   TextColor="{StaticResource Gray600}"
-                                                   VerticalOptions="Center" />
-                                        </Grid>
-                                        <Label Text="{Binding SubmittedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource Gray500}" />
-                                        <idk:MarkdownView MarkdownText="{Binding Body}"
-                                                          UseAppTheme="True"
-                                                          H1FontSize="16"
-                                                          H2FontSize="15"
-                                                          H3FontSize="14"
-                                                          TextFontSize="13" />
-                                    </VerticalStackLayout>
-                                </Border>
-                            </DataTemplate>
-                        </BindableLayout.ItemTemplate>
-                    </VerticalStackLayout>
-
-                    <VerticalStackLayout Spacing="8"
-                                         IsVisible="{Binding CanReview.Value}">
-                        <Label Text="Submit a review"
-                               FontSize="14"
-                               FontAttributes="Bold" />
-                        <Label Text="You can only comment on your own pull request."
-                               FontSize="12"
-                               TextColor="{StaticResource Gray500}"
-                               LineBreakMode="WordWrap"
-                               IsVisible="{Binding CanApproveOrRequestChanges.Value, Converter={StaticResource InvertedBoolConverter}}" />
-                        <Picker Title="Event"
-                                ItemsSource="{Binding ReviewEventOptions}"
-                                SelectedItem="{Binding ReviewEvent.Value}"
-                                FontSize="13"
-                                HorizontalOptions="Fill" />
-                        <Editor Text="{Binding ReviewBody.Value}"
-                                Placeholder="Summary (required except for APPROVE)"
-                                AutoSize="TextChanges"
-                                FontSize="14"
-                                MinimumHeightRequest="80"
-                                HorizontalOptions="Fill" />
-                        <Button Text="Submit review"
-                                Command="{Binding SubmitReviewCommand}"
-                                IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
-                                HorizontalOptions="Fill"
-                                Padding="24,12"
-                                FontSize="14" />
-                    </VerticalStackLayout>
                 </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
 
                 <!-- M16: PR-head Gate Rollup (Check Runs + Commit Statuses). -->
-                <Border StrokeShape="RoundRectangle 8"
-                         Stroke="{StaticResource Gray200}"
-                         Padding="16"
+                <VerticalStackLayout Spacing="10"
                          IsVisible="{Binding PullRequest.Value, Converter={StaticResource NotNullConverter}}">
-                    <VerticalStackLayout Spacing="10">
                         <VerticalStackLayout Spacing="2">
                             <Label Text="Checks:"
                                    FontSize="13"
@@ -543,7 +671,7 @@
                                              Spacing="6">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="models:CheckRun">
-                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                         <Label Grid.Column="0"
                                                Text="{Binding Name}"
                                                FontSize="13"
@@ -551,9 +679,9 @@
                                                MaxLines="1"
                                                VerticalOptions="Center" />
                                         <Label Grid.Column="1"
-                                               Text="{Binding Status}"
+                                               Text="{Binding ., Converter={StaticResource CheckRunStateTextConverter}}"
                                                FontSize="12"
-                                               TextColor="{StaticResource Gray600}"
+                                               TextColor="{Binding ., Converter={StaticResource CheckConclusionColorConverter}}"
                                                VerticalOptions="Center" />
                                         <Button Grid.Column="2"
                                                 Text="Open"
@@ -571,7 +699,7 @@
                                              Spacing="6">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="models:CommitStatus">
-                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                         <Label Grid.Column="0"
                                                Text="{Binding Context}"
                                                FontSize="13"
@@ -581,7 +709,7 @@
                                         <Label Grid.Column="1"
                                                Text="{Binding State}"
                                                FontSize="12"
-                                               TextColor="{StaticResource Gray600}"
+                                               TextColor="{Binding State, Converter={StaticResource CheckConclusionColorConverter}}"
                                                VerticalOptions="Center" />
                                         <Button Grid.Column="2"
                                                 Text="Open"
@@ -596,204 +724,155 @@
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- Comments section header -->
-                <Label Text="Conversation"
-                       FontSize="16"
-                       FontAttributes="Bold"
-                       Margin="0,8,0,4" />
-
-                <!-- Comments list via BindableLayout -->
-                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Comments}"
-                                     Spacing="8">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="models:Comment">
-                            <Border Padding="14"
-                                    StrokeShape="RoundRectangle 8"
-                                    Stroke="{StaticResource Gray200}">
-                                <VerticalStackLayout Spacing="6">
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                        <Label Grid.Column="0"
-                                               Text="{Binding User.Login}"
-                                               FontSize="13"
-                                               FontAttributes="Bold"
-                                               TextColor="{StaticResource Primary}"
-                                               LineBreakMode="TailTruncation"
-                                               MaxLines="1"
-                                               VerticalOptions="Center" />
-                                        <Label Grid.Column="1"
-                                               Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource Gray500}"
-                                               VerticalOptions="Center" />
-                                    </Grid>
-                                    <idk:MarkdownView MarkdownText="{Binding Body}"
-                                                      UseAppTheme="True"
-                                                      H1FontSize="16"
-                                                      H2FontSize="15"
-                                                      H3FontSize="14"
-                                                      TextFontSize="13" />
-                                </VerticalStackLayout>
-                            </Border>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>
 
-                <!-- Comment input: full-width Comment stays reachable after AdjustResize + scroll. -->
-                <VerticalStackLayout Spacing="8" Margin="0,8,0,0">
-                    <Label Text="Add a comment"
-                           FontSize="14"
-                           FontAttributes="Bold" />
-                    <Editor Text="{Binding CommentInput.Value}"
-                            Placeholder="Write a comment... (Markdown supported)"
-                            AutoSize="TextChanges"
-                            FontSize="14"
-                            MinimumHeightRequest="80"
-                            HorizontalOptions="Fill" />
-                    <Button Text="Comment"
-                            Command="{Binding AddCommentCommand}"
-                            IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
-                            HorizontalOptions="Fill"
-                            Padding="24,12"
-                            FontSize="14" />
-                    <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
-                                       IsVisible="{Binding IsSaving.Value}" />
                 </VerticalStackLayout>
-
-                <!-- Error banner -->
-                <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
-                        BackgroundColor="{StaticResource Red100}"
-                        StrokeShape="RoundRectangle 8"
-                        Padding="12">
-                    <Label Text="{Binding ErrorMessage.Value}"
-                           TextColor="{StaticResource Red900}"
-                           FontSize="13"
-                           LineBreakMode="WordWrap" />
-                </Border>
-
-                <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
-                                   IsVisible="{Binding IsLoading.Value}" />
-
-            </VerticalStackLayout>
+            </Grid>
         </ScrollView>
 
 
         <!-- ── Files tab (M8: PR diff viewer; spot-check only — must not crash) ── -->
-        <ScrollView x:Name="FilesSection" Grid.Row="2" IsVisible="False">
-            <VerticalStackLayout Padding="16" Spacing="12">
-
-                <!-- Changed files list -->
-                <CollectionView x:Name="FilesList"
-                                ItemsSource="{Binding DiffViewModel.Files, Source={x:Reference _pageRoot}}"
-                                SelectionMode="None">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:DiffEntry">
-                            <VerticalStackLayout Spacing="0" Margin="0,0,0,12">
-                                <!-- File header (click to expand/collapse) -->
-                                <Border StrokeShape="RoundRectangle 8"
-                                         Stroke="{StaticResource Gray200}"
-                                         Padding="12">
-                                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
-                                        <Button Grid.Row="0" Grid.Column="0"
-                                                Text="▶"
-                                                Clicked="OnFileToggled"
-                                                BackgroundColor="Transparent"
-                                                TextColor="{StaticResource Primary}"
-                                                Padding="4,2"
-                                                FontSize="12" />
-                                        <Label Grid.Row="0" Grid.Column="1"
-                                               Text="{Binding Filename}"
-                                               FontSize="13"
-                                               FontAttributes="Bold"
-                                               LineBreakMode="MiddleTruncation"
-                                               MaxLines="1"
-                                               VerticalOptions="Center" />
-                                        <VerticalStackLayout Grid.Row="0" Grid.Column="2" Spacing="0" VerticalOptions="Center">
-                                            <Label Text="{Binding Additions, StringFormat='+{0}'}"
-                                                   FontSize="12"
-                                                   TextColor="{StaticResource Green700}"
-                                                   HorizontalOptions="End" />
-                                            <Label Text="{Binding Deletions, StringFormat='-{0}'}"
-                                                   FontSize="12"
-                                                   TextColor="{StaticResource Red900}"
-                                                   HorizontalOptions="End" />
-                                        </VerticalStackLayout>
-                                        <Label Grid.Row="1" Grid.Column="1"
-                                               Text="{Binding Status}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource Gray500}" />
-                                    </Grid>
-                                </Border>
-
-                                <!-- Diff content (hidden by default, toggled by OnFileToggled) -->
-                                <VerticalStackLayout IsVisible="False" Padding="0,4,0,0">
-                                    <controls:DiffView Patch="{Binding Patch}"
-                                                       Filename="{Binding Filename}"
-                                                       HeightRequest="400" />
-
-                                    <Label Text="Review Comments"
-                                           FontSize="13"
-                                           FontAttributes="Bold"
-                                           Margin="0,8,0,4" />
-
-                                    <Button Text="Comment on this file"
-                                            Clicked="OnCommentClicked"
-                                            CommandParameter="{Binding Filename}"
-                                            BackgroundColor="Transparent"
-                                            TextColor="{StaticResource Primary}"
-                                            Padding="12,10"
-                                            FontSize="12"
-                                            HorizontalOptions="Fill" />
-                                </VerticalStackLayout>
+        <Grid x:Name="FilesSection"
+              Grid.Row="3"
+              IsVisible="False"
+              ColumnDefinitions="0.38*, 0.62*"
+              RowDefinitions="*, Auto"
+              Padding="8,0,8,8"
+              ColumnSpacing="8">
+            <CollectionView x:Name="FilesList"
+                            Grid.Column="0"
+                            ItemsSource="{Binding DiffViewModel.Files, Source={x:Reference _pageRoot}}"
+                            SelectionMode="Single"
+                            SelectionChanged="OnFileSelected">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:DiffEntry">
+                        <VerticalStackLayout Spacing="0">
+                        <Grid ColumnDefinitions="*,Auto"
+                              Padding="10,10"
+                              MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
+                            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                <Label Text="{Binding Filename}"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="MiddleTruncation"
+                                       MaxLines="1" />
+                                <Label Text="{Binding Status}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}" />
                             </VerticalStackLayout>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-
-                <!-- Comment input panel (shared for new comments and replies) -->
-                <Border StrokeShape="RoundRectangle 8"
-                         Stroke="{StaticResource Gray200}"
-                         Padding="16"
-                         IsVisible="{Binding DiffViewModel.CommentInput.Value, Source={x:Reference _pageRoot}, Converter={StaticResource StringToBoolConverter}}">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="Write a review comment"
-                               FontSize="14"
-                               FontAttributes="Bold" />
-                        <Editor Text="{Binding DiffViewModel.CommentInput.Value, Source={x:Reference _pageRoot}}"
-                                Placeholder="Write a comment... (Markdown supported)"
-                                AutoSize="TextChanges"
-                                FontSize="14"
-                                MinimumHeightRequest="80"
-                                HorizontalOptions="Fill" />
-                        <Button Text="Post"
-                                Command="{Binding DiffViewModel.PostCommentCommand, Source={x:Reference _pageRoot}}"
-                                IsEnabled="{Binding DiffViewModel.IsSaving.Value, Source={x:Reference _pageRoot}, Converter={StaticResource InvertedBoolConverter}}"
-                                HorizontalOptions="Fill"
-                                Padding="24,12"
-                                FontSize="14" />
-                        <ActivityIndicator IsRunning="{Binding DiffViewModel.IsSaving.Value, Source={x:Reference _pageRoot}}"
-                                           IsVisible="{Binding DiffViewModel.IsSaving.Value, Source={x:Reference _pageRoot}}" />
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- Error banner -->
-                <Border IsVisible="{Binding DiffViewModel.ErrorMessage.Value, Source={x:Reference _pageRoot}, Converter={StaticResource StringToBoolConverter}}"
-                        BackgroundColor="{StaticResource Red100}"
-                        StrokeShape="RoundRectangle 8"
-                        Padding="12">
-                    <Label Text="{Binding DiffViewModel.ErrorMessage.Value, Source={x:Reference _pageRoot}}"
-                           TextColor="{StaticResource Red900}"
-                           FontSize="13"
-                           LineBreakMode="WordWrap" />
-                </Border>
-
-                <ActivityIndicator IsRunning="{Binding DiffViewModel.IsLoading.Value, Source={x:Reference _pageRoot}}"
-                                   IsVisible="{Binding DiffViewModel.IsLoading.Value, Source={x:Reference _pageRoot}}" />
-
+                            <VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+                                <Label Text="{Binding Additions, StringFormat='+{0}'}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Green700}"
+                                       HorizontalOptions="End" />
+                                <Label Text="{Binding Deletions, StringFormat='-{0}'}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Red900}"
+                                       HorizontalOptions="End" />
+                            </VerticalStackLayout>
+                        </Grid>
+                        <BoxView Style="{StaticResource Hairline}" Margin="0" />
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+            <VerticalStackLayout x:Name="FilesEmpty"
+                                 Grid.Column="0"
+                                 Grid.ColumnSpan="2"
+                                 IsVisible="{Binding DiffViewModel.Files.Count, Source={x:Reference _pageRoot}, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="4"
+                                 Padding="16">
+                <Label Text="No files changed"
+                       FontSize="16"
+                       TextColor="{StaticResource Gray500}"
+                       HorizontalOptions="Center" />
+                <Label Text="This pull request has no file diff yet."
+                       FontSize="14"
+                       TextColor="{StaticResource Gray400}"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
-        </ScrollView>
+
+            <Grid x:Name="DiffPane"
+                  Grid.Column="1"
+                  RowDefinitions="Auto,*,Auto">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                    <Button x:Name="BackToFilesButton"
+                            Text="Files"
+                            Clicked="OnBackToFilesClicked"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Primary}"
+                            Padding="8,10"
+                            FontSize="13"
+                            IsVisible="False"
+                            VerticalOptions="Center" />
+                    <Label Grid.Column="1"
+                           Text="{Binding SelectedDiffFile.Filename, Source={x:Reference _pageRoot}}"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           LineBreakMode="MiddleTruncation"
+                           MaxLines="1"
+                           Margin="8,4"
+                           VerticalOptions="Center" />
+                </Grid>
+                <controls:DiffView Grid.Row="1"
+                                   Patch="{Binding SelectedDiffFile.Patch, Source={x:Reference _pageRoot}}"
+                                   Filename="{Binding SelectedDiffFile.Filename, Source={x:Reference _pageRoot}}" />
+                <VerticalStackLayout Grid.Row="2" Spacing="8" Padding="8,8,8,0">
+                    <Button Text="Comment on this file"
+                            Clicked="OnCommentClicked"
+                            CommandParameter="{Binding SelectedDiffFile.Filename, Source={x:Reference _pageRoot}}"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Primary}"
+                            Padding="12,10"
+                            FontSize="12"
+                            HorizontalOptions="Fill"
+                            IsVisible="{Binding SelectedDiffFile, Source={x:Reference _pageRoot}, Converter={StaticResource NotNullConverter}}" />
+                    <Border StrokeShape="RoundRectangle 8"
+                            Stroke="{StaticResource Gray200}"
+                            Padding="12"
+                            IsVisible="{Binding DiffViewModel.CommentInput.Value, Source={x:Reference _pageRoot}, Converter={StaticResource StringToBoolConverter}}">
+                        <VerticalStackLayout Spacing="8">
+                            <Editor Text="{Binding DiffViewModel.CommentInput.Value, Source={x:Reference _pageRoot}}"
+                                    Placeholder="Write a comment..."
+                                    AutoSize="TextChanges"
+                                    FontSize="14"
+                                    MinimumHeightRequest="72"
+                                    HorizontalOptions="Fill" />
+                            <Button Text="Post"
+                                    Command="{Binding DiffViewModel.PostCommentCommand, Source={x:Reference _pageRoot}}"
+                                    IsEnabled="{Binding DiffViewModel.IsSaving.Value, Source={x:Reference _pageRoot}, Converter={StaticResource InvertedBoolConverter}}"
+                                    HorizontalOptions="Fill"
+                                    Padding="24,12"
+                                    FontSize="14" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border IsVisible="{Binding DiffViewModel.ErrorMessage.Value, Source={x:Reference _pageRoot}, Converter={StaticResource StringToBoolConverter}}"
+                            BackgroundColor="{StaticResource Red100}"
+                            Stroke="Transparent"
+                            Padding="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Label Text="{Binding DiffViewModel.ErrorMessage.Value, Source={x:Reference _pageRoot}}"
+                                   TextColor="{StaticResource Red900}"
+                                   FontSize="13"
+                                   LineBreakMode="WordWrap"
+                                   VerticalOptions="Center" />
+                            <Button Grid.Column="1"
+                                    Text="Retry"
+                                    Command="{Binding DiffViewModel.LoadCommand, Source={x:Reference _pageRoot}}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource Red900}"
+                                    Padding="8,10"
+                                    FontSize="13" />
+                        </Grid>
+                    </Border>
+                    <ActivityIndicator IsRunning="{Binding DiffViewModel.IsLoading.Value, Source={x:Reference _pageRoot}}"
+                                       IsVisible="{Binding DiffViewModel.IsLoading.Value, Source={x:Reference _pageRoot}}" />
+                </VerticalStackLayout>
+            </Grid>
+        </Grid>
 
     </Grid>
 

@@ -10,37 +10,63 @@
              AutomationId="CheckRunDetailPageRoot">
 
     <Grid RowDefinitions="Auto,*">
-        <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*"
-              ColumnSpacing="12"
-              Padding="16,12,16,4">
-            <Button Grid.Column="0"
-                    Text="Back"
-                    Clicked="OnBackClicked"
-                    BackgroundColor="Transparent"
-                    TextColor="{StaticResource Primary}"
-                    Padding="8,4"
-                    VerticalOptions="Center" />
-            <Label Grid.Column="1"
-                   Text="{Binding Name.Value}"
-                   FontSize="18"
+        <VerticalStackLayout Grid.Row="0" Spacing="4" Padding="16,8,16,4">
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                <Button Text="Back"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="8,10"
+                        VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="Checks"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center" />
+                <Label Grid.Column="2"
+                       Text="{Binding RepoFullName.Value}"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1" />
+            </Grid>
+            <Label Text="{Binding Name.Value}"
+                   FontSize="20"
                    FontAttributes="Bold"
-                   VerticalOptions="Center"
-                   LineBreakMode="TailTruncation"
-                   MaxLines="1" />
-        </Grid>
-
-        <ScrollView Grid.Row="1">
-            <VerticalStackLayout Padding="16" Spacing="12">
-                <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
-                        BackgroundColor="{StaticResource Red100}"
-                        StrokeShape="RoundRectangle 8"
-                        Padding="12">
+                   LineBreakMode="WordWrap" />
+            <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                    BackgroundColor="{StaticResource Red100}"
+                    Stroke="Transparent"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12"
+                    Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                     <Label Text="{Binding ErrorMessage.Value}"
                            TextColor="{StaticResource Red900}"
                            FontSize="13"
-                           LineBreakMode="WordWrap" />
-                </Border>
+                           LineBreakMode="WordWrap"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="Retry"
+                            Command="{Binding LoadCommand}"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13" />
+                    <Button Grid.Column="2"
+                            Text="Back"
+                            Clicked="OnBackClicked"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13" />
+                </Grid>
+            </Border>
+        </VerticalStackLayout>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16" Spacing="12">
 
                 <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
                                    IsVisible="{Binding IsLoading.Value}"
@@ -49,11 +75,22 @@
                 <Label Text="{Binding RepoFullName.Value}"
                        FontSize="13"
                        TextColor="{StaticResource Gray500}" />
-                <Label Text="{Binding Status.Value, StringFormat='Status: {0}'}"
-                       FontSize="13" />
-                <Label Text="{Binding Conclusion.Value, StringFormat='Conclusion: {0}'}"
-                       FontSize="13"
-                       IsVisible="{Binding Conclusion.Value, Converter={StaticResource StringToBoolConverter}}" />
+                <HorizontalStackLayout Spacing="6">
+                    <Image Source="check_circle_16.png"
+                           WidthRequest="16"
+                           HeightRequest="16"
+                           VerticalOptions="Center" />
+                    <Label Text="{Binding Conclusion.Value}"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="{Binding Conclusion.Value, Converter={StaticResource CheckConclusionColorConverter}}"
+                           VerticalOptions="Center"
+                           IsVisible="{Binding Conclusion.Value, Converter={StaticResource StringToBoolConverter}}" />
+                    <Label Text="{Binding Status.Value}"
+                           FontSize="12"
+                           TextColor="{StaticResource Gray500}"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
                 <Label Text="{Binding OutputTitle.Value}"
                        FontSize="16"
                        FontAttributes="Bold"
@@ -74,31 +111,50 @@
                                      Spacing="8">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:CheckRunAnnotation">
-                            <Border Padding="14"
-                                    StrokeShape="RoundRectangle 8"
-                                    Stroke="{StaticResource Gray200}">
-                                <Border.GestureRecognizers>
+                            <VerticalStackLayout Spacing="0">
+                            <VerticalStackLayout Spacing="4" Padding="0,10" MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
+                                <VerticalStackLayout.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnAnnotationTapped" />
-                                </Border.GestureRecognizers>
-                                <VerticalStackLayout Spacing="4">
-                                    <Label Text="{Binding Path}"
-                                           FontSize="13"
-                                           FontAttributes="Bold"
-                                           LineBreakMode="MiddleTruncation"
-                                           MaxLines="2" />
-                                    <Label Text="{Binding AnnotationLevel}"
-                                           FontSize="12"
-                                           TextColor="{StaticResource Gray600}" />
-                                    <Label Text="{Binding StartLine, StringFormat='Line {0}'}"
-                                           FontSize="12"
-                                           TextColor="{StaticResource Gray500}" />
-                                    <Label Text="{Binding Message}"
-                                           FontSize="13"
-                                           LineBreakMode="WordWrap" />
-                                </VerticalStackLayout>
-                            </Border>
+                                </VerticalStackLayout.GestureRecognizers>
+                                <Label Text="{Binding Path}"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="MiddleTruncation"
+                                       MaxLines="1" />
+                                <Label FontSize="12"
+                                       TextColor="{StaticResource Gray500}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="{Binding AnnotationLevel}" />
+                                            <Span Text=" · line " />
+                                            <Span Text="{Binding StartLine}" />
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+                                <Label Text="{Binding Message}"
+                                       FontSize="13"
+                                       LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <BoxView Style="{StaticResource Hairline}" Margin="0" />
+                            </VerticalStackLayout>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+                <VerticalStackLayout
+                        IsVisible="{Binding Annotations.Count, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
+                        Spacing="4"
+                        Padding="0,8">
+                    <Label Text="No annotations"
+                           FontSize="16"
+                           TextColor="{StaticResource Gray500}"
+                           HorizontalOptions="Center" />
+                    <Label Text="This check did not report file annotations."
+                           FontSize="14"
+                           TextColor="{StaticResource Gray400}"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
                 <Button Text="Rerequest"
                         Command="{Binding RerequestCommand}"

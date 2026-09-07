@@ -11,24 +11,25 @@
 
         <!-- Header: back + repo name + breadcrumb -->
         <VerticalStackLayout Grid.Row="0" Padding="16,12,16,4" Spacing="4">
-            <HorizontalStackLayout Spacing="12">
-                <Button Text="← Back"
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                <Button Text="Back"
                         Clicked="OnBackClicked"
                         BackgroundColor="Transparent"
                         TextColor="{StaticResource Primary}"
-                        Padding="8,4" />
-                <Label Text="{Binding RepoFullName.Value}"
-                       FontSize="18"
-                       FontAttributes="Bold"
+                        Padding="8,10" />
+                <Label Grid.Column="1"
+                       Text="Repos"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
                        VerticalOptions="Center" />
-                <Button Text="GitHub →"
-                        Command="{Binding OpenInBrowserCommand}"
-                        BackgroundColor="Transparent"
-                        TextColor="{StaticResource Primary}"
-                        Padding="8,4"
-                        FontSize="13"
-                        VerticalOptions="Center" />
-            </HorizontalStackLayout>
+                <Label Grid.Column="2"
+                       Text="{Binding RepoFullName.Value}"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1" />
+            </Grid>
             <!-- Breadcrumb: current path -->
             <HorizontalStackLayout Spacing="8">
                 <Button Text="↑ Up"
@@ -52,9 +53,27 @@
                 StrokeShape="RoundRectangle 8"
                 Padding="12"
                 Margin="16,0">
-            <Label Text="{Binding ErrorMessage.Value}"
-                   TextColor="{StaticResource Red900}"
-                   FontSize="13" />
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <Label Text="{Binding ErrorMessage.Value}"
+                       TextColor="{StaticResource Red900}"
+                       FontSize="13"
+                       LineBreakMode="WordWrap"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="1"
+                        Text="Retry"
+                        Command="{Binding LoadCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13" />
+                <Button Grid.Column="2"
+                        Text="Back"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13" />
+            </Grid>
         </Border>
 
         <!-- File/directory list -->
@@ -65,34 +84,61 @@
                         SelectionChanged="OnEntrySelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:ContentEntry">
-                    <Border Margin="0,0,0,4"
-                            Padding="14,10"
-                            StrokeShape="RoundRectangle 6"
-                            Stroke="{StaticResource Gray200}">
-                        <HorizontalStackLayout Spacing="10">
-                            <!-- Folder icon for dirs, file icon for files -->
-                            <Label Text="📁"
-                                   FontSize="18"
-                                   IsVisible="{Binding Type, Converter={StaticResource StringEqualsConverter}, ConverterParameter=dir}" />
-                            <Label Text="📄"
-                                   FontSize="18"
+                    <VerticalStackLayout Spacing="0">
+                    <Grid ColumnDefinitions="Auto,*"
+                          Padding="16,12"
+                          MinimumHeightRequest="{OnPlatform Android=56, Default=48}"
+                          ColumnSpacing="10">
+                        <Image Source="repo_16.png"
+                               WidthRequest="16"
+                               HeightRequest="16"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding Type, Converter={StaticResource StringEqualsConverter}, ConverterParameter=dir}" />
+                        <Image Source="file_16.png"
+                               WidthRequest="16"
+                               HeightRequest="16"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding Type, Converter={StaticResource StringEqualsConverter}, ConverterParameter=file}" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding Name}"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
+                            <Label Text="{Binding Size, StringFormat='{0} bytes'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}"
                                    IsVisible="{Binding Type, Converter={StaticResource StringEqualsConverter}, ConverterParameter=file}" />
-                            <VerticalStackLayout Spacing="2">
-                                <Label Text="{Binding Name}"
-                                       FontSize="15"
-                                       FontAttributes="Bold"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="1" />
-                                <Label Text="{Binding Size, StringFormat='{0} bytes'}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Gray500}"
-                                       IsVisible="{Binding Type, Converter={StaticResource StringEqualsConverter}, ConverterParameter=file}" />
-                            </VerticalStackLayout>
-                        </HorizontalStackLayout>
-                    </Border>
+                        </VerticalStackLayout>
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+
+        <VerticalStackLayout Grid.Row="2"
+                             IsVisible="{Binding Entries.Count, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center"
+                             Spacing="8"
+                             Padding="16">
+            <VerticalStackLayout.Triggers>
+                <DataTrigger TargetType="VerticalStackLayout"
+                             Binding="{Binding IsLoading.Value}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </VerticalStackLayout.Triggers>
+            <Label Text="This folder is empty"
+                   FontSize="16"
+                   TextColor="{StaticResource Gray500}"
+                   HorizontalOptions="Center" />
+            <Label Text="There are no files here."
+                   FontSize="14"
+                   TextColor="{StaticResource Gray400}"
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
 
         <ActivityIndicator Grid.Row="2"
                            IsRunning="{Binding IsLoading.Value}"

@@ -8,26 +8,33 @@
 
     <Grid RowDefinitions="Auto,*">
 
-        <!-- Back + title: Grid keeps Back visible on narrow widths. -->
-        <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*"
-              ColumnSpacing="12"
-              Padding="16,12,16,4">
-            <Button Grid.Column="0"
-                    Text="← Back"
-                    Clicked="OnBackClicked"
-                    BackgroundColor="Transparent"
-                    TextColor="{StaticResource Primary}"
-                    Padding="8,4"
-                    VerticalOptions="Center" />
-            <Label Grid.Column="1"
-                   Text="New pull request"
-                   FontSize="18"
+        <VerticalStackLayout Grid.Row="0" Spacing="4" Padding="16,8,16,4">
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                <Button Text="Back"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="8,10"
+                        VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="Pull requests"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center" />
+                <Label x:Name="IdentityLabel"
+                       Grid.Column="2"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1" />
+            </Grid>
+            <Label Text="New pull request"
+                   FontSize="20"
                    FontAttributes="Bold"
-                   VerticalOptions="Center"
                    LineBreakMode="TailTruncation"
                    MaxLines="1" />
-        </Grid>
+        </VerticalStackLayout>
 
         <!-- ScrollView + AdjustResize: Create stays reachable with IME open. -->
         <ScrollView Grid.Row="1">
@@ -40,7 +47,13 @@
                     <Entry Text="{Binding TitleInput.Value}"
                            Placeholder="Pull request title"
                            FontSize="14"
-                           HorizontalOptions="Fill" />
+                           HorizontalOptions="Fill"
+                           MinimumHeightRequest="44" />
+                    <Label x:Name="TitleFieldError"
+                           Text="Enter a title."
+                           TextColor="{StaticResource Red900}"
+                           FontSize="12"
+                           IsVisible="False" />
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="4">
@@ -103,7 +116,7 @@
 
                 <!-- Full-width Create stays tappable after window resize for soft keyboard. -->
                 <Button Text="Create pull request"
-                        Command="{Binding CreateCommand}"
+                        Clicked="OnCreateClicked"
                         IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
                         HorizontalOptions="Fill"
                         Padding="24,12"

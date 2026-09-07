@@ -27,7 +27,7 @@ internal sealed class LoadMoreSource
 }
 
 /// <summary>
-/// Shared Observables.Events.R3 pipelines used by Repos and Search.
+/// Shared Observables.Events.R3 pipelines used by list pages for SearchBar text and remaining-items load more.
 /// </summary>
 internal static class UiEventPipelines
 {

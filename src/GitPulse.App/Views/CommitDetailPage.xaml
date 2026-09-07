@@ -10,204 +10,245 @@
              Title="Commit"
              AutomationId="CommitDetailPageRoot">
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*">
 
-        <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*"
-              ColumnSpacing="12"
-              Padding="16,12,16,4">
-            <Button Grid.Column="0"
-                    Text="← Commits"
-                    Clicked="OnBackClicked"
-                    BackgroundColor="Transparent"
-                    TextColor="{StaticResource Primary}"
-                    Padding="8,4"
-                    VerticalOptions="Center" />
-            <VerticalStackLayout Grid.Column="1"
-                                 Spacing="0"
-                                 VerticalOptions="Center">
-                <Label Text="{Binding RepoFullName.Value}"
-                       FontSize="18"
-                       FontAttributes="Bold"
-                       LineBreakMode="TailTruncation"
-                       MaxLines="1" />
-                <Label Text="{Binding Sha.Value, Converter={StaticResource StringTruncateConverter}, ConverterParameter=8}"
+        <VerticalStackLayout Grid.Row="0" Spacing="4" Padding="16,8,16,4">
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                <Button Text="Back"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="8,10"
+                        VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="Commits"
                        FontSize="14"
-                       FontFamily="Consolas"
                        TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center" />
+                <Label Grid.Column="2"
+                       Text="{Binding Sha.Value, Converter={StaticResource StringTruncateConverter}, ConverterParameter=8}"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center"
                        LineBreakMode="TailTruncation"
                        MaxLines="1" />
-            </VerticalStackLayout>
-        </Grid>
-
-        <ScrollView Grid.Row="1">
-            <VerticalStackLayout Padding="16" Spacing="12">
-
-                <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
-                        BackgroundColor="{StaticResource Red100}"
-                        StrokeShape="RoundRectangle 8"
-                        Padding="12">
+            </Grid>
+            <Label Text="{Binding Message.Value}"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="2" />
+            <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                    BackgroundColor="{StaticResource Red100}"
+                    Stroke="Transparent"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12"
+                    Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                     <Label Text="{Binding ErrorMessage.Value}"
                            TextColor="{StaticResource Red900}"
                            FontSize="13"
-                           LineBreakMode="WordWrap" />
-                </Border>
+                           LineBreakMode="WordWrap"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="Retry"
+                            Command="{Binding LoadCommand}"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13" />
+                    <Button Grid.Column="2"
+                            Text="Back"
+                            Clicked="OnLeavePageClicked"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13" />
+                </Grid>
+            </Border>
+        </VerticalStackLayout>
 
-                <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
-                                   IsVisible="{Binding IsLoading.Value}"
-                                   HorizontalOptions="Center" />
-
-                <Border StrokeShape="RoundRectangle 8"
-                        Stroke="{StaticResource Gray200}"
-                        Padding="16">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="{Binding Message.Value}"
-                               FontSize="15"
-                               FontAttributes="Bold"
-                               LineBreakMode="WordWrap" />
-                        <Label Text="{Binding Sha.Value}"
-                               FontSize="11"
-                               FontFamily="Consolas"
-                               TextColor="{StaticResource Primary}"
-                               LineBreakMode="TailTruncation"
-                               MaxLines="1" />
-                        <Label Text="{Binding AuthorName.Value}"
-                               FontSize="12"
-                               TextColor="{StaticResource Gray500}"
-                               LineBreakMode="TailTruncation"
-                               MaxLines="1" />
-                        <Label Text="{Binding AuthorDate.Value, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
-                               FontSize="11"
-                               TextColor="{StaticResource Gray500}" />
-                        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12">
-                            <Label Grid.Column="0"
-                                   Text="{Binding Additions.Value, StringFormat='+{0}'}"
-                                   FontSize="13"
-                                   TextColor="{StaticResource Green700}" />
-                            <Label Grid.Column="1"
-                                   Text="{Binding Deletions.Value, StringFormat='-{0}'}"
-                                   FontSize="13"
-                                   TextColor="{StaticResource Red900}" />
-                            <Label Grid.Column="2"
-                                   Text="{Binding Total.Value, StringFormat='{0} total'}"
-                                   FontSize="13"
-                                   TextColor="{StaticResource Gray500}" />
-                        </Grid>
-                        <Button Text="Open GitHub"
-                                Command="{Binding OpenInBrowserCommand}"
-                                CommandParameter="{Binding HtmlUrl.Value}"
-                                BackgroundColor="Transparent"
-                                TextColor="{StaticResource Primary}"
-                                Padding="16,12"
-                                FontSize="13"
-                                HorizontalOptions="Fill"
-                                IsVisible="{Binding HtmlUrl.Value, Converter={StaticResource StringToBoolConverter}}" />
-                    </VerticalStackLayout>
-                </Border>
-
-                <Border StrokeShape="RoundRectangle 8"
-                        Stroke="{StaticResource Gray200}"
-                        Padding="16"
-                        IsVisible="{Binding Commit.Value, Converter={StaticResource NotNullConverter}}">
-                    <VerticalStackLayout Spacing="10">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Checks:"
-                                   FontSize="13"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource Gray600}" />
-                            <Label Text="{Binding GateRollup.Value}"
-                                   FontSize="13"
-                                   TextColor="{StaticResource Primary}"
-                                   LineBreakMode="WordWrap" />
+        <VerticalStackLayout Grid.Row="1" Spacing="8" Padding="16,0,16,8">
+            <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
+                               IsVisible="{Binding IsLoading.Value}"
+                               HorizontalOptions="Center" />
+            <Label Text="{Binding AuthorName.Value}"
+                   FontSize="12"
+                   TextColor="{StaticResource Gray500}"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1" />
+            <Label Text="{Binding AuthorDate.Value, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                   FontSize="12"
+                   TextColor="{StaticResource Gray500}" />
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12">
+                <Label Grid.Column="0"
+                       Text="{Binding Additions.Value, StringFormat='+{0}'}"
+                       FontSize="13"
+                       TextColor="{StaticResource Green700}" />
+                <Label Grid.Column="1"
+                       Text="{Binding Deletions.Value, StringFormat='-{0}'}"
+                       FontSize="13"
+                       TextColor="{StaticResource Red900}" />
+                <Label Grid.Column="2"
+                       Text="{Binding Total.Value, StringFormat='{0} total'}"
+                       FontSize="13"
+                       TextColor="{StaticResource Gray500}" />
+            </Grid>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Label Text="{Binding GateRollup.Value}"
+                       FontSize="13"
+                       TextColor="{StaticResource Primary}"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="1"
+                        Text="Open GitHub"
+                        Command="{Binding OpenInBrowserCommand}"
+                        CommandParameter="{Binding HtmlUrl.Value}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="12,10"
+                        FontSize="12"
+                        IsVisible="{Binding HtmlUrl.Value, Converter={StaticResource StringToBoolConverter}}" />
+            </Grid>
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding CheckRuns}"
+                                 Spacing="0">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="models:CheckRun">
+                        <VerticalStackLayout Spacing="0">
+                            <Grid ColumnDefinitions="*,Auto,Auto"
+                                  ColumnSpacing="8"
+                                  Padding="0,8"
+                                  MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
+                                <Label Grid.Column="0"
+                                       Text="{Binding Name}"
+                                       FontSize="13"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding ., Converter={StaticResource CheckRunStateTextConverter}}"
+                                       FontSize="12"
+                                       TextColor="{Binding ., Converter={StaticResource CheckConclusionColorConverter}}"
+                                       VerticalOptions="Center" />
+                                <Button Grid.Column="2"
+                                        Text="Open"
+                                        FontSize="12"
+                                        Padding="10,6"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{StaticResource Primary}"
+                                        Clicked="OnCheckRunOpened" />
+                            </Grid>
+                            <BoxView Style="{StaticResource Hairline}" Margin="0" />
                         </VerticalStackLayout>
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding CheckRuns}"
-                                             Spacing="6">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="models:CheckRun">
-                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                        <Label Grid.Column="0"
-                                               Text="{Binding Name}"
-                                               FontSize="13"
-                                               LineBreakMode="TailTruncation"
-                                               MaxLines="1"
-                                               VerticalOptions="Center" />
-                                        <Label Grid.Column="1"
-                                               Text="{Binding Status}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource Gray600}"
-                                               VerticalOptions="Center" />
-                                        <Button Grid.Column="2"
-                                                Text="Open"
-                                                FontSize="12"
-                                                Padding="10,6"
-                                                BackgroundColor="Transparent"
-                                                TextColor="{StaticResource Primary}"
-                                                Clicked="OnCheckRunOpened" />
-                                    </Grid>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
 
-                <Label Text="Files"
-                       FontSize="16"
-                       FontAttributes="Bold"
-                       Margin="0,8,0,0" />
-
-                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Files}"
-                                     Spacing="8">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="models:DiffEntry">
-                            <Border Padding="14,16"
-                                    MinimumHeightRequest="56"
-                                    StrokeShape="RoundRectangle 8"
-                                    Stroke="{StaticResource Gray200}">
-                                <VerticalStackLayout Spacing="8">
+        <Grid x:Name="FilesSection"
+              Grid.Row="2"
+              ColumnDefinitions="0.38*, 0.62*"
+              Padding="8,0,8,8"
+              ColumnSpacing="8">
+            <CollectionView x:Name="FilesList"
+                            Grid.Column="0"
+                            ItemsSource="{Binding Files}"
+                            SelectionMode="Single"
+                            SelectionChanged="OnFileSelected">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:DiffEntry">
+                        <VerticalStackLayout Spacing="0">
+                            <Grid ColumnDefinitions="*,Auto"
+                                  Padding="10,10"
+                                  MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
+                                <VerticalStackLayout Spacing="2" VerticalOptions="Center">
                                     <Label Text="{Binding Filename}"
                                            FontSize="13"
                                            FontAttributes="Bold"
                                            LineBreakMode="MiddleTruncation"
-                                           MaxLines="2" />
-                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-                                        <Label Grid.Column="0"
-                                               Text="{Binding Status}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource Gray500}"
-                                               VerticalOptions="Center" />
-                                        <Label Grid.Column="2"
-                                               Text="{Binding Additions, StringFormat='+{0}'}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource Green700}"
-                                               VerticalOptions="Center" />
-                                        <Label Grid.Column="3"
-                                               Text="{Binding Deletions, StringFormat='-{0}'}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource Red900}"
-                                               VerticalOptions="Center" />
-                                    </Grid>
-                                    <controls:DiffView Patch="{Binding Patch}"
-                                                       Filename="{Binding Filename}"
-                                                       HeightRequest="400"
-                                                       IsVisible="{Binding Patch, Converter={StaticResource StringToBoolConverter}}" />
-                                    <Button Text="Open GitHub"
-                                            Command="{Binding Source={x:Reference _pageRoot}, Path=BindingContext.OpenInBrowserCommand}"
-                                            CommandParameter="{Binding BlobUrl}"
-                                            BackgroundColor="Transparent"
-                                            TextColor="{StaticResource Primary}"
-                                            Padding="12,10"
-                                            FontSize="12"
-                                            HorizontalOptions="Fill"
-                                            IsVisible="{Binding BlobUrl, Converter={StaticResource StringToBoolConverter}}" />
+                                           MaxLines="1" />
+                                    <Label Text="{Binding Status}"
+                                           FontSize="12"
+                                           TextColor="{StaticResource Gray500}" />
                                 </VerticalStackLayout>
-                            </Border>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
-                </VerticalStackLayout>
-
+                                <VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+                                    <Label Text="{Binding Additions, StringFormat='+{0}'}"
+                                           FontSize="12"
+                                           TextColor="{StaticResource Green700}"
+                                           HorizontalOptions="End" />
+                                    <Label Text="{Binding Deletions, StringFormat='-{0}'}"
+                                           FontSize="12"
+                                           TextColor="{StaticResource Red900}"
+                                           HorizontalOptions="End" />
+                                </VerticalStackLayout>
+                            </Grid>
+                            <BoxView Style="{StaticResource Hairline}" Margin="0" />
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+            <VerticalStackLayout x:Name="FilesEmpty"
+                                 Grid.Column="0"
+                                 Grid.ColumnSpan="2"
+                                 IsVisible="{Binding Files.Count, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="4"
+                                 Padding="16">
+                <VerticalStackLayout.Triggers>
+                    <DataTrigger TargetType="VerticalStackLayout"
+                                 Binding="{Binding IsLoading.Value}"
+                                 Value="True">
+                        <Setter Property="IsVisible" Value="False" />
+                    </DataTrigger>
+                </VerticalStackLayout.Triggers>
+                <Label Text="No files"
+                       FontSize="16"
+                       TextColor="{StaticResource Gray500}"
+                       HorizontalOptions="Center" />
+                <Label Text="This commit has no file list in the payload."
+                       FontSize="14"
+                       TextColor="{StaticResource Gray400}"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
-        </ScrollView>
-
+            <Grid x:Name="DiffPane"
+                  Grid.Column="1"
+                  RowDefinitions="Auto,*,Auto">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                    <Button x:Name="BackToFilesButton"
+                            Text="Files"
+                            Clicked="OnBackToFilesClicked"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Primary}"
+                            Padding="8,10"
+                            FontSize="13"
+                            IsVisible="False"
+                            VerticalOptions="Center" />
+                    <Label Grid.Column="1"
+                           Text="{Binding SelectedDiffFile.Filename, Source={x:Reference _pageRoot}}"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           LineBreakMode="MiddleTruncation"
+                           MaxLines="1"
+                           Margin="8,4"
+                           VerticalOptions="Center" />
+                </Grid>
+                <controls:DiffView Grid.Row="1"
+                                   Patch="{Binding SelectedDiffFile.Patch, Source={x:Reference _pageRoot}}"
+                                   Filename="{Binding SelectedDiffFile.Filename, Source={x:Reference _pageRoot}}" />
+                <Button Grid.Row="2"
+                        Text="Open GitHub"
+                        Command="{Binding OpenInBrowserCommand}"
+                        CommandParameter="{Binding SelectedDiffFile.BlobUrl, Source={x:Reference _pageRoot}}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="12,10"
+                        FontSize="12"
+                        HorizontalOptions="Fill"
+                        IsVisible="{Binding SelectedDiffFile.BlobUrl, Source={x:Reference _pageRoot}, Converter={StaticResource StringToBoolConverter}}" />
+            </Grid>
+        </Grid>
     </Grid>
-
 </ContentPage>

@@ -1,4 +1,6 @@
 using GitPulse.App.Services;
+using GitPulse.Core.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using GitPulse.App.Views;
 
 #if WINDOWS
@@ -60,9 +62,17 @@ public partial class App : Application
                     AutomationId = "UiTestHostLoading",
                 },
             }
-            : new AppShell();
+            : new AppShell(_services.GetRequiredService<INotificationPoller>());
 
         var window = new Window(root);
+#if WINDOWS
+        window.TitleBar = new TitleBar
+        {
+            Icon = "gitpulse_mark.png",
+            Title = "GitPulse",
+            HeightRequest = 48,
+        };
+#endif
 
         if (uiTestHost)
         {

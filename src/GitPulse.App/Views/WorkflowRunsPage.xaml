@@ -12,30 +12,27 @@
 
         <!-- Back + repo name: Grid so long names truncate instead of clipping Back. -->
         <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*"
-              ColumnSpacing="12"
+              ColumnDefinitions="Auto,Auto,*"
+              ColumnSpacing="8"
               Padding="16,12,16,4">
-            <Button Grid.Column="0"
-                    Text="← Repo"
+            <Button Text="Back"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4"
+                    Padding="8,10"
                     VerticalOptions="Center" />
-            <VerticalStackLayout Grid.Column="1"
-                                 Spacing="0"
-                                 VerticalOptions="Center">
-                <Label Text="{Binding RepoFullName.Value}"
-                       FontSize="18"
-                       FontAttributes="Bold"
-                       LineBreakMode="TailTruncation"
-                       MaxLines="1" />
-                <Label Text="Actions"
-                       FontSize="14"
-                       TextColor="{StaticResource Gray500}"
-                       LineBreakMode="TailTruncation"
-                       MaxLines="1" />
-            </VerticalStackLayout>
+            <Label Grid.Column="1"
+                   Text="Repos"
+                   FontSize="14"
+                   TextColor="{StaticResource Gray500}"
+                   VerticalOptions="Center" />
+            <Label Grid.Column="2"
+                   Text="{Binding RepoFullName.Value}"
+                   FontSize="14"
+                   TextColor="{StaticResource Gray500}"
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1" />
         </Grid>
 
         <Border Grid.Row="1"
@@ -44,10 +41,27 @@
                 StrokeShape="RoundRectangle 8"
                 Padding="12"
                 Margin="16,4,16,0">
-            <Label Text="{Binding ErrorMessage.Value}"
-                   TextColor="{StaticResource Red900}"
-                   FontSize="13"
-                   LineBreakMode="WordWrap" />
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <Label Text="{Binding ErrorMessage.Value}"
+                       TextColor="{StaticResource Red900}"
+                       FontSize="13"
+                       LineBreakMode="WordWrap"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="1"
+                        Text="Retry"
+                        Command="{Binding LoadCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13" />
+                <Button Grid.Column="2"
+                        Text="Back"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13" />
+            </Grid>
         </Border>
 
         <VerticalStackLayout Grid.Row="2"
@@ -77,69 +91,82 @@
             </Grid>
         </VerticalStackLayout>
 
-        <CollectionView Grid.Row="3"
+        <CollectionView x:Name="RunsList"
+                        Grid.Row="3"
                         ItemsSource="{Binding Runs}"
+                        RemainingItemsThreshold="5"
                         Margin="16,8,16,0"
                         SelectionMode="Single"
                         SelectionChanged="OnRunSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:WorkflowRun">
-                    <!-- Minimum height keeps portrait tap targets usable. -->
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
-                        <VerticalStackLayout Spacing="4">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                                <Label Grid.Column="0"
-                                       Text="{Binding RunNumber, StringFormat='#{0}'}"
-                                       FontSize="14"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource Primary}"
-                                       VerticalOptions="Center" />
-                                <Label Grid.Column="1"
-                                       Text="{Binding DisplayTitle}"
-                                       FontSize="15"
-                                       FontAttributes="Bold"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="2"
-                                       VerticalOptions="Center" />
-                            </Grid>
-                            <VerticalStackLayout Spacing="2" Margin="0,2,0,0">
-                                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12">
-                                    <Label Grid.Column="0"
-                                           Text="{Binding Status}"
-                                           FontSize="11"
-                                           TextColor="{StaticResource Gray500}"
-                                           VerticalOptions="Center" />
-                                    <Label Grid.Column="1"
-                                           Text="{Binding Conclusion}"
-                                           FontSize="11"
-                                           TextColor="{StaticResource Green700}"
-                                           LineBreakMode="TailTruncation"
-                                           MaxLines="1"
-                                           VerticalOptions="Center" />
-                                    <Label Grid.Column="2"
-                                           Text="{Binding Event}"
-                                           FontSize="11"
-                                           TextColor="{StaticResource Gray500}"
-                                           LineBreakMode="TailTruncation"
-                                           MaxLines="1"
-                                           VerticalOptions="Center"
-                                           HorizontalOptions="End" />
-                                </Grid>
-                                <Label Text="{Binding HeadBranch, StringFormat='@ {0}'}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Gray500}"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="1" />
-                            </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="0">
+                    <Grid ColumnDefinitions="Auto,*,Auto"
+                          Padding="16,12"
+                          MinimumHeightRequest="{OnPlatform Android=56, Default=48}"
+                          ColumnSpacing="10">
+                        <Image Source="check_circle_16.png"
+                               WidthRequest="16"
+                               HeightRequest="16"
+                               VerticalOptions="Start"
+                               Margin="0,2,0,0" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="{Binding DisplayTitle}"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
+                            <Label FontSize="12"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding Conclusion}"
+                                              TextColor="{Binding Conclusion, Converter={StaticResource CheckConclusionColorConverter}}" />
+                                        <Span Text=" · " TextColor="{StaticResource Gray500}" />
+                                        <Span Text="{Binding HeadBranch, StringFormat='@{0}'}" TextColor="{StaticResource Gray500}" />
+                                        <Span Text=" · " TextColor="{StaticResource Gray500}" />
+                                        <Span Text="{Binding Event}" TextColor="{StaticResource Gray500}" />
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
                         </VerticalStackLayout>
-                    </Border>
+                        <Label Grid.Column="2"
+                               Text="{Binding RunNumber, StringFormat='#{0}'}"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               VerticalOptions="Start" />
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+
+        <VerticalStackLayout Grid.Row="3"
+                             IsVisible="{Binding Runs.Count, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center"
+                             Spacing="8"
+                             Padding="16">
+
+            <VerticalStackLayout.Triggers>
+                <DataTrigger TargetType="VerticalStackLayout"
+                             Binding="{Binding IsLoading.Value}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </VerticalStackLayout.Triggers>
+            <Label Text="No workflow runs"
+                   FontSize="16"
+                   TextColor="{StaticResource Gray500}"
+                   HorizontalOptions="Center" />
+            <Label Text="Dispatch a workflow or wait for CI."
+                   FontSize="14"
+                   TextColor="{StaticResource Gray400}"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
 
         <ActivityIndicator Grid.Row="3"
                            IsRunning="{Binding IsLoading.Value}"

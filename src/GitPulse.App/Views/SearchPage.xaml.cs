@@ -1,12 +1,14 @@
 using GitPulse.App.Events;
 using GitPulse.Core.Models;
 using GitPulse.ViewModels;
+using R3;
 
 namespace GitPulse.App.Views;
 
 public partial class SearchPage : ContentPage
 {
     private readonly SearchViewModel _viewModel;
+    private readonly CompositeDisposable _loadMore = [];
     private IDisposable? _searchPipeline;
 
     public SearchPage(SearchViewModel viewModel)
@@ -14,6 +16,22 @@ public partial class SearchPage : ContentPage
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
+
+        BindLoadMore(RepositoriesList);
+        BindLoadMore(IssuesList);
+        BindLoadMore(PullRequestsList);
+        BindLoadMore(CodeList);
+        BindLoadMore(ReviewRequestedList);
+        BindLoadMore(AssignedList);
+        BindLoadMore(MentionsList);
+    }
+
+    private void BindLoadMore(CollectionView list)
+    {
+        _loadMore.Add(UiEventPipelines.BindLoadMore(
+            list,
+            _viewModel.CanLoadMore,
+            () => _viewModel.LoadMoreCommand.ExecuteAsync(null)));
     }
 
     protected override void OnAppearing()
@@ -22,6 +40,7 @@ public partial class SearchPage : ContentPage
 
         SearchBar.Text = _viewModel.Query.Value;
         StartSearchBridge();
+        ListRefresh.Command = new Command(RefreshVisibleInbox);
         UpdateTabStyles(_viewModel.SelectedType.Value);
         UpdateHubStyles();
     }
@@ -83,7 +102,12 @@ public partial class SearchPage : ContentPage
 
     private void SubmitSearch()
     {
-        _viewModel.Query.Value = SearchBar.Text ?? string.Empty;
+        var query = SearchBar.Text ?? string.Empty;
+        var tooShort = query.Trim().Length < 3;
+        QueryFieldError.IsVisible = tooShort;
+        if (tooShort)
+            return;
+        _viewModel.Query.Value = query;
         _ = _viewModel.SearchCommand.ExecuteAsync(null);
     }
 
@@ -116,29 +140,40 @@ public partial class SearchPage : ContentPage
 
     private void UpdateTabStyles(SearchType active)
     {
-        var primary = Application.Current?.Resources["Primary"] as Color;
-        var gray = Application.Current?.Resources["Gray200"] as Color;
-
-        StyleTab(RepositoriesTab, active == SearchType.Repositories, primary, gray);
-        StyleTab(IssuesTab, active == SearchType.Issues, primary, gray);
-        StyleTab(PullRequestsTab, active == SearchType.PullRequests, primary, gray);
-        StyleTab(CodeTab, active == SearchType.Code, primary, gray);
+        ChromeTabs.Style(RepositoriesTab, active == SearchType.Repositories);
+        ChromeTabs.Style(IssuesTab, active == SearchType.Issues);
+        ChromeTabs.Style(PullRequestsTab, active == SearchType.PullRequests);
+        ChromeTabs.Style(CodeTab, active == SearchType.Code);
     }
 
     private void UpdateHubStyles()
     {
-        var primary = Application.Current?.Resources["Primary"] as Color;
-        var gray = Application.Current?.Resources["Gray200"] as Color;
-        StyleTab(SearchHubButton, _viewModel.IsSearchHub.Value, primary, gray);
-        StyleTab(ReviewRequestedHubButton, _viewModel.IsReviewRequestedHub.Value, primary, gray);
-        StyleTab(AssignedHubButton, _viewModel.IsAssignedHub.Value, primary, gray);
-        StyleTab(MentionsHubButton, _viewModel.IsMentionsHub.Value, primary, gray);
+        ChromeTabs.Style(SearchHubButton, _viewModel.IsSearchHub.Value);
+        ChromeTabs.Style(ReviewRequestedHubButton, _viewModel.IsReviewRequestedHub.Value);
+        ChromeTabs.Style(AssignedHubButton, _viewModel.IsAssignedHub.Value);
+        ChromeTabs.Style(MentionsHubButton, _viewModel.IsMentionsHub.Value);
+        UpdateInboxRefreshEnabled();
     }
 
-    private static void StyleTab(Button button, bool active, Color? primary, Color? gray)
+    private void UpdateInboxRefreshEnabled()
     {
-        button.BackgroundColor = active ? primary : gray;
-        button.TextColor = active ? Colors.White : Colors.Black;
+#if ANDROID
+        ListRefresh.IsEnabled = _viewModel.IsReviewRequestedHub.Value
+            || _viewModel.IsAssignedHub.Value
+            || _viewModel.IsMentionsHub.Value;
+#else
+        PullToRefresh.WindowsOff(ListRefresh);
+#endif
+    }
+
+    private void RefreshVisibleInbox()
+    {
+        if (_viewModel.IsReviewRequestedHub.Value)
+            _ = _viewModel.SelectHubCommand.ExecuteAsync(SearchViewModel.ReviewRequestedHub);
+        else if (_viewModel.IsAssignedHub.Value)
+            _ = _viewModel.SelectHubCommand.ExecuteAsync(SearchViewModel.AssignedHub);
+        else if (_viewModel.IsMentionsHub.Value)
+            _ = _viewModel.SelectHubCommand.ExecuteAsync(SearchViewModel.MentionsHub);
     }
 
     private async void OnRepositorySelected(object? sender, SelectionChangedEventArgs e)
@@ -266,6 +301,12 @@ public partial class SearchPage : ContentPage
         repo = parts[1];
         return true;
     }
+
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
+    }
+
 }
 
 

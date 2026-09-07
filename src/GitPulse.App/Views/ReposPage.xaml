@@ -11,26 +11,25 @@
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <VerticalStackLayout Grid.Row="0" Spacing="0">
-            <!-- Search bar: TextChanged event is bridged to an Observable
-                 via R3 Subject in the code-behind (debounced). -->
             <SearchBar x:Name="SearchBar"
                        Placeholder="Filter repositories..."
                        Text="{Binding SearchText.Value}"
                        Margin="16,12,16,4"
                        AutomationId="ReposSearchBar" />
 
-            <!-- M17: My repos / Starred hub switch (not a fifth Shell tab). -->
             <Grid ColumnDefinitions="*,*"
                   ColumnSpacing="8"
                   Margin="16,0,16,8">
-                <Button Text="My repos"
+                <Button x:Name="MyReposHubButton"
+                        Text="My repos"
                         Command="{Binding SelectHubCommand}"
                         CommandParameter="{x:Static vm:ReposViewModel.MyReposHub}"
                         Padding="12,10"
                         FontSize="13"
                         HorizontalOptions="Fill"
                         AutomationId="ReposMyReposHub" />
-                <Button Grid.Column="1"
+                <Button x:Name="StarredHubButton"
+                        Grid.Column="1"
                         Text="Starred"
                         Command="{Binding SelectHubCommand}"
                         CommandParameter="{x:Static vm:ReposViewModel.StarredHub}"
@@ -41,76 +40,92 @@
             </Grid>
         </VerticalStackLayout>
 
-        <!-- Error banner -->
         <Border Grid.Row="1"
                 IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
                 BackgroundColor="{StaticResource Red100}"
+                Stroke="Transparent"
                 StrokeShape="RoundRectangle 8"
                 Padding="12"
-                Margin="16,0">
-            <Label Text="{Binding ErrorMessage.Value}"
-                   TextColor="{StaticResource Red900}"
-                   FontSize="13"
-                   LineBreakMode="WordWrap" />
+                Margin="16,0,16,8">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <Label Text="{Binding ErrorMessage.Value}"
+                       TextColor="{StaticResource Red900}"
+                       FontSize="13"
+                       LineBreakMode="WordWrap"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="1"
+                        Text="Retry"
+                        Command="{Binding LoadCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13"
+                        VerticalOptions="Center" />
+                <Button Grid.Column="2"
+                        Text="Settings"
+                        Clicked="OnOpenSettingsClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13"
+                        VerticalOptions="Center" />
+            </Grid>
         </Border>
 
-        <!-- Repository list -->
+        <RefreshView x:Name="ListRefresh"
+                     Grid.Row="2"
+                     Command="{Binding LoadCommand}"
+                     IsRefreshing="{Binding IsLoading.Value}">
         <CollectionView x:Name="ReposList"
-                        Grid.Row="2"
                         ItemsSource="{Binding Repos}"
-                        Margin="16,8,16,0"
                         SelectionMode="Single"
                         RemainingItemsThreshold="5"
                         SelectionChanged="OnRepoSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Repo">
-                    <!-- Minimum height keeps portrait tap targets usable. -->
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}"
-                            AutomationId="ReposFirstItem">
-                        <VerticalStackLayout Spacing="4">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <Label Grid.Column="0"
-                                       Text="{Binding Name}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="1"
-                                       VerticalOptions="Center" />
-                                <Label Grid.Column="1"
-                                       Text="private"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Gray500}"
-                                       IsVisible="{Binding Private}"
-                                       VerticalOptions="Center" />
-                            </Grid>
-                            <Label Text="{Binding Description}"
-                                   FontSize="13"
-                                   TextColor="{StaticResource Gray600}"
-                                   MaxLines="2"
+                    <VerticalStackLayout Spacing="0">
+                    <Grid ColumnDefinitions="Auto,*,Auto"
+                          ColumnSpacing="10"
+                          Padding="16,12"
+                          MinimumHeightRequest="{OnPlatform Android=56, Default=48}"
+                          AutomationId="ReposFirstItem">
+                        <Image Grid.Column="0"
+                               Source="repo_16.png"
+                               WidthRequest="16"
+                               HeightRequest="16"
+                               VerticalOptions="Center" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding Name}"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
                                    LineBreakMode="TailTruncation"
-                                   IsVisible="{Binding Description, Converter={StaticResource StringToBoolConverter}}" />
-                            <HorizontalStackLayout Spacing="16" Margin="0,4,0,0">
-                                <Label Text="★ {Binding StargazersCount}"
-                                       FontSize="12"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="⑂ {Binding ForksCount}"
-                                       FontSize="12"
-                                       TextColor="{StaticResource Gray500}" />
-                                <Label Text="⚠ {Binding OpenIssuesCount}"
-                                       FontSize="12"
-                                       TextColor="{StaticResource Gray500}" />
-                            </HorizontalStackLayout>
+                                   MaxLines="1" />
+                            <Label FontSize="12"
+                                   TextColor="{StaticResource Gray500}"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1">
+                                <Label.Text>
+                                    <MultiBinding StringFormat="{}{0} · {1} ★">
+                                        <Binding Path="Description" />
+                                        <Binding Path="StargazersCount" />
+                                    </MultiBinding>
+                                </Label.Text>
+                            </Label>
                         </VerticalStackLayout>
-                    </Border>
+                        <Label Grid.Column="2"
+                               Text="private"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               IsVisible="{Binding Private}"
+                               VerticalOptions="Center" />
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+        </RefreshView>
 
-        <!-- Loading indicator + refresh + load more -->
         <VerticalStackLayout Grid.Row="3" Padding="16" Spacing="8">
             <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
                                IsVisible="{Binding IsLoading.Value}" />
@@ -129,4 +144,3 @@
     </Grid>
 
 </ContentPage>
-

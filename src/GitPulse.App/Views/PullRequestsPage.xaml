@@ -12,21 +12,25 @@
 
         <!-- Back + repo name: Grid so long names truncate instead of clipping Back. -->
         <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*"
-              ColumnSpacing="12"
+              ColumnDefinitions="Auto,Auto,*"
+              ColumnSpacing="8"
               Padding="16,12,16,4">
-            <Button Grid.Column="0"
-                    Text="← Back"
+            <Button Text="Back"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4"
+                    Padding="8,10"
                     VerticalOptions="Center"
                     AutomationId="PullRequestsBackButton" />
             <Label Grid.Column="1"
+                   Text="Repos"
+                   FontSize="14"
+                   TextColor="{StaticResource Gray500}"
+                   VerticalOptions="Center" />
+            <Label Grid.Column="2"
                    Text="{Binding RepoFullName.Value}"
-                   FontSize="18"
-                   FontAttributes="Bold"
+                   FontSize="14"
+                   TextColor="{StaticResource Gray500}"
                    VerticalOptions="Center"
                    LineBreakMode="TailTruncation"
                    MaxLines="1" />
@@ -77,110 +81,107 @@
                 StrokeShape="RoundRectangle 8"
                 Padding="12"
                 Margin="16,4,16,0">
-            <Label Text="{Binding ErrorMessage.Value}"
-                   TextColor="{StaticResource Red900}"
-                   FontSize="13"
-                   LineBreakMode="WordWrap" />
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <Label Text="{Binding ErrorMessage.Value}"
+                       TextColor="{StaticResource Red900}"
+                       FontSize="13"
+                       LineBreakMode="WordWrap"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="1"
+                        Text="Retry"
+                        Command="{Binding LoadCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13" />
+                <Button Grid.Column="2"
+                        Text="Back"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13" />
+            </Grid>
         </Border>
 
-        <!-- Pull requests list -->
-        <CollectionView Grid.Row="4"
-                        ItemsSource="{Binding PullRequests}"
-                        Margin="16,8,16,0"
-                        SelectionMode="Single"
-                        SelectionChanged="OnPrSelected">
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="models:PullRequest">
-                    <!-- Minimum height keeps portrait tap targets usable. -->
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
-                        <VerticalStackLayout Spacing="4">
-                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
-                                <Label Grid.Column="0"
-                                       Text="#"
+        <RefreshView x:Name="ListRefresh"
+                     Grid.Row="4"
+                     Command="{Binding LoadCommand}"
+                     IsRefreshing="{Binding IsLoading.Value}">
+            <CollectionView x:Name="PullRequestsList"
+                            ItemsSource="{Binding PullRequests}"
+                            SelectionMode="Single"
+                            RemainingItemsThreshold="5"
+                            SelectionChanged="OnPrSelected">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:PullRequest">
+                        <VerticalStackLayout Spacing="0">
+                        <Grid ColumnDefinitions="Auto,*,Auto"
+                              Padding="16,12"
+                              MinimumHeightRequest="{OnPlatform Android=56, Default=48}"
+                              ColumnSpacing="10">
+                            <Image Source="{Binding ., Converter={StaticResource PullRequestIconConverter}}"
+                                   WidthRequest="16"
+                                   HeightRequest="16"
+                                   VerticalOptions="Start"
+                                   Margin="0,2,0,0" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="{Binding Title}"
                                        FontSize="14"
-                                       TextColor="{StaticResource Gray500}"
-                                       VerticalOptions="Center" />
-                                <Label Grid.Column="1"
-                                       Text="{Binding Number}"
-                                       FontSize="14"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource Primary}"
-                                       VerticalOptions="Center" />
-                                <Label Grid.Column="2"
-                                       Text="{Binding Title}"
-                                       FontSize="15"
                                        FontAttributes="Bold"
                                        LineBreakMode="TailTruncation"
-                                       MaxLines="2"
-                                       VerticalOptions="Center" />
-                            </Grid>
-                            <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="8" Margin="0,2,0,0">
-                                <Label Grid.Column="0"
-                                       Text="{Binding State}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Green700}"
-                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}"
-                                       VerticalOptions="Center" />
-                                <Label Grid.Column="0"
-                                       Text="{Binding State}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Purple700}"
-                                       IsVisible="{Binding State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}"
-                                       VerticalOptions="Center" />
-                                <Label Grid.Column="1"
-                                       Text="draft"
-                                       FontSize="11"
-                                       FontAttributes="Italic"
-                                       TextColor="{StaticResource Orange900}"
-                                       IsVisible="{Binding Draft}"
-                                       VerticalOptions="Center" />
-                                <Label Grid.Column="2"
-                                       Text="merged"
-                                       FontSize="11"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource Purple700}"
-                                       IsVisible="{Binding Merged}"
-                                       VerticalOptions="Center" />
-                                <Label Grid.Column="3"
-                                       Text="{Binding User.Login, StringFormat='by {0}'}"
-                                       FontSize="11"
+                                       MaxLines="1" />
+                                <Label FontSize="12"
                                        TextColor="{StaticResource Gray500}"
                                        LineBreakMode="TailTruncation"
-                                       MaxLines="1"
-                                       VerticalOptions="Center"
-                                       HorizontalOptions="End" />
-                            </Grid>
-                            <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8" Margin="0,2,0,0">
-                                <Label Grid.Column="0"
-                                       Text="{Binding HeadRef}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Gray600}"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="1"
-                                       VerticalOptions="Center" />
-                                <Label Grid.Column="1"
-                                       Text="→"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Gray500}"
-                                       VerticalOptions="Center" />
-                                <Label Grid.Column="2"
-                                       Text="{Binding BaseRef}"
-                                       FontSize="11"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource Gray600}"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="1"
-                                       VerticalOptions="Center" />
-                            </Grid>
+                                       MaxLines="1">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="{Binding ., Converter={StaticResource PullRequestStateTextConverter}}" />
+                                            <Span Text=" · " />
+                                            <Span Text="{Binding HeadRef}" />
+                                            <Span Text=" → " />
+                                            <Span Text="{Binding BaseRef}" />
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2"
+                                   Text="{Binding Number, StringFormat='#{0}'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}"
+                                   VerticalOptions="Start" />
+                        </Grid>
+                        <BoxView Style="{StaticResource Hairline}" />
                         </VerticalStackLayout>
-                    </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <VerticalStackLayout Grid.Row="4"
+                             IsVisible="{Binding IsLoading.Value, Converter={StaticResource InvertedBoolConverter}}"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center"
+                             Padding="16"
+                             Spacing="8">
+            <VerticalStackLayout IsVisible="{Binding PullRequests.Count, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
+                                 Spacing="8"
+                                 HorizontalOptions="Center">
+                <Label Text="No pull requests"
+                       FontSize="16"
+                       TextColor="{StaticResource Gray500}"
+                       HorizontalOptions="Center" />
+                <Label Text="Nothing matches this filter."
+                       FontSize="14"
+                       TextColor="{StaticResource Gray400}"
+                       HorizontalOptions="Center" />
+                <Button Text="+ New pull request"
+                        Clicked="OnNewPullRequestClicked"
+                        Padding="16,12"
+                        FontSize="13"
+                        HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </VerticalStackLayout>
 
         <!-- Loading + load more -->
         <VerticalStackLayout Grid.Row="5" Padding="16" Spacing="8">

@@ -43,6 +43,7 @@ public partial class CreatePullRequestPage : ContentPage
             _initialized = true;
             var owner = Uri.UnescapeDataString(OwnerQuery);
             var repo = Uri.UnescapeDataString(RepoQuery);
+            IdentityLabel.Text = $"{owner}/{repo}";
             if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
             {
                 _viewModel.Initialize(owner, repo);
@@ -86,6 +87,15 @@ public partial class CreatePullRequestPage : ContentPage
     private void OnBackClicked(object? sender, EventArgs e)
     {
         _ = AppNavigation.GoToAsync("..");
+    }
+
+    private async void OnCreateClicked(object? sender, EventArgs e)
+    {
+        var empty = string.IsNullOrWhiteSpace(_viewModel.TitleInput.Value);
+        TitleFieldError.IsVisible = empty;
+        if (empty)
+            return;
+        await _viewModel.CreateCommand.ExecuteAsync(null);
     }
 
     protected override void OnDisappearing()
