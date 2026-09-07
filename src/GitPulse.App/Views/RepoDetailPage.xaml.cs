@@ -129,21 +129,13 @@ public partial class RepoDetailPage : ContentPage
 
     private void ShowTab(string tab)
     {
-        var primary = Application.Current?.Resources["Primary"] as Color;
-        var gray = Application.Current?.Resources["Gray200"] as Color;
-
         OverviewSection.IsVisible = tab == "overview";
         BranchesSection.IsVisible = tab == "branches";
         ReleasesSection.IsVisible = tab == "releases";
 
-        OverviewTab.BackgroundColor = tab == "overview" ? primary : gray;
-        OverviewTab.TextColor = tab == "overview" ? Colors.White : Colors.Black;
-
-        BranchesTab.BackgroundColor = tab == "branches" ? primary : gray;
-        BranchesTab.TextColor = tab == "branches" ? Colors.White : Colors.Black;
-
-        ReleasesTab.BackgroundColor = tab == "releases" ? primary : gray;
-        ReleasesTab.TextColor = tab == "releases" ? Colors.White : Colors.Black;
+        ChromeTabs.Style(OverviewTab, tab == "overview");
+        ChromeTabs.Style(BranchesTab, tab == "branches");
+        ChromeTabs.Style(ReleasesTab, tab == "releases");
     }
 
     protected override void OnDisappearing()

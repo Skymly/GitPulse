@@ -28,9 +28,18 @@ public sealed class UiTestHostPage : TabbedPage
     static NavigationPage Wrap(string title, Page page)
     {
         page.Title = title;
+        string icon = title switch
+        {
+            "Repos" => "tab_repos.png",
+            "Notifications" => "tab_notifications.png",
+            "Search" => "tab_search.png",
+            "Settings" => "tab_settings.png",
+            _ => "tab_repos.png",
+        };
         return new NavigationPage(page)
         {
             Title = title,
+            IconImageSource = icon,
         };
     }
 }

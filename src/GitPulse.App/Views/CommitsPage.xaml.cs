@@ -1,5 +1,7 @@
+using GitPulse.App.Events;
 using GitPulse.Core.Models;
 using GitPulse.ViewModels;
+using R3;
 
 namespace GitPulse.App.Views;
 
@@ -11,6 +13,7 @@ namespace GitPulse.App.Views;
 public partial class CommitsPage : ContentPage
 {
     private readonly CommitsViewModel _viewModel;
+    private readonly CompositeDisposable _events = [];
     private bool _loaded;
 
     public CommitsPage(CommitsViewModel viewModel)
@@ -18,6 +21,11 @@ public partial class CommitsPage : ContentPage
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
+
+        _events.Add(UiEventPipelines.BindLoadMore(
+            CommitsList,
+            _viewModel.CanLoadMore,
+            () => _viewModel.LoadMoreCommand.ExecuteAsync(null)));
     }
 
     public string OwnerQuery { get; set; } = string.Empty;

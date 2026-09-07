@@ -11,45 +11,83 @@
     <Grid RowDefinitions="Auto,*">
 
         <!-- Back + title: Grid so long titles truncate instead of clipping Back. -->
-        <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*"
-              ColumnSpacing="12"
-              Padding="16,12,16,4">
-            <Button Grid.Column="0"
-                    Text="Back"
-                    Clicked="OnBackClicked"
-                    BackgroundColor="Transparent"
-                    TextColor="{StaticResource Primary}"
-                    Padding="8,4"
-                    VerticalOptions="Center" />
-            <Label Grid.Column="1"
-                   Text="{Binding Title.Value}"
-                   FontSize="18"
+        <VerticalStackLayout Grid.Row="0" Spacing="4" Padding="16,8,16,4">
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                <Button Text="Back"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="8,10"
+                        VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="Issues"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center" />
+                <Label Grid.Column="2"
+                       Text="{Binding Issue.Value.Number, StringFormat='#{0}'}"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1"
+                       VerticalOptions="Center" />
+            </Grid>
+            <Label Text="{Binding Title.Value}"
+                   FontSize="20"
                    FontAttributes="Bold"
-                   VerticalOptions="Center"
-                   LineBreakMode="TailTruncation"
-                   MaxLines="1" />
-        </Grid>
+                   LineBreakMode="WordWrap" />
+            <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                    BackgroundColor="{StaticResource Red100}"
+                    Stroke="Transparent"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12"
+                    Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                    <Label Text="{Binding ErrorMessage.Value}"
+                           TextColor="{StaticResource Red900}"
+                           FontSize="13"
+                           LineBreakMode="WordWrap"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="Retry"
+                            Command="{Binding LoadCommand}"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13" />
+                    <Button Grid.Column="2"
+                            Text="Back"
+                            Clicked="OnBackClicked"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13" />
+                </Grid>
+            </Border>
+        </VerticalStackLayout>
 
         <ScrollView Grid.Row="1">
-            <VerticalStackLayout Padding="16" Spacing="12">
+            <Grid x:Name="IssueBody"
+                  ColumnDefinitions="*"
+                  RowDefinitions="Auto,Auto"
+                  ColumnSpacing="24"
+                  Padding="16">
+                <VerticalStackLayout x:Name="IssueMain" Spacing="12">
 
                 <!-- Issue header -->
-                <Border StrokeShape="RoundRectangle 8"
-                         Stroke="{StaticResource Gray200}"
-                         Padding="16">
-                    <VerticalStackLayout Spacing="8">
+                <VerticalStackLayout Spacing="8">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="{Binding Issue.Value.State}"
-                                   FontSize="12"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource Green700}"
-                                   IsVisible="{Binding Issue.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=open}" />
-                            <Label Text="{Binding Issue.Value.State}"
-                                   FontSize="12"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource Purple700}"
-                                   IsVisible="{Binding Issue.Value.State, Converter={StaticResource StringEqualsConverter}, ConverterParameter=closed}" />
+                            <HorizontalStackLayout Spacing="6">
+                                <Image Source="{Binding Issue.Value, Converter={StaticResource IssueIconConverter}}"
+                                       WidthRequest="16"
+                                       HeightRequest="16"
+                                       VerticalOptions="Center" />
+                                <Label Text="{Binding Issue.Value, Converter={StaticResource IssueStateTextConverter}}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="{Binding Issue.Value, Converter={StaticResource IssueStateColorConverter}}"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
                             <Label Text="{Binding Issue.Value.User.Login, StringFormat='by {0}'}"
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}"
@@ -92,6 +130,91 @@
                                     HorizontalOptions="Fill" />
                         </VerticalStackLayout>
 
+                </VerticalStackLayout>
+                <!-- Comments section header -->
+                <Label Text="Comments"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       Margin="0,8,0,4" />
+
+                <!-- Comments list via BindableLayout -->
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Comments}"
+                                     Spacing="8">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:Comment">
+                            <VerticalStackLayout Spacing="0">
+                                <VerticalStackLayout Spacing="6" Padding="0,12">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding User.Login}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Gray500}"
+                                               VerticalOptions="Center" />
+                                    </Grid>
+                                    <idk:MarkdownView MarkdownText="{Binding Body}"
+                                                      UseAppTheme="True"
+                                                      H1FontSize="16"
+                                                      H2FontSize="15"
+                                                      H3FontSize="14"
+                                                      TextFontSize="13" />
+                                </VerticalStackLayout>
+                                <BoxView Style="{StaticResource Hairline}" Margin="0" />
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout
+                        IsVisible="{Binding Comments.Count, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
+                        Spacing="4"
+                        Padding="0,8">
+                    <Label Text="No comments"
+                           FontSize="16"
+                           TextColor="{StaticResource Gray500}"
+                           HorizontalOptions="Center" />
+                    <Label Text="Start the conversation below."
+                           FontSize="14"
+                           TextColor="{StaticResource Gray400}"
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+
+                <!-- Comment input: full-width Comment stays reachable after AdjustResize + scroll. -->
+                <VerticalStackLayout Spacing="8" Margin="0,8,0,0">
+                    <Label Text="Add a comment"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                    <Editor Text="{Binding CommentInput.Value}"
+                            Placeholder="Write a comment... (Markdown supported)"
+                            AutoSize="TextChanges"
+                            FontSize="14"
+                            MinimumHeightRequest="80"
+                            HorizontalOptions="Fill" />
+                    <Button Text="Comment"
+                            Command="{Binding AddCommentCommand}"
+                            IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
+                            HorizontalOptions="Fill"
+                            Padding="24,12"
+                            FontSize="14" />
+                    <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
+                                       IsVisible="{Binding IsSaving.Value}" />
+                </VerticalStackLayout>
+
+                <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
+                                   IsVisible="{Binding IsLoading.Value}" />
+
+
+                </VerticalStackLayout>
+                <VerticalStackLayout x:Name="IssueRail"
+                                     Grid.Row="1"
+                                     Spacing="12"
+                                     VerticalOptions="Start">
                         <!-- Labels editor: stack so Entry and Save remain usable with IME. -->
                         <VerticalStackLayout Spacing="4" Margin="0,4,0,0">
                             <Label Text="Labels"
@@ -148,87 +271,8 @@
                                         FontSize="13" />
                             </Grid>
                         </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- Comments section header -->
-                <Label Text="Comments"
-                       FontSize="16"
-                       FontAttributes="Bold"
-                       Margin="0,8,0,4" />
-
-                <!-- Comments list via BindableLayout -->
-                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Comments}"
-                                     Spacing="8">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="models:Comment">
-                            <Border Padding="14"
-                                    StrokeShape="RoundRectangle 8"
-                                    Stroke="{StaticResource Gray200}">
-                                <VerticalStackLayout Spacing="6">
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                        <Label Grid.Column="0"
-                                               Text="{Binding User.Login}"
-                                               FontSize="13"
-                                               FontAttributes="Bold"
-                                               TextColor="{StaticResource Primary}"
-                                               LineBreakMode="TailTruncation"
-                                               MaxLines="1"
-                                               VerticalOptions="Center" />
-                                        <Label Grid.Column="1"
-                                               Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource Gray500}"
-                                               VerticalOptions="Center" />
-                                    </Grid>
-                                    <idk:MarkdownView MarkdownText="{Binding Body}"
-                                                      UseAppTheme="True"
-                                                      H1FontSize="16"
-                                                      H2FontSize="15"
-                                                      H3FontSize="14"
-                                                      TextFontSize="13" />
-                                </VerticalStackLayout>
-                            </Border>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>
-
-                <!-- Comment input: full-width Comment stays reachable after AdjustResize + scroll. -->
-                <VerticalStackLayout Spacing="8" Margin="0,8,0,0">
-                    <Label Text="Add a comment"
-                           FontSize="14"
-                           FontAttributes="Bold" />
-                    <Editor Text="{Binding CommentInput.Value}"
-                            Placeholder="Write a comment... (Markdown supported)"
-                            AutoSize="TextChanges"
-                            FontSize="14"
-                            MinimumHeightRequest="80"
-                            HorizontalOptions="Fill" />
-                    <Button Text="Comment"
-                            Command="{Binding AddCommentCommand}"
-                            IsEnabled="{Binding IsSaving.Value, Converter={StaticResource InvertedBoolConverter}}"
-                            HorizontalOptions="Fill"
-                            Padding="24,12"
-                            FontSize="14" />
-                    <ActivityIndicator IsRunning="{Binding IsSaving.Value}"
-                                       IsVisible="{Binding IsSaving.Value}" />
-                </VerticalStackLayout>
-
-                <!-- Error banner -->
-                <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
-                        BackgroundColor="{StaticResource Red100}"
-                        StrokeShape="RoundRectangle 8"
-                        Padding="12">
-                    <Label Text="{Binding ErrorMessage.Value}"
-                           TextColor="{StaticResource Red900}"
-                           FontSize="13"
-                           LineBreakMode="WordWrap" />
-                </Border>
-
-                <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
-                                   IsVisible="{Binding IsLoading.Value}" />
-
-            </VerticalStackLayout>
+            </Grid>
         </ScrollView>
 
     </Grid>

@@ -8,16 +8,15 @@
              Title="Notifications"
              AutomationId="NotificationsPageRoot">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,*">
 
-        <!-- Stack header so narrow phones keep unread count and full-width actions. -->
         <VerticalStackLayout Grid.Row="0" Spacing="8" Padding="16,12,16,8">
             <Label Text="{Binding UnreadCount.Value, StringFormat='{0} unread'}"
                    FontSize="16"
                    FontAttributes="Bold"
                    LineBreakMode="TailTruncation"
                    MaxLines="1" />
-            <VerticalStackLayout Spacing="8">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                 <Button Text="Refresh"
                         Command="{Binding RefreshCommand}"
                         BackgroundColor="Transparent"
@@ -26,7 +25,8 @@
                         FontSize="13"
                         HorizontalOptions="Fill"
                         AutomationId="NotificationsRefreshButton" />
-                <Button Text="Mark all read"
+                <Button Grid.Column="1"
+                        Text="Mark all read"
                         Command="{Binding MarkAllAsReadCommand}"
                         BackgroundColor="Transparent"
                         TextColor="{StaticResource Primary}"
@@ -34,93 +34,106 @@
                         FontSize="13"
                         HorizontalOptions="Fill"
                         IsVisible="{Binding UnreadCount.Value, Converter={StaticResource IntGreaterThanZeroConverter}}" />
-            </VerticalStackLayout>
+            </Grid>
         </VerticalStackLayout>
 
-        <!-- Error banner -->
         <Border Grid.Row="1"
                 IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
                 BackgroundColor="{StaticResource Red100}"
+                Stroke="Transparent"
                 StrokeShape="RoundRectangle 8"
                 Padding="12"
-                Margin="16,0">
-            <Label Text="{Binding ErrorMessage.Value}"
-                   TextColor="{StaticResource Red900}"
-                   FontSize="13"
-                   LineBreakMode="WordWrap" />
+                Margin="16,0,16,8">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <Label Text="{Binding ErrorMessage.Value}"
+                       TextColor="{StaticResource Red900}"
+                       FontSize="13"
+                       LineBreakMode="WordWrap"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="1"
+                        Text="Retry"
+                        Command="{Binding RefreshCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13" />
+                <Button Grid.Column="2"
+                        Text="Settings"
+                        Clicked="OnOpenSettingsClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13" />
+            </Grid>
         </Border>
 
-        <!-- Notifications list -->
-        <CollectionView Grid.Row="2"
-                        ItemsSource="{Binding Notifications}"
-                        Margin="16,8,16,0"
+        <RefreshView x:Name="ListRefresh"
+                     Grid.Row="2"
+                     Command="{Binding RefreshCommand}"
+                     IsRefreshing="{Binding IsBusy.Value}">
+        <CollectionView ItemsSource="{Binding Notifications}"
                         SelectionMode="Single"
                         SelectionChanged="OnNotificationSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Notification">
-                    <!-- Minimum height keeps portrait tap targets usable. -->
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
-                        <VerticalStackLayout Spacing="4">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                                <!-- Unread indicator dot -->
-                                <Ellipse Grid.Column="0"
-                                         WidthRequest="8"
-                                         HeightRequest="8"
-                                         Fill="{StaticResource Primary}"
-                                         IsVisible="{Binding Unread}"
-                                         VerticalOptions="Center" />
-                                <Label Grid.Column="1"
-                                       Text="{Binding Subject.Title}"
-                                       FontSize="15"
-                                       FontAttributes="Bold"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="2"
-                                       VerticalOptions="Center" />
-                            </Grid>
-                            <VerticalStackLayout Spacing="2" Margin="0,2,0,0">
-                                <Label Text="{Binding Subject.Type}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Primary}" />
-                                <Label Text="{Binding Repository.FullName}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Gray500}"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="1" />
-                                <Label Text="{Binding Reason}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Gray500}"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="1" />
-                            </VerticalStackLayout>
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,4,0,0">
-                                <Button Grid.Column="0"
-                                        Text="Mark read"
-                                        Command="{Binding BindingContext.MarkAsReadCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                                        CommandParameter="{Binding .}"
-                                        BackgroundColor="Transparent"
-                                        TextColor="{StaticResource Primary}"
-                                        Padding="8,10"
-                                        FontSize="12"
-                                        HorizontalOptions="Fill" />
-                                <Button Grid.Column="1"
-                                        Text="Open →"
-                                        Command="{Binding BindingContext.OpenInBrowserCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                                        CommandParameter="{Binding Subject.LatestCommentUrl}"
-                                        BackgroundColor="Transparent"
-                                        TextColor="{StaticResource Primary}"
-                                        Padding="8,10"
-                                        FontSize="12"
-                                        HorizontalOptions="Fill" />
-                            </Grid>
+                    <VerticalStackLayout Spacing="0">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto"
+                          ColumnSpacing="8"
+                          Padding="12,10"
+                          MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
+                        <BoxView Grid.Column="0"
+                                 WidthRequest="{Binding Unread, Converter={StaticResource UnreadEdgeConverter}}"
+                                 Color="{StaticResource Primary}"
+                                 VerticalOptions="Fill" />
+                        <Image Grid.Column="1"
+                               Source="{Binding Subject.Type, Converter={StaticResource NotificationIconConverter}}"
+                               WidthRequest="16"
+                               HeightRequest="16"
+                               VerticalOptions="Start"
+                               Margin="0,4,0,0" />
+                        <VerticalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding Subject.Title}"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
+                            <Label Text="{Binding Subject.Type}"
+                                   FontSize="12"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
+                            <Label FontSize="12"
+                                   TextColor="{StaticResource Gray500}"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1">
+                                <Label.Text>
+                                    <MultiBinding StringFormat="{}{0} · {1}">
+                                        <Binding Path="Repository.FullName" />
+                                        <Binding Path="Reason" Converter="{StaticResource NotificationReasonConverter}" />
+                                    </MultiBinding>
+                                </Label.Text>
+                            </Label>
                         </VerticalStackLayout>
-                    </Border>
+                        <VerticalStackLayout Grid.Column="3" Spacing="4" VerticalOptions="Center">
+                            <Label Text="{Binding Subject.Url, Converter={StaticResource NotificationNumberConverter}}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}"
+                                   HorizontalOptions="End" />
+                            <Button Text="Mark read"
+                                    Command="{Binding BindingContext.MarkAsReadCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                    CommandParameter="{Binding .}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource Primary}"
+                                    Padding="4,8"
+                                    FontSize="12"
+                                    IsVisible="{Binding Unread}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+        </RefreshView>
 
         <ActivityIndicator Grid.Row="2"
                            IsRunning="{Binding IsBusy.Value}"
@@ -128,36 +141,37 @@
                            VerticalOptions="Start"
                            Margin="0,16,0,0" />
 
-        <!-- Empty state -->
         <VerticalStackLayout Grid.Row="2"
                              IsVisible="{Binding Notifications.Count, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
                              HorizontalOptions="Center"
                              VerticalOptions="Center"
                              Spacing="8"
                              Padding="16">
+            <VerticalStackLayout.Triggers>
+                <DataTrigger TargetType="VerticalStackLayout"
+                             Binding="{Binding IsBusy.Value}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+                <DataTrigger TargetType="VerticalStackLayout"
+                             Binding="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </VerticalStackLayout.Triggers>
             <Label Text="No notifications"
-                   FontSize="18"
+                   FontSize="16"
                    TextColor="{StaticResource Gray500}"
                    HorizontalOptions="Center"
                    LineBreakMode="WordWrap" />
-            <Label Text="Pull to refresh or wait for the next poll."
-                   FontSize="13"
+            <Label Text="Nothing waiting. Refresh or wait for the next poll."
+                   FontSize="14"
                    TextColor="{StaticResource Gray400}"
                    HorizontalOptions="Center"
                    HorizontalTextAlignment="Center"
                    LineBreakMode="WordWrap" />
         </VerticalStackLayout>
 
-        <!-- Polling status indicator -->
-        <HorizontalStackLayout Grid.Row="3" Spacing="8" Padding="16,8" HorizontalOptions="Center">
-            <Ellipse WidthRequest="6" HeightRequest="6"
-                     Fill="{StaticResource Green700}"
-                     IsVisible="{Binding IsPolling.Value}" />
-            <Label Text="Polling"
-                   FontSize="11"
-                   TextColor="{StaticResource Gray500}"
-                   IsVisible="{Binding IsPolling.Value}" />
-        </HorizontalStackLayout>
 
     </Grid>
 

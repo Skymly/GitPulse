@@ -12,30 +12,27 @@
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*"
-              ColumnSpacing="12"
+              ColumnDefinitions="Auto,Auto,*"
+              ColumnSpacing="8"
               Padding="16,12,16,4">
-            <Button Grid.Column="0"
-                    Text="← Repo"
+            <Button Text="Back"
                     Clicked="OnBackClicked"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource Primary}"
-                    Padding="8,4"
+                    Padding="8,10"
                     VerticalOptions="Center" />
-            <VerticalStackLayout Grid.Column="1"
-                                 Spacing="0"
-                                 VerticalOptions="Center">
-                <Label Text="{Binding RepoFullName.Value}"
-                       FontSize="18"
-                       FontAttributes="Bold"
-                       LineBreakMode="TailTruncation"
-                       MaxLines="1" />
-                <Label Text="Commits"
-                       FontSize="14"
-                       TextColor="{StaticResource Gray500}"
-                       LineBreakMode="TailTruncation"
-                       MaxLines="1" />
-            </VerticalStackLayout>
+            <Label Grid.Column="1"
+                   Text="Repos"
+                   FontSize="14"
+                   TextColor="{StaticResource Gray500}"
+                   VerticalOptions="Center" />
+            <Label Grid.Column="2"
+                   Text="{Binding RepoFullName.Value}"
+                   FontSize="14"
+                   TextColor="{StaticResource Gray500}"
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1" />
         </Grid>
 
         <Border Grid.Row="1"
@@ -44,65 +41,104 @@
                 StrokeShape="RoundRectangle 8"
                 Padding="12"
                 Margin="16,4,16,0">
-            <Label Text="{Binding ErrorMessage.Value}"
-                   TextColor="{StaticResource Red900}"
-                   FontSize="13"
-                   LineBreakMode="WordWrap" />
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <Label Text="{Binding ErrorMessage.Value}"
+                       TextColor="{StaticResource Red900}"
+                       FontSize="13"
+                       LineBreakMode="WordWrap"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="1"
+                        Text="Retry"
+                        Command="{Binding LoadCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13" />
+                <Button Grid.Column="2"
+                        Text="Back"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13" />
+            </Grid>
         </Border>
 
-        <CollectionView Grid.Row="2"
+        <CollectionView x:Name="CommitsList"
+                        Grid.Row="2"
                         ItemsSource="{Binding Commits}"
+                        RemainingItemsThreshold="5"
                         Margin="16,8,16,0">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:GitCommit">
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
-                        <VerticalStackLayout Spacing="4">
-                            <VerticalStackLayout.GestureRecognizers>
-                                <TapGestureRecognizer Tapped="OnCommitTapped"
-                                                      CommandParameter="{Binding .}" />
-                            </VerticalStackLayout.GestureRecognizers>
+                    <VerticalStackLayout Spacing="0">
+                    <Grid ColumnDefinitions="Auto,*,Auto"
+                          Padding="16,12"
+                          MinimumHeightRequest="{OnPlatform Android=56, Default=48}"
+                          ColumnSpacing="10">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnCommitTapped"
+                                                  CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+                        <Image Source="git_commit_16.png"
+                               WidthRequest="16"
+                               HeightRequest="16"
+                               VerticalOptions="Start"
+                               Margin="0,2,0,0" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
                             <Label Text="{Binding Commit.Message}"
-                                   FontSize="15"
+                                   FontSize="14"
                                    FontAttributes="Bold"
                                    LineBreakMode="TailTruncation"
                                    MaxLines="1" />
-                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                                <Label Grid.Column="0"
-                                       Text="{Binding Sha}"
-                                       FontSize="11"
-                                       FontFamily="Consolas"
-                                       TextColor="{StaticResource Primary}"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="1"
-                                       WidthRequest="72" />
-                                <Label Grid.Column="1"
-                                       Text="{Binding Commit.Author.Name}"
-                                       FontSize="12"
-                                       TextColor="{StaticResource Gray500}"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="1" />
-                                <Button Grid.Column="2"
-                                        Text="Open"
-                                        FontSize="12"
-                                        Padding="10,6"
-                                        BackgroundColor="Transparent"
-                                        TextColor="{StaticResource Primary}"
-                                        Command="{Binding Source={x:Reference _pageRoot}, Path=BindingContext.OpenInBrowserCommand}"
-                                        CommandParameter="{Binding HtmlUrl}"
-                                        IsVisible="{Binding HtmlUrl, Converter={StaticResource StringToBoolConverter}}" />
-                            </Grid>
-                            <Label Text="{Binding Commit.Author.Date, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
-                                   FontSize="11"
-                                   TextColor="{StaticResource Gray500}" />
+                            <Label FontSize="12"
+                                   TextColor="{StaticResource Gray500}"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding Commit.Author.Name}" />
+                                        <Span Text=" · " />
+                                        <Span Text="{Binding Commit.Author.Date, StringFormat='{0:yyyy-MM-dd}'}" />
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
                         </VerticalStackLayout>
-                    </Border>
+                        <Label Grid.Column="2"
+                               Text="{Binding Sha, Converter={StaticResource StringTruncateConverter}, ConverterParameter=7}"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               VerticalOptions="Start" />
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+
+        <VerticalStackLayout Grid.Row="2"
+                             IsVisible="{Binding Commits.Count, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center"
+                             Spacing="8"
+                             Padding="16">
+
+            <VerticalStackLayout.Triggers>
+                <DataTrigger TargetType="VerticalStackLayout"
+                             Binding="{Binding IsLoading.Value}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </VerticalStackLayout.Triggers>
+            <Label Text="No commits"
+                   FontSize="16"
+                   TextColor="{StaticResource Gray500}"
+                   HorizontalOptions="Center" />
+            <Label Text="This branch has no commits to show."
+                   FontSize="14"
+                   TextColor="{StaticResource Gray400}"
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
 
         <ActivityIndicator Grid.Row="2"
                            IsRunning="{Binding IsLoading.Value}"

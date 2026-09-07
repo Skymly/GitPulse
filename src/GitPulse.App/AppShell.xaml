@@ -8,28 +8,33 @@
 
     <TabBar Route="MainTabBar">
         <ShellContent
+            x:Name="TabRepos"
             Title="Repos"
-            Icon="dotnet_bot.png"
+            Icon="tab_repos.png"
             ContentTemplate="{DataTemplate views:ReposPage}"
             Route="ReposPage"
             AutomationId="TabRepos" />
 
         <ShellContent
+            x:Name="TabNotifications"
             Title="Notifications"
-            Icon="dotnet_bot.png"
+            Icon="tab_notifications.png"
             ContentTemplate="{DataTemplate views:NotificationsPage}"
             Route="NotificationsPage"
             AutomationId="TabNotifications" />
 
         <ShellContent
+            x:Name="TabSearch"
             Title="Search"
-            Icon="dotnet_bot.png"
+            Icon="tab_search.png"
             ContentTemplate="{DataTemplate views:SearchPage}"
             Route="SearchPage"
             AutomationId="TabSearch" />
 
         <ShellContent
+            x:Name="TabSettings"
             Title="Settings"
+            Icon="tab_settings.png"
             ContentTemplate="{DataTemplate views:SettingsPage}"
             Route="SettingsPage"
             AutomationId="TabSettings" />

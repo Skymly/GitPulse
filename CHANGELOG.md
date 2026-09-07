@@ -9,9 +9,92 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Changed
 
+- Replace the MAUI template look with GitPulse visual language: Fluent-blue
+  Accent, GitHub Domain Color on issue/PR state, Chrome Neutral surfaces,
+  GitPulse Mark, and Fluent tab icons (Repos / Notifications / Search / Settings).
+- Notifications, Repos, and Search use flush two-line rows; Search hubs are one
+  row (Search / Review / Assigned / Mentions). Closed unmerged PRs read as
+  danger; drafts are muted gray; Merge uses danger.
+- Pull request Conversation uses a detail header (Back · Pull requests ·
+  owner/repo #n), a lifecycle strip (head→base, mergeable, Merge/Close/draft),
+  Destructive Confirm on Merge, label hex swatches, and Domain Color on checks.
+  Notifications tab title shows the unread count; Shell TabBar hides on stacked
+  pages.
+- Pull request Files is a list|diff split (not accordion). Issues and pull
+  request lists use flush two-line rows with Empty State + Create. Android
+  pull-to-refresh on Repos, Notifications, Issues, and pull request lists
+  (Windows never).
+- Search Inboxes support Android pull-to-refresh; typed Search does not.
+  Search result rows are flush. Repo detail uses the Back · Repos · identity
+  header and drops the Overview metadata card chrome.
+- Commits, Actions, and Files lists use flush rows, Domain Icons, and the
+  Back · parent · identity header. Actions conclusions use Domain Color.
+- Commit, Check Run, and Workflow Run details plus Create Issue/PR use the
+  same header language; Check/Actions conclusions use Domain Color.
+- File editor uses Back · Files · name, system type, a always-on commit
+  message, and Destructive Confirm on Delete.
+- Repo Branches and Releases are flush two-line rows (no in-list README
+  markdown on Releases).
+- Commit file rows, Check Run annotations, and Workflow jobs use the same
+  flush list language; job/check conclusions keep Domain Color.
+- Page Error banners on list and detail surfaces include Retry. Unused
+  OpenSans registration is removed.
+- Repos and Notifications Page Errors offer Settings (401 / missing PAT)
+  as well as Retry.
+- Search errors offer Settings; empty Search has title + next-step copy.
+  Unused OpenSans fonts, template bot image, and duplicate icon folders
+  are removed.
+- List rows across first-class lists, nested Check/Job/Commit-file rows, and Issue/PR conversation comments use a hairline separator.
+- Issue and PR Conversation bodies, metadata, reviews, and checks sit in the same flow as GitHub Mobile rather than stacked cards.
+- Commit checks and empty Repo README use the same uncarded Empty State language.
+- Settings uses Chrome Neutral for stored-token state (no Domain green banner).
+- UI test host tabs use the same Fluent chrome icons as production Shell.
+- Create Issue and Create PR show a Field Error next to an empty title and do not send the request.
+- Typed Search shows a Field Error for queries shorter than 3 characters and does not send.
+- File save/delete show a Field Error for an empty commit message before Destructive Confirm.
+- Stacked detail Page Errors (including Files, Commits, Actions, Issues, and PRs lists) include Back as well as Retry.
+- Repos My repos / Starred hub uses the same selected chrome as Search hubs.
+- Empty Files folders and empty Actions lists use title + reason Empty States.
+- Empty Branches and Releases tabs use title + reason Empty States.
+- Check Run pages with zero annotations use title + reason Empty State.
+- Empty Workflow jobs and Commit file lists use title + reason Empty States.
+- Empty Issue/PR comments and PR reviews use title + reason Empty States.
+- Empty PR Files tab uses title + reason Empty State.
+- PR Files list rows use a hairline separator.
 - Group pull request Conversation into lifecycle, metadata, and review sections.
-- Route SearchBar filter/query and Repos remaining-items load more through
-  Observables.Events.R3 pipelines (SearchBar still uses the ADR-007 adapter).
+- Route SearchBar filter/query and remaining-items load more through
+  Observables.Events.R3 pipelines on Repos, Search, Issues, pull requests,
+  Commits, and Actions (SearchBar still uses the ADR-007 adapter).
+- Search Review / Assigned / Mentions empty states use title + reason copy
+  instead of typed-search "No results".
+- Tapping a notification opens the matching Issue, pull request, or Commit
+  in-app; other subject types still open in the browser.
+- Pull request Conversation uses a metadata/checks rail at or above 840px and
+  stacks the rail under the main column below 840px. Issue detail does the
+  same for labels/assignees, with Page Error under the header.
+- Windows Shell destinations use a top NavigationView with Accent underline
+  and an unread InfoBadge on Notifications. Android uses a Material badge on
+  the Notifications tab icon (99+).
+- Commit detail Files inherit list-then-diff: stacked below 840px (Back returns
+  to the file list) and a list|diff split at or above 840px.
+- Repo detail uses a GitHub-style Star/Watch/Fork row and a compact Issues/PRs/
+  Commits/Files/Actions grid instead of a stacked button list.
+- In-page hubs and filter tabs use transparent chrome with Accent selected text
+  instead of filled Primary pills.
+- Notifications no longer show a Domain-green Polling footer; unread chrome is
+  the tab badge plus the in-page unread count.
+- Create Issue and Create PR use the B detail header (Back · parent · owner/repo)
+  above the page title.
+- Stacked list headers use Repos as the parent Surface (Issues/PRs/Commits/Actions/
+  Files). Check Run parent is Checks; Workflow Run identity is the run number.
+- Check Run and Workflow Run Page Errors sit under the detail header.
+- Repo detail Page Error sits under the header on Overview, Branches, and Releases.
+- Pull request Files uses a stacked file-diff page below 840px (Back returns
+  to the file list) and a list|diff split at or above 840px.
+- List rows are 48px on Windows and 56px on Android.
+- Pull request Page Error sits under the detail header on Conversation and
+  Files. Empty States on Notifications, pull requests, Commits, and Actions
+  stay hidden while loading (and Notifications also after a failure).
 
 ### Notes
 

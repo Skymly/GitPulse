@@ -66,6 +66,34 @@ public partial class FileEditorPage : ContentPage
         _ = AppNavigation.GoToAsync("..");
     }
 
+    private bool ShowCommitFieldErrorIfEmpty()
+    {
+        var empty = string.IsNullOrWhiteSpace(_viewModel.CommitMessage.Value);
+        CommitFieldError.IsVisible = empty;
+        return empty;
+    }
+
+    private async void OnSaveClicked(object? sender, EventArgs e)
+    {
+        if (ShowCommitFieldErrorIfEmpty())
+            return;
+        await _viewModel.SaveCommand.ExecuteAsync(null);
+    }
+
+    private async void OnDeleteClicked(object? sender, EventArgs e)
+    {
+        if (ShowCommitFieldErrorIfEmpty())
+            return;
+
+        var cancelled = await DisplayAlertAsync(
+            "Delete file?",
+            _viewModel.FilePath.Value,
+            "Cancel",
+            "Delete");
+        if (!cancelled)
+            await _viewModel.DeleteCommand.ExecuteAsync(null);
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();

@@ -11,16 +11,37 @@ namespace GitPulse.App.Views;
 /// <item><b>Files</b>: Changed files with diff rendering (WebView) and inline
 /// review comments. Supports posting new comments and replies.</item>
 /// </list>
+/// Below 840px, Files is a list that pushes a stacked diff (GitHub Mobile);
+/// at or above 840px it is a list|diff split.
 /// </summary>
 [QueryProperty("OwnerQuery", "owner")]
 [QueryProperty("RepoQuery", "repo")]
 [QueryProperty("NumberQuery", "number")]
 public partial class PullRequestDetailPage : ContentPage
 {
+    private const double WideBreakpoint = 840;
     private readonly PullRequestDetailViewModel _viewModel;
     private readonly PrDiffViewModel _diffViewModel;
     private bool _loaded;
     private bool _diffLoaded;
+    private bool _filesStacked;
+    private bool _showingStackedDiff;
+    private bool _filesLayoutReady;
+    private bool _conversationWide;
+    private bool _conversationLayoutReady;
+    private double _lastWidth;
+
+    public static readonly BindableProperty SelectedDiffFileProperty =
+        BindableProperty.Create(
+            nameof(SelectedDiffFile),
+            typeof(DiffEntry),
+            typeof(PullRequestDetailPage));
+
+    public DiffEntry? SelectedDiffFile
+    {
+        get => (DiffEntry?)GetValue(SelectedDiffFileProperty);
+        set => SetValue(SelectedDiffFileProperty, value);
+    }
 
     public PrDiffViewModel DiffViewModel => _diffViewModel;
 
@@ -35,6 +56,17 @@ public partial class PullRequestDetailPage : ContentPage
     public string OwnerQuery { get; set; } = string.Empty;
     public string RepoQuery { get; set; } = string.Empty;
     public string NumberQuery { get; set; } = string.Empty;
+
+    protected override void OnSizeAllocated(double width, double height)
+    {
+        base.OnSizeAllocated(width, height);
+        if (width <= 0 || Math.Abs(width - _lastWidth) < 0.5)
+            return;
+        _lastWidth = width;
+        var wide = width >= WideBreakpoint;
+        ApplyFilesLayout(wide);
+        ApplyConversationLayout(wide);
+    }
 
     protected override void OnAppearing()
     {
@@ -55,10 +87,43 @@ public partial class PullRequestDetailPage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _ = AppNavigation.GoToAsync("..");
+        if (LeaveStackedDiff())
+            return;
+        LeavePage();
     }
 
-    // ── Tab switching ──────────────────────────────────────────────
+    private void OnLeavePageClicked(object? sender, EventArgs e) => LeavePage();
+
+    private void OnBackToFilesClicked(object? sender, EventArgs e) => ShowStackedList();
+
+    protected override bool OnBackButtonPressed()
+        => LeaveStackedDiff() || base.OnBackButtonPressed();
+
+    private void LeavePage() => _ = AppNavigation.GoToAsync("..");
+
+    private bool LeaveStackedDiff()
+    {
+        if (!FilesSection.IsVisible || !_showingStackedDiff)
+            return false;
+        ShowStackedList();
+        return true;
+    }
+
+    private async void OnMergeClicked(object? sender, EventArgs e)
+    {
+        var pr = _viewModel.PullRequest.Value;
+        if (pr is null)
+            return;
+
+        // Cancel is the accept/default so Enter does not merge.
+        var cancelled = await DisplayAlertAsync(
+            "Merge pull request?",
+            $"#{pr.Number} {pr.Title}\nMethod: {_viewModel.MergeMethod.Value}",
+            "Cancel",
+            "Merge");
+        if (!cancelled)
+            await _viewModel.MergeCommand.ExecuteAsync(null);
+    }
 
     private void OnConversationTabClicked(object? sender, EventArgs e)
     {
@@ -86,43 +151,120 @@ public partial class PullRequestDetailPage : ContentPage
 
     private void ShowTab(string tab)
     {
-        var primary = Application.Current?.Resources["Primary"] as Color;
-        var gray = Application.Current?.Resources["Gray200"] as Color;
-
         ConversationSection.IsVisible = tab == "conversation";
         FilesSection.IsVisible = tab == "files";
 
-        ConversationTab.BackgroundColor = tab == "conversation" ? primary : gray;
-        ConversationTab.TextColor = tab == "conversation" ? Colors.White : Colors.Black;
-
-        FilesTab.BackgroundColor = tab == "files" ? primary : gray;
-        FilesTab.TextColor = tab == "files" ? Colors.White : Colors.Black;
+        ChromeTabs.Style(ConversationTab, tab == "conversation");
+        ChromeTabs.Style(FilesTab, tab == "files");
     }
 
-    // ── File expand/collapse ───────────────────────────────────────
-
-    private void OnFileToggled(object? sender, EventArgs e)
+    private void ApplyConversationLayout(bool wide)
     {
-        if (sender is Button btn && btn.CommandParameter is string filename)
+        if (wide == _conversationWide && _conversationLayoutReady)
+            return;
+
+        _conversationWide = wide;
+        _conversationLayoutReady = true;
+
+        if (wide)
         {
-            // Toggle the visibility oc
-            // The diff section is found by name pattern.
-            var sectionName = $"Diff_{filename.GetHashCode():x}";
-            // Use the parent layout to find and toggle.
-            // MAUI doesn't support FindByName with dynamic names, so we
-            // use the BindingContext trick: each file card has an
-            // IsExpanded flag in a wrapper. For simplicity, toggle via
-            // the button's parent.
-            if (btn.Parent is VerticalStackLayout card)
+            ConversationBody.ColumnDefinitions = new ColumnDefinitionCollection
             {
-                // The diff section is the 2nd child (index 1) after the header.
-                if (card.Children.Count > 1 && card.Children[1] is VisualElement diffSection)
-                {
-                    diffSection.IsVisible = !diffSection.IsVisible;
-                    btn.Text = diffSection.IsVisible ? "▼" : "▶";
-                }
-            }
+                new(new GridLength(1, GridUnitType.Star)),
+                new(320),
+            };
+            ConversationBody.RowDefinitions = new RowDefinitionCollection { new(GridLength.Auto) };
+            Grid.SetRow(ConversationMain, 0);
+            Grid.SetColumn(ConversationMain, 0);
+            Grid.SetRow(ConversationRail, 0);
+            Grid.SetColumn(ConversationRail, 1);
+            return;
         }
+
+        ConversationBody.ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star) };
+        ConversationBody.RowDefinitions = new RowDefinitionCollection
+        {
+            new(GridLength.Auto),
+            new(GridLength.Auto),
+        };
+        Grid.SetRow(ConversationMain, 0);
+        Grid.SetColumn(ConversationMain, 0);
+        Grid.SetRow(ConversationRail, 1);
+        Grid.SetColumn(ConversationRail, 0);
+    }
+
+    private void ApplyFilesLayout(bool wide)
+    {
+        var stacked = !wide;
+        if (stacked == _filesStacked && _filesLayoutReady)
+            return;
+
+        _filesStacked = stacked;
+        _filesLayoutReady = true;
+
+        if (wide)
+        {
+            _showingStackedDiff = false;
+            BackToFilesButton.IsVisible = false;
+            FilesList.IsVisible = true;
+            DiffPane.IsVisible = true;
+            FilesSection.ColumnDefinitions = new ColumnDefinitionCollection
+            {
+                new(new GridLength(0.38, GridUnitType.Star)),
+                new(new GridLength(0.62, GridUnitType.Star)),
+            };
+            FilesSection.RowDefinitions = new RowDefinitionCollection { new(GridLength.Star) };
+            Grid.SetRow(FilesList, 0);
+            Grid.SetColumn(FilesList, 0);
+            Grid.SetColumnSpan(FilesList, 1);
+            Grid.SetRow(DiffPane, 0);
+            Grid.SetColumn(DiffPane, 1);
+            Grid.SetColumnSpan(DiffPane, 1);
+            Grid.SetColumn(FilesEmpty, 0);
+            Grid.SetColumnSpan(FilesEmpty, 2);
+            return;
+        }
+
+        FilesSection.ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star) };
+        FilesSection.RowDefinitions = new RowDefinitionCollection { new(GridLength.Star) };
+        Grid.SetRow(FilesList, 0);
+        Grid.SetColumn(FilesList, 0);
+        Grid.SetColumnSpan(FilesList, 1);
+        Grid.SetRow(DiffPane, 0);
+        Grid.SetColumn(DiffPane, 0);
+        Grid.SetColumnSpan(DiffPane, 1);
+        Grid.SetColumn(FilesEmpty, 0);
+        Grid.SetColumnSpan(FilesEmpty, 1);
+        if (SelectedDiffFile is not null)
+            ShowStackedDiff();
+        else
+            ShowStackedList();
+    }
+
+    private void ShowStackedList()
+    {
+        _showingStackedDiff = false;
+        FilesList.IsVisible = true;
+        DiffPane.IsVisible = false;
+        BackToFilesButton.IsVisible = false;
+    }
+
+    private void ShowStackedDiff()
+    {
+        _showingStackedDiff = true;
+        FilesList.IsVisible = false;
+        DiffPane.IsVisible = true;
+        BackToFilesButton.IsVisible = true;
+    }
+
+    private void OnFileSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is not DiffEntry file)
+            return;
+
+        SelectedDiffFile = file;
+        if (_filesStacked)
+            ShowStackedDiff();
     }
 
     private void OnCommentClicked(object? sender, EventArgs e)

@@ -27,11 +27,15 @@ public partial class ReposPage : ContentPage
             ReposList,
             _viewModel.CanLoadMore,
             () => _viewModel.LoadMoreCommand.ExecuteAsync(null)));
+        _events.Add(_viewModel.SelectedHub.Subscribe(_ =>
+            Dispatcher.Dispatch(UpdateHubStyles)));
     }
 
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        PullToRefresh.WindowsOff(ListRefresh);
+        UpdateHubStyles();
 
         if (!_loaded)
         {
@@ -64,4 +68,20 @@ public partial class ReposPage : ContentPage
             }
         }
     }
+
+    private void UpdateHubStyles()
+    {
+        var starred = string.Equals(
+            _viewModel.SelectedHub.Value,
+            ReposViewModel.StarredHub,
+            StringComparison.Ordinal);
+        ChromeTabs.Style(MyReposHubButton, !starred);
+        ChromeTabs.Style(StarredHubButton, starred);
+    }
+
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
+    }
+
 }

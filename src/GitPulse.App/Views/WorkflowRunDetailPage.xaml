@@ -10,51 +10,74 @@
     <Grid RowDefinitions="Auto,*">
 
         <!-- Back + title: Grid so long titles truncate instead of clipping Back. -->
-        <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*"
-              ColumnSpacing="12"
-              Padding="16,12,16,4">
-            <Button Grid.Column="0"
-                    Text="Back"
-                    Clicked="OnBackClicked"
-                    BackgroundColor="Transparent"
-                    TextColor="{StaticResource Primary}"
-                    Padding="8,4"
-                    VerticalOptions="Center" />
-            <Label Grid.Column="1"
-                   Text="{Binding Title.Value}"
-                   FontSize="18"
+        <VerticalStackLayout Grid.Row="0" Spacing="4" Padding="16,8,16,4">
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                <Button Text="Back"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        Padding="8,10"
+                        VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="Actions"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center" />
+                <Label Grid.Column="2"
+                       Text="{Binding Run.Value.Id, StringFormat='#{0}'}"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"
+                       VerticalOptions="Center"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1" />
+            </Grid>
+            <Label Text="{Binding Title.Value}"
+                   FontSize="20"
                    FontAttributes="Bold"
-                   VerticalOptions="Center"
-                   LineBreakMode="TailTruncation"
-                   MaxLines="1" />
-        </Grid>
+                   LineBreakMode="WordWrap" />
+            <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                    BackgroundColor="{StaticResource Red100}"
+                    Stroke="Transparent"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12"
+                    Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                    <Label Text="{Binding ErrorMessage.Value}"
+                           TextColor="{StaticResource Red900}"
+                           FontSize="13"
+                           LineBreakMode="WordWrap"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="Retry"
+                            Command="{Binding LoadCommand}"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13" />
+                    <Button Grid.Column="2"
+                            Text="Back"
+                            Clicked="OnBackClicked"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13" />
+                </Grid>
+            </Border>
+        </VerticalStackLayout>
 
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="16" Spacing="12">
 
-                <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
-                        BackgroundColor="{StaticResource Red100}"
-                        StrokeShape="RoundRectangle 8"
-                        Padding="12">
-                    <Label Text="{Binding ErrorMessage.Value}"
-                           TextColor="{StaticResource Red900}"
-                           FontSize="13"
-                           LineBreakMode="WordWrap" />
-                </Border>
 
                 <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
                                    IsVisible="{Binding IsLoading.Value}"
                                    HorizontalOptions="Center" />
 
-                <Border StrokeShape="RoundRectangle 8"
-                        Stroke="{StaticResource Gray200}"
-                        Padding="16">
-                    <VerticalStackLayout Spacing="8">
+                <VerticalStackLayout Spacing="8">
                         <Label Text="{Binding StatusSummary.Value}"
-                               FontSize="13"
+                               FontSize="12"
                                FontAttributes="Bold"
-                               TextColor="{StaticResource Primary}"
+                               TextColor="{Binding Run.Value.Conclusion, Converter={StaticResource CheckConclusionColorConverter}}"
                                LineBreakMode="WordWrap" />
                         <Label Text="{Binding Run.Value.Name, StringFormat='Workflow: {0}'}"
                                FontSize="12"
@@ -96,7 +119,6 @@
                                     HorizontalOptions="Fill" />
                         </VerticalStackLayout>
                     </VerticalStackLayout>
-                </Border>
 
                 <Label Text="Jobs"
                        FontSize="16"
@@ -108,34 +130,45 @@
                                      Spacing="8">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:WorkflowJob">
-                            <Border Padding="14,16"
-                                    MinimumHeightRequest="56"
-                                    StrokeShape="RoundRectangle 8"
-                                    Stroke="{StaticResource Gray200}">
-                                <VerticalStackLayout Spacing="4">
+                            <VerticalStackLayout Spacing="0">
+                            <Grid ColumnDefinitions="Auto,*"
+                                  Padding="0,12"
+                                  MinimumHeightRequest="{OnPlatform Android=56, Default=48}"
+                                  ColumnSpacing="10">
+                                <Image Source="check_circle_16.png"
+                                       WidthRequest="16"
+                                       HeightRequest="16"
+                                       VerticalOptions="Start"
+                                       Margin="0,2,0,0" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
                                     <Label Text="{Binding Name}"
                                            FontSize="14"
                                            FontAttributes="Bold"
                                            LineBreakMode="TailTruncation"
-                                           MaxLines="2" />
-                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                                        <Label Grid.Column="0"
-                                               Text="{Binding Status}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource Gray500}"
-                                               VerticalOptions="Center" />
-                                        <Label Grid.Column="1"
-                                               Text="{Binding Conclusion}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource Green700}"
-                                               LineBreakMode="TailTruncation"
-                                               MaxLines="1"
-                                               VerticalOptions="Center" />
-                                    </Grid>
+                                           MaxLines="1" />
+                                    <Label Text="{Binding Conclusion}"
+                                           FontSize="12"
+                                           TextColor="{Binding Conclusion, Converter={StaticResource CheckConclusionColorConverter}}" />
                                 </VerticalStackLayout>
-                            </Border>
+                            </Grid>
+                            <BoxView Style="{StaticResource Hairline}" Margin="0" />
+                            </VerticalStackLayout>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+                <VerticalStackLayout
+                        IsVisible="{Binding Jobs.Count, Converter={StaticResource IntGreaterThanZeroConverter}, ConverterParameter=invert}"
+                        Spacing="4"
+                        Padding="0,8">
+                    <Label Text="No jobs"
+                           FontSize="16"
+                           TextColor="{StaticResource Gray500}"
+                           HorizontalOptions="Center" />
+                    <Label Text="This run has not reported jobs yet."
+                           FontSize="14"
+                           TextColor="{StaticResource Gray400}"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
 
             </VerticalStackLayout>

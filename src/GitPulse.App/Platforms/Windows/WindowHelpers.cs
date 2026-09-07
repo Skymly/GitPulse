@@ -20,9 +20,8 @@ namespace GitPulse.App.Platforms.Windows;
 /// the window keeps its default solid background.
 /// </para>
 /// <para>
-/// For the backdrop to be visible, the MAUI page backgrounds must be
-/// transparent. This is handled by the global page style in
-/// <c>Resources/Styles/Styles.xaml</c> (Windows-conditional).
+/// TitleBar and TabBar sit on the backdrop. Page bodies stay opaque
+/// Chrome Neutral (<c>Resources/Styles/Styles.xaml</c>).
 /// </para>
 /// </remarks>
 public static class WindowHelpers

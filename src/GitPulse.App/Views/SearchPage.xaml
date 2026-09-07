@@ -10,56 +10,60 @@
 
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Padding="16,12">
         <!-- M20/M29/M37: Search / Review requested / Assigned / Mentions. -->
-        <VerticalStackLayout Grid.Row="0" Spacing="6" Margin="0,0,0,8">
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
-                <Button x:Name="SearchHubButton"
-                        Text="Search"
-                        Clicked="OnSearchHubClicked"
-                        Padding="8,10"
-                        FontSize="12"
-                        HorizontalOptions="Fill"
-                        AutomationId="SearchSearchHub" />
-                <Button x:Name="ReviewRequestedHubButton"
-                        Grid.Column="1"
-                        Text="Review requested"
-                        Clicked="OnReviewRequestedHubClicked"
-                        Padding="8,10"
-                        FontSize="12"
-                        HorizontalOptions="Fill"
-                        AutomationId="SearchReviewRequestedHub" />
-            </Grid>
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
-                <Button x:Name="AssignedHubButton"
-                        Text="Assigned"
-                        Clicked="OnAssignedHubClicked"
-                        Padding="8,10"
-                        FontSize="12"
-                        HorizontalOptions="Fill"
-                        AutomationId="SearchAssignedHub" />
-                <Button x:Name="MentionsHubButton"
-                        Grid.Column="1"
-                        Text="Mentions"
-                        Clicked="OnMentionsHubClicked"
-                        Padding="8,10"
-                        FontSize="12"
-                        HorizontalOptions="Fill"
-                        AutomationId="SearchMentionsHub" />
-            </Grid>
-        </VerticalStackLayout>
-        <!-- Search field + button share the row; long queries truncate in the bar. -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding IsSearchHub.Value}">
-            <SearchBar x:Name="SearchBar"
-                       Grid.Column="0"
-                       Placeholder="Search GitHub..."
-                       SearchButtonPressed="OnSearchSubmitted"
-                       HorizontalOptions="Fill" />
-            <Button Grid.Column="1"
+        <Grid Grid.Row="0" ColumnDefinitions="*,*,*,*" ColumnSpacing="6" Margin="0,0,0,8">
+            <Button x:Name="SearchHubButton"
                     Text="Search"
-                    Clicked="OnSearchClicked"
-                    Padding="16,10"
-                    VerticalOptions="Center"
-                    AutomationId="SearchSubmitButton" />
+                    Clicked="OnSearchHubClicked"
+                    Padding="4,10"
+                    FontSize="12"
+                    HorizontalOptions="Fill"
+                    AutomationId="SearchSearchHub" />
+            <Button x:Name="ReviewRequestedHubButton"
+                    Grid.Column="1"
+                    Text="Review"
+                    Clicked="OnReviewRequestedHubClicked"
+                    Padding="4,10"
+                    FontSize="12"
+                    HorizontalOptions="Fill"
+                    AutomationId="SearchReviewRequestedHub" />
+            <Button x:Name="AssignedHubButton"
+                    Grid.Column="2"
+                    Text="Assigned"
+                    Clicked="OnAssignedHubClicked"
+                    Padding="4,10"
+                    FontSize="12"
+                    HorizontalOptions="Fill"
+                    AutomationId="SearchAssignedHub" />
+            <Button x:Name="MentionsHubButton"
+                    Grid.Column="3"
+                    Text="Mentions"
+                    Clicked="OnMentionsHubClicked"
+                    Padding="4,10"
+                    FontSize="12"
+                    HorizontalOptions="Fill"
+                    AutomationId="SearchMentionsHub" />
         </Grid>
+        <!-- Search field + button share the row; long queries truncate in the bar. -->
+        <VerticalStackLayout Grid.Row="1" Spacing="4" IsVisible="{Binding IsSearchHub.Value}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <SearchBar x:Name="SearchBar"
+                           Grid.Column="0"
+                           Placeholder="Search GitHub..."
+                           SearchButtonPressed="OnSearchSubmitted"
+                           HorizontalOptions="Fill" />
+                <Button Grid.Column="1"
+                        Text="Search"
+                        Clicked="OnSearchClicked"
+                        Padding="16,10"
+                        VerticalOptions="Center"
+                        AutomationId="SearchSubmitButton" />
+            </Grid>
+            <Label x:Name="QueryFieldError"
+                   Text="Enter at least 3 characters."
+                   TextColor="{StaticResource Red900}"
+                   FontSize="12"
+                   IsVisible="False" />
+        </VerticalStackLayout>
 
         <!-- Equal-width type tabs stay tappable on narrow portrait widths. -->
         <Grid Grid.Row="2"
@@ -100,36 +104,95 @@
         <VerticalStackLayout Grid.Row="3" Spacing="6">
             <Border IsVisible="{Binding ErrorMessage.Value, Converter={StaticResource StringToBoolConverter}}"
                     BackgroundColor="{StaticResource Red100}"
+                    Stroke="Transparent"
                     StrokeShape="RoundRectangle 8"
                     Padding="12">
-                <Label Text="{Binding ErrorMessage.Value}"
-                       TextColor="{StaticResource Red900}"
-                       FontSize="13"
-                       LineBreakMode="WordWrap" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <Label Text="{Binding ErrorMessage.Value}"
+                           TextColor="{StaticResource Red900}"
+                           FontSize="13"
+                           LineBreakMode="WordWrap"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="Settings"
+                            Clicked="OnOpenSettingsClicked"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13" />
+                </Grid>
             </Border>
             <Label Text="{Binding TotalCount.Value, StringFormat='{}{0:N0} results'}"
                    IsVisible="{Binding HasSearched.Value}"
                    FontSize="12"
                    TextColor="{StaticResource Gray500}" />
-            <Label Text="No results found."
-                   IsVisible="{Binding IsEmpty.Value}"
-                   HorizontalTextAlignment="Center"
-                   Margin="0,16"
-                   TextColor="{StaticResource Gray500}" />
+            <VerticalStackLayout IsVisible="{Binding IsEmpty.Value}"
+                                 Spacing="4"
+                                 Margin="0,16"
+                                 HorizontalOptions="Center">
+                <VerticalStackLayout IsVisible="{Binding IsSearchHub.Value}"
+                                     Spacing="4">
+                    <Label Text="No results"
+                           FontSize="16"
+                           TextColor="{StaticResource Gray500}"
+                           HorizontalOptions="Center" />
+                    <Label Text="Try another query, or open Review / Assigned / Mentions."
+                           FontSize="14"
+                           TextColor="{StaticResource Gray400}"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+                <VerticalStackLayout IsVisible="{Binding IsReviewRequestedHub.Value}"
+                                     Spacing="4">
+                    <Label Text="No review requests"
+                           FontSize="16"
+                           TextColor="{StaticResource Gray500}"
+                           HorizontalOptions="Center" />
+                    <Label Text="Pull requests waiting for your review will show up here."
+                           FontSize="14"
+                           TextColor="{StaticResource Gray400}"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+                <VerticalStackLayout IsVisible="{Binding IsAssignedHub.Value}"
+                                     Spacing="4">
+                    <Label Text="Nothing assigned"
+                           FontSize="16"
+                           TextColor="{StaticResource Gray500}"
+                           HorizontalOptions="Center" />
+                    <Label Text="Issues and pull requests assigned to you will show up here."
+                           FontSize="14"
+                           TextColor="{StaticResource Gray400}"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+                <VerticalStackLayout IsVisible="{Binding IsMentionsHub.Value}"
+                                     Spacing="4">
+                    <Label Text="No mentions"
+                           FontSize="16"
+                           TextColor="{StaticResource Gray500}"
+                           HorizontalOptions="Center" />
+                    <Label Text="Conversations that mention you will show up here."
+                           FontSize="14"
+                           TextColor="{StaticResource Gray400}"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
         </VerticalStackLayout>
 
-        <CollectionView Grid.Row="4"
+        <RefreshView x:Name="ListRefresh" Grid.Row="4" IsRefreshing="{Binding IsLoading.Value}">
+        <Grid>
+        <CollectionView x:Name="RepositoriesList"
                         ItemsSource="{Binding Repositories}"
                         IsVisible="{Binding IsRepositoriesSelected.Value}"
+                        RemainingItemsThreshold="5"
                         SelectionMode="Single"
                         SelectionChanged="OnRepositorySelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Repo">
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
+                    <VerticalStackLayout Spacing="0">
+                    <Grid Padding="4,12" MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding FullName}"
                                    FontSize="16"
@@ -145,23 +208,23 @@
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}" />
                         </VerticalStackLayout>
-                    </Border>
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <CollectionView Grid.Row="4"
+        <CollectionView x:Name="IssuesList"
                         ItemsSource="{Binding Issues}"
                         IsVisible="{Binding IsIssuesSelected.Value}"
+                        RemainingItemsThreshold="5"
                         SelectionMode="Single"
                         SelectionChanged="OnIssueSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:SearchIssueItem">
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
+                    <VerticalStackLayout Spacing="0">
+                    <Grid Padding="4,12" MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding Title}"
                                    FontSize="15"
@@ -189,23 +252,23 @@
                                        HorizontalOptions="End" />
                             </Grid>
                         </VerticalStackLayout>
-                    </Border>
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <CollectionView Grid.Row="4"
+        <CollectionView x:Name="PullRequestsList"
                         ItemsSource="{Binding PullRequests}"
                         IsVisible="{Binding IsPullRequestsSelected.Value}"
+                        RemainingItemsThreshold="5"
                         SelectionMode="Single"
                         SelectionChanged="OnPullRequestSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:SearchIssueItem">
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
+                    <VerticalStackLayout Spacing="0">
+                    <Grid Padding="4,12" MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding Title}"
                                    FontSize="15"
@@ -233,23 +296,23 @@
                                        HorizontalOptions="End" />
                             </Grid>
                         </VerticalStackLayout>
-                    </Border>
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <CollectionView Grid.Row="4"
+        <CollectionView x:Name="CodeList"
                         ItemsSource="{Binding CodeResults}"
                         IsVisible="{Binding IsCodeSelected.Value}"
+                        RemainingItemsThreshold="5"
                         SelectionMode="Single"
                         SelectionChanged="OnCodeSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:CodeSearchItem">
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
+                    <VerticalStackLayout Spacing="0">
+                    <Grid Padding="4,12" MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding Repository.FullName}"
                                    FontSize="13"
@@ -266,23 +329,23 @@
                                    LineBreakMode="TailTruncation"
                                    TextColor="{StaticResource Gray500}" />
                         </VerticalStackLayout>
-                    </Border>
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <CollectionView Grid.Row="4"
+        <CollectionView x:Name="ReviewRequestedList"
                         ItemsSource="{Binding ReviewRequested}"
                         IsVisible="{Binding IsReviewRequestedSelected.Value}"
+                        RemainingItemsThreshold="5"
                         SelectionMode="Single"
                         SelectionChanged="OnReviewRequestedSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:SearchIssueItem">
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
+                    <VerticalStackLayout Spacing="0">
+                    <Grid Padding="4,12" MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding RepositoryFullName}"
                                    FontSize="13"
@@ -315,23 +378,23 @@
                                        HorizontalOptions="End" />
                             </Grid>
                         </VerticalStackLayout>
-                    </Border>
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <CollectionView Grid.Row="4"
+        <CollectionView x:Name="AssignedList"
                         ItemsSource="{Binding Assigned}"
                         IsVisible="{Binding IsAssignedSelected.Value}"
+                        RemainingItemsThreshold="5"
                         SelectionMode="Single"
                         SelectionChanged="OnAssignedSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:SearchIssueItem">
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
+                    <VerticalStackLayout Spacing="0">
+                    <Grid Padding="4,12" MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding RepositoryFullName}"
                                    FontSize="13"
@@ -364,22 +427,22 @@
                                        HorizontalOptions="End" />
                             </Grid>
                         </VerticalStackLayout>
-                    </Border>
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-        <CollectionView Grid.Row="4"
+        <CollectionView x:Name="MentionsList"
                         ItemsSource="{Binding Mentions}"
                         IsVisible="{Binding IsMentionsSelected.Value}"
+                        RemainingItemsThreshold="5"
                         SelectionMode="Single"
                         SelectionChanged="OnAssignedSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:SearchIssueItem">
-                    <Border Margin="0,0,0,8"
-                            Padding="14,16"
-                            MinimumHeightRequest="56"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{StaticResource Gray200}">
+                    <VerticalStackLayout Spacing="0">
+                    <Grid Padding="4,12" MinimumHeightRequest="{OnPlatform Android=56, Default=48}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding RepositoryFullName}"
                                    FontSize="13"
@@ -412,10 +475,14 @@
                                        HorizontalOptions="End" />
                             </Grid>
                         </VerticalStackLayout>
-                    </Border>
+                    </Grid>
+                    <BoxView Style="{StaticResource Hairline}" />
+                    </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+        </Grid>
+        </RefreshView>
         <VerticalStackLayout Grid.Row="5" Spacing="8" Padding="0,8,0,0">
             <ActivityIndicator IsRunning="{Binding IsLoading.Value}"
                                IsVisible="{Binding IsLoading.Value}" />

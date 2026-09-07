@@ -1,5 +1,7 @@
+using GitPulse.App.Events;
 using GitPulse.ViewModels;
 using GitPulse.Core.Models;
+using R3;
 
 namespace GitPulse.App.Views;
 
@@ -12,6 +14,7 @@ namespace GitPulse.App.Views;
 public partial class IssuesPage : ContentPage
 {
     private readonly IssuesViewModel _viewModel;
+    private readonly CompositeDisposable _events = [];
     private bool _loaded;
 
     public IssuesPage(IssuesViewModel viewModel)
@@ -19,6 +22,11 @@ public partial class IssuesPage : ContentPage
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
+
+        _events.Add(UiEventPipelines.BindLoadMore(
+            IssuesList,
+            _viewModel.CanLoadMore,
+            () => _viewModel.LoadMoreCommand.ExecuteAsync(null)));
     }
 
     // Shell binds query parameters to these properties.
@@ -28,6 +36,7 @@ public partial class IssuesPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        PullToRefresh.WindowsOff(ListRefresh);
 
         if (!_loaded)
         {
@@ -97,17 +106,9 @@ public partial class IssuesPage : ContentPage
 
     private void UpdateTabStyles(string active)
     {
-        var primary = Application.Current?.Resources["Primary"] as Color;
-        var gray = Application.Current?.Resources["Gray200"] as Color;
-
-        OpenTab.BackgroundColor = active == "open" ? primary : gray;
-        OpenTab.TextColor = active == "open" ? Colors.White : Colors.Black;
-
-        ClosedTab.BackgroundColor = active == "closed" ? primary : gray;
-        ClosedTab.TextColor = active == "closed" ? Colors.White : Colors.Black;
-
-        AllTab.BackgroundColor = active == "all" ? primary : gray;
-        AllTab.TextColor = active == "all" ? Colors.White : Colors.Black;
+        ChromeTabs.Style(OpenTab, active == "open");
+        ChromeTabs.Style(ClosedTab, active == "closed");
+        ChromeTabs.Style(AllTab, active == "all");
     }
 
     private void OnIssueSelected(object? sender, SelectionChangedEventArgs e)
