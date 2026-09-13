@@ -10,6 +10,12 @@ namespace GitPulse.App.WinUI;
 /// </summary>
 public partial class App : MauiWinUIApplication
 {
+    // HResults that mean the window or COM host behind a WinUI callback is already gone:
+    // RPC_E_DISCONNECTED, RPC_S_SERVER_UNAVAILABLE, ERROR_INVALID_WINDOW_HANDLE.
+    private const int RpcDisconnected = unchecked((int)0x80010108);
+    private const int RpcServerUnavailable = unchecked((int)0x800706BA);
+    private const int InvalidWindowHandle = unchecked((int)0x80070578);
+
     /// <summary>
     /// Initializes the singleton application object. This is the first line of authored code
     /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -42,9 +48,25 @@ public partial class App : MauiWinUIApplication
     private static void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
         GitPulse.App.Platforms.Windows.CrashLog.Write("WinUI UnhandledException", e.Exception);
-        // Keep process alive when possible so tray presence survives transient faults.
-        e.Handled = true;
+        e.Handled = IsSurvivable(e.Exception);
     }
+
+    /// <summary>
+    /// Keeps the tray alive only for faults that originate outside our own code and leave the app
+    /// usable. Anything else terminates: surviving a defect turns it into a feature that silently
+    /// stops working, which is harder to diagnose than an exit with a crash log.
+    /// </summary>
+    private static bool IsSurvivable(Exception exception) => exception switch
+    {
+        // A cancelled navigation or shutdown is not a fault.
+        OperationCanceledException => true,
+        // The window or tray icon went away while a WinUI callback was still in flight.
+        // RPC_E_WRONG_THREAD (0x8001010E) is absent on purpose: cross-thread UI mutation is a
+        // defect and has to surface.
+        System.Runtime.InteropServices.COMException com =>
+            com.HResult is RpcDisconnected or RpcServerUnavailable or InvalidWindowHandle,
+        _ => false,
+    };
 
     private static void OnDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
     {
