@@ -101,6 +101,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Fixed
 
+- Notifications **Mark read** uses `PATCH /notifications/threads/{id}` (mark as
+  read). It no longer calls `DELETE` (mark as done).
+- Detail destinations push onto the current tab. Android no longer lists them
+  in a flyout, and opening a second repo no longer keeps showing the first.
+- Creating an issue opens the new issue immediately. Deleting a file leaves
+  the editor instead of a red error banner.
 - Escape on Windows and Back on Android cancel Merge and Delete; they no
   longer run the destructive action.
 - Pull request branch names, issue comment counts, timestamps, and Open in

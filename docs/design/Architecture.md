@@ -55,7 +55,7 @@ PR Conversation 由 ViewModel 外壳组合三个内部模块：`PullRequestLifec
 ### 导航
 
 - Shell TabBar：Repos、Notifications、Search、Settings
-- 详情页经 `ShellContent` + query 参数（`owner`、`repo`、`number`）
+- 详情页经 `Routing.RegisterRoute` 压入当前 Tab 栈，query 参数（`owner`、`repo`、`number`）
 - 托盘 / Toast 激活：显示主窗并 `GoToAsync("//NotificationsPage")`
 
 ### 平台
