@@ -149,8 +149,10 @@ sealed class Build : NukeBuild
         .Executes(() =>
         {
             // Build library projects + tests via the test project (which
-            // transitively builds Core/GitHubApi/Services). This avoids
-            // building the App project which needs special runtime handling.
+            // transitively builds Core/GitHubApi/Services). Then compile the
+            // App Windows TFM without a RID: a RID restore hits NU1102 for the
+            // Android Mono pack. CiAll / ci-windows is the PR gate for
+            // net10.0-windows10.0.19041.0; CiLib stays library-only.
             foreach (string relativePath in TestProjectRelativePaths)
             {
                 DotNetBuild(s => s
@@ -159,10 +161,7 @@ sealed class Build : NukeBuild
                     .EnableNoRestore());
             }
 
-            // Build the App project's Windows target. Building with an explicit
-            // RID triggers Mono runtime pack resolution for the Android TFM
-            // (NU1102), so we build without a RID. The .NET runtime pack for
-            // win-x64 is provided by the installed SDK on Windows.
+            // The .NET runtime pack for win-x64 comes from the SDK on Windows.
             DotNetBuild(s => s
                 .SetProjectFile(AppProject)
                 .SetConfiguration(Configuration)

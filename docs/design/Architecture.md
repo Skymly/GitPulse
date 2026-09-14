@@ -71,7 +71,7 @@ PR Conversation 由 ViewModel 外壳组合三个内部模块：`PullRequestLifec
 
 ## 已知局限
 
-- App 项目未纳入 `CiLib`（需 MAUI workload）；CI 分 `Ci` / `CiLib` 两条路径。
+- App 项目未纳入 `CiLib`（需 MAUI workload）；CI 分 `Ci` / `CiLib` 两条路径。`CiAll`（`ci-windows`）编译 Windows TFM 与 Android。
 - Android 编译门禁已落地（[#32](https://github.com/Skymly/GitPulse/issues/32)）；Android Emulator UI Smoke（Appium）为 M13 cut 清单、默认不进 `CiLib`（ADR-014）。
 
 ## 不在范围内

@@ -9,6 +9,9 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Changed
 
+- App display version (Android `versionName` / Windows package version) follows
+  MinVer `major.minor.patch` instead of staying at 0.1.0.
+
 - Replace the MAUI template look with GitPulse visual language: Fluent-blue
   Accent, GitHub Domain Color on issue/PR state, Chrome Neutral surfaces,
   GitPulse Mark, and Fluent tab icons (Repos / Notifications / Search / Settings).
@@ -122,6 +125,9 @@ Versions are derived automatically from Git tags by MinVer.
 - The Windows token file lives under `LocalApplicationData` (a leftover
   roaming `token.bin` is migrated once).
 - In-app browser opens only absolute `http` and `https` URLs.
+- Windows DPAPI uses `System.Security.Cryptography.ProtectedData` 10.0.12.
+- The Nuke build pins `System.Security.Cryptography.Xml` 10.0.12 and
+  `NuGet.Packaging` 6.14.3 (Nuke.Common 10.1.0 has no newer release).
 
 ### Notes
 

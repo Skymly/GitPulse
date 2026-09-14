@@ -12,8 +12,8 @@
          FileVersion, Version, PackageVersion and InformationalVersion
          are set automatically by MinVer from the latest version tag.
          Tag prefix "v" matches the CI release trigger (refs/tags/v*).
-         MinVerMinimumMajorMinor preserves the 0.1.* baseline until the
-         first v0.1.0 tag is created. -->
+         MinVerMinimumMajorMinor is a floor so a clone with no tags still
+         versions as 0.1.*; public tags are already past v0.1.0. -->
     <MinVerTagPrefix>v</MinVerTagPrefix>
     <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
   </PropertyGroup>
@@ -38,6 +38,11 @@
   <!-- Central package management is enabled in Directory.Packages.props. -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- The MAUI App restores a floating workload matrix; lock files would
+         churn on every SDK/workload bump. Library, test, and Nuke projects
+         keep packages.lock.json and use RestoreLockedMode on CI. -->
+    <RestorePackagesWithLockFile Condition="'$(MSBuildProjectName)' != 'GitPulse.App'">true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(MSBuildProjectName)' != 'GitPulse.App' And '$(CI)' == 'true'">true</RestoreLockedMode>
   </PropertyGroup>
 
   <!-- Treat warnings as errors in Release to catch issues early.
