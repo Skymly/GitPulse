@@ -65,7 +65,9 @@ internal static class GitHubJson
         string login = "bob",
         string? assigneesJson = null,
         string? labelsJson = null,
-        bool includeHeadSha = true)
+        bool includeHeadSha = true,
+        string? mergeCommitSha = null,
+        string? mergedBy = null)
     {
         var sha = headSha ?? "6dcb09b5b57875f334f61aebed695e2e4193db5e";
         var head = includeHeadSha
@@ -100,6 +102,10 @@ internal static class GitHubJson
             json += $",\"assignees\":{assigneesJson}";
         if (labelsJson is not null)
             json += $",\"labels\":{labelsJson}";
+        if (mergeCommitSha is not null)
+            json += $",\"merge_commit_sha\":\"{mergeCommitSha}\"";
+        if (mergedBy is not null)
+            json += $",\"merged_by\":{User(mergedBy)}";
 
         return json + "}";
     }
