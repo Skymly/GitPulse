@@ -1,3 +1,4 @@
+using GitPulse.App.Services;
 using GitPulse.ViewModels;
 
 namespace GitPulse.App.Views;
@@ -85,12 +86,12 @@ public partial class FileEditorPage : ContentPage
         if (ShowCommitFieldErrorIfEmpty())
             return;
 
-        var cancelled = await DisplayAlertAsync(
+        var confirmed = await DestructiveConfirm.ShowAsync(
+            this,
             "Delete file?",
             _viewModel.FilePath.Value,
-            "Cancel",
             "Delete");
-        if (!cancelled)
+        if (confirmed)
             await _viewModel.DeleteCommand.ExecuteAsync(null);
     }
 
