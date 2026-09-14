@@ -17,7 +17,7 @@ namespace GitPulse.App.Views;
 public partial class FileEditorPage : ContentPage
 {
     private readonly FileEditorViewModel _viewModel;
-    private bool _loaded;
+    private string? _appliedQuery;
 
     public FileEditorPage(FileEditorViewModel viewModel)
     {
@@ -36,28 +36,29 @@ public partial class FileEditorPage : ContentPage
     {
         base.OnAppearing();
 
-        if (!_loaded)
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        var path = Uri.UnescapeDataString(PathQuery);
+        var sha = Uri.UnescapeDataString(ShaQuery);
+        var gitRef = Uri.UnescapeDataString(RefQuery);
+        var query = $"{owner}/{repo}/{path}/{sha}/{gitRef}";
+        if (_appliedQuery == query)
+            return;
+
+        _appliedQuery = query;
+        if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(path))
         {
-            _loaded = true;
-            var owner = Uri.UnescapeDataString(OwnerQuery);
-            var repo = Uri.UnescapeDataString(RepoQuery);
-            var path = Uri.UnescapeDataString(PathQuery);
-            var sha = Uri.UnescapeDataString(ShaQuery);
-            var gitRef = Uri.UnescapeDataString(RefQuery);
-            if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(path))
+            _viewModel.Initialize(
+                owner,
+                repo,
+                path,
+                string.IsNullOrEmpty(sha) ? null : sha,
+                string.IsNullOrEmpty(gitRef) ? null : gitRef);
+            _ = _viewModel.LoadCommand.ExecuteAsync(null);
+            if (!string.IsNullOrEmpty(gitRef))
             {
-                _viewModel.Initialize(
-                    owner,
-                    repo,
-                    path,
-                    string.IsNullOrEmpty(sha) ? null : sha,
-                    string.IsNullOrEmpty(gitRef) ? null : gitRef);
-                _ = _viewModel.LoadCommand.ExecuteAsync(null);
-                if (!string.IsNullOrEmpty(gitRef))
-                {
-                    EditButton.IsVisible = false;
-                    DeleteButton.IsVisible = false;
-                }
+                EditButton.IsVisible = false;
+                DeleteButton.IsVisible = false;
             }
         }
     }

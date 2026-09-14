@@ -23,7 +23,7 @@ public partial class PullRequestDetailPage : ContentPage
     private const double WideBreakpoint = 840;
     private readonly PullRequestDetailViewModel _viewModel;
     private readonly PrDiffViewModel _diffViewModel;
-    private bool _loaded;
+    private string? _appliedQuery;
     private bool _diffLoaded;
     private bool _filesStacked;
     private bool _showingStackedDiff;
@@ -73,16 +73,17 @@ public partial class PullRequestDetailPage : ContentPage
     {
         base.OnAppearing();
 
-        if (!_loaded)
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        var query = $"{owner}/{repo}/{NumberQuery}";
+        if (_appliedQuery == query)
+            return;
+
+        _appliedQuery = query;
+        if (int.TryParse(NumberQuery, out var number))
         {
-            _loaded = true;
-            var owner = Uri.UnescapeDataString(OwnerQuery);
-            var repo = Uri.UnescapeDataString(RepoQuery);
-            if (int.TryParse(NumberQuery, out var number))
-            {
-                _viewModel.Initialize(owner, repo, number);
-                _ = _viewModel.LoadCommand.ExecuteAsync(null);
-            }
+            _viewModel.Initialize(owner, repo, number);
+            _ = _viewModel.LoadCommand.ExecuteAsync(null);
         }
     }
 

@@ -12,7 +12,7 @@ namespace GitPulse.App.Views;
 public partial class CreateIssuePage : ContentPage
 {
     private readonly CreateIssueViewModel _viewModel;
-    private bool _initialized;
+    private string? _appliedQuery;
 
     public CreateIssuePage(CreateIssueViewModel viewModel)
     {
@@ -28,11 +28,12 @@ public partial class CreateIssuePage : ContentPage
     {
         base.OnAppearing();
 
-        if (!_initialized)
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        var query = $"{owner}/{repo}";
+        if (_appliedQuery != query)
         {
-            _initialized = true;
-            var owner = Uri.UnescapeDataString(OwnerQuery);
-            var repo = Uri.UnescapeDataString(RepoQuery);
+            _appliedQuery = query;
             IdentityLabel.Text = $"{owner}/{repo}";
             if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
             {

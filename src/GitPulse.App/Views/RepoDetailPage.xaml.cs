@@ -12,7 +12,7 @@ namespace GitPulse.App.Views;
 public partial class RepoDetailPage : ContentPage
 {
     private readonly RepoDetailViewModel _viewModel;
-    private bool _loaded;
+    private string? _appliedQuery;
 
     public RepoDetailPage(RepoDetailViewModel viewModel)
     {
@@ -29,16 +29,17 @@ public partial class RepoDetailPage : ContentPage
     {
         base.OnAppearing();
 
-        if (!_loaded)
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        var query = $"{owner}/{repo}";
+        if (_appliedQuery == query)
+            return;
+
+        _appliedQuery = query;
+        if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
         {
-            _loaded = true;
-            var owner = Uri.UnescapeDataString(OwnerQuery);
-            var repo = Uri.UnescapeDataString(RepoQuery);
-            if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
-            {
-                _viewModel.Initialize(owner, repo);
-                _ = _viewModel.LoadCommand.ExecuteAsync(null);
-            }
+            _viewModel.Initialize(owner, repo);
+            _ = _viewModel.LoadCommand.ExecuteAsync(null);
         }
     }
 
