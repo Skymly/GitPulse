@@ -29,5 +29,6 @@ public sealed class ReviewCommentRequest
     /// parameters except <see cref="Body"/> are ignored.
     /// </summary>
     [JsonPropertyName("in_reply_to")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? InReplyTo { get; set; }
 }

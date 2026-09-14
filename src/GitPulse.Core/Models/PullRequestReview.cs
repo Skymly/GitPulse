@@ -40,9 +40,11 @@ public sealed class PullRequestReviewCreateRequest
 {
     /// <summary>Optional SHA; GitHub defaults to the latest head commit.</summary>
     [JsonPropertyName("commit_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? CommitId { get; set; }
 
     /// <summary>Required for REQUEST_CHANGES and COMMENT; optional for APPROVE.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Body { get; set; }
 
     /// <summary>Review Event: APPROVE, REQUEST_CHANGES, or COMMENT.</summary>
