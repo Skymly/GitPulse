@@ -30,7 +30,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | 分页列表 | `Observable<ApiResponse<T[]>>` | `ListIssuesPaged`, `ListMyReposPaged` |
 | 单资源 GET | `Observable<T>` | `GetRepo`, `GetIssue` |
 | 写操作 | `Observable<T>` + `[Body]` | `CreateIssue`, `CreatePullRequest`, `MergePullRequest` |
-| 无 body DELETE | `Observable<Unit>` | `MarkThreadRead` |
+| 无 body PATCH | `Observable<Unit>` | `MarkThreadRead` |
 
 ## 里程碑 API 面（已实现）
 
