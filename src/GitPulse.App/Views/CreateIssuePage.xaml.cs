@@ -1,4 +1,5 @@
 using GitPulse.ViewModels;
+using R3;
 
 namespace GitPulse.App.Views;
 
@@ -12,43 +13,60 @@ namespace GitPulse.App.Views;
 public partial class CreateIssuePage : ContentPage
 {
     private readonly CreateIssueViewModel _viewModel;
+    private readonly IDisposable _createdSubscription;
     private string? _appliedQuery;
+    private bool _navigatingToDetail;
 
     public CreateIssuePage(CreateIssueViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
+
+        _createdSubscription = _viewModel.CreatedIssueNumber
+            .Where(n => n is not null)
+            .ObserveOnCurrentSynchronizationContext()
+            .Subscribe(n => _ = NavigateToCreatedIssueAsync(n!.Value));
     }
 
     public string OwnerQuery { get; set; } = string.Empty;
     public string RepoQuery { get; set; } = string.Empty;
 
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
 
         var owner = Uri.UnescapeDataString(OwnerQuery);
         var repo = Uri.UnescapeDataString(RepoQuery);
         var query = $"{owner}/{repo}";
-        if (_appliedQuery != query)
-        {
-            _appliedQuery = query;
-            IdentityLabel.Text = $"{owner}/{repo}";
-            if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
-            {
-                _viewModel.Initialize(owner, repo);
-            }
-        }
+        if (_appliedQuery == query)
+            return;
 
-        // Check if an issue was created since the last appearance.
-        if (_viewModel.CreatedIssueNumber.Value is int number)
+        _appliedQuery = query;
+        IdentityLabel.Text = $"{owner}/{repo}";
+        if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
         {
-            _viewModel.CreatedIssueNumber.Value = null;
+            _viewModel.Initialize(owner, repo);
+        }
+    }
+
+    private async Task NavigateToCreatedIssueAsync(int number)
+    {
+        if (_navigatingToDetail)
+            return;
+
+        _navigatingToDetail = true;
+        _viewModel.CreatedIssueNumber.Value = null;
+        try
+        {
             await AppNavigation.GoToAsync(
                 $"IssueDetailPage?owner={Uri.EscapeDataString(Uri.UnescapeDataString(OwnerQuery))}"
                 + $"&repo={Uri.EscapeDataString(Uri.UnescapeDataString(RepoQuery))}"
                 + $"&number={number}");
+        }
+        finally
+        {
+            _navigatingToDetail = false;
         }
     }
 
@@ -69,6 +87,6 @@ public partial class CreateIssuePage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
+        // Keep ViewModel alive: pages stay on the navigation stack and are reused on pop.
     }
 }
