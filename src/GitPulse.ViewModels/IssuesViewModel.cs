@@ -137,8 +137,7 @@ public sealed partial class IssuesViewModel : IDisposable
                 }
 
                 Issues.Clear();
-                foreach (var issue in result.Items)
-                    Issues.Add(issue);
+                AppendIssues(result.Items);
                 CanLoadMore.Value = result.HasNextPage;
                 if (!_reloadQueued)
                     break;
@@ -176,13 +175,27 @@ public sealed partial class IssuesViewModel : IDisposable
                 return;
             }
 
-            foreach (var issue in result.Items)
-                Issues.Add(issue);
+            AppendIssues(result.Items);
             CanLoadMore.Value = result.HasNextPage;
         }
         finally
         {
             IsLoading.Value = false;
+        }
+    }
+
+    /// <summary>
+    /// GitHub's issues list also returns pull requests. Drop those rows so
+    /// this page stays issues-only. The page cursor is unchanged, so a page
+    /// may show fewer items than <c>per_page</c>.
+    /// </summary>
+    private void AppendIssues(Issue[] items)
+    {
+        foreach (var issue in items)
+        {
+            if (issue.IsPullRequest)
+                continue;
+            Issues.Add(issue);
         }
     }
 
