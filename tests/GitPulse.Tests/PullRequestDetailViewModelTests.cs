@@ -123,13 +123,17 @@ public class PullRequestDetailViewModelTests
     [Fact]
     public async Task ToggleState_ChangesOpenToClosed()
     {
+        var prJson = PrJson(42, "open");
         var handler = new MockHttpHandler()
-            .When("/pulls/42", PrJson(42, "open"))
+            .When("/pulls/42", _ => new MockResponse(prJson))
             .When("/issues/42", req =>
             {
                 if (req.Method == HttpMethod.Patch)
+                {
+                    prJson = PrJson(42, "closed");
                     return new MockResponse(
                         $"{{\"number\":42,\"title\":\"PR 42\",\"state\":\"closed\"}}");
+                }
                 return new MockResponse("[]");
             })
             .When("/issues/42/comments", "[]");
@@ -149,13 +153,17 @@ public class PullRequestDetailViewModelTests
     [Fact]
     public async Task ToggleState_ChangesClosedToOpen()
     {
+        var prJson = PrJson(42, "closed");
         var handler = new MockHttpHandler()
-            .When("/pulls/42", PrJson(42, "closed"))
+            .When("/pulls/42", _ => new MockResponse(prJson))
             .When("/issues/42", req =>
             {
                 if (req.Method == HttpMethod.Patch)
+                {
+                    prJson = PrJson(42, "open");
                     return new MockResponse(
                         $"{{\"number\":42,\"title\":\"PR 42\",\"state\":\"open\"}}");
+                }
                 return new MockResponse("[]");
             })
             .When("/issues/42/comments", "[]");
@@ -267,13 +275,20 @@ public class PullRequestDetailViewModelTests
     [Fact]
     public async Task Merge_WithMergeablePR_UpdatesStateToMerged()
     {
+        var prJson = PrJson(42, "open", mergeable: true, mergeableState: "clean");
         var handler = new MockHttpHandler()
-            .When("/pulls/42", PrJson(42, "open", mergeable: true, mergeableState: "clean"))
+            .When("/pulls/42", _ => new MockResponse(prJson))
             .When("/pulls/42/merge", req =>
             {
                 if (req.Method == HttpMethod.Put)
+                {
+                    prJson = GitHubJson.PullRequest(
+                        42, "closed", merged: true, mergeable: false,
+                        headRef: "feature", baseRef: "main",
+                        mergeCommitSha: "abc123sha", mergedBy: "merger");
                     return new MockResponse(MergeJson("abc123sha", merged: true));
-                return new MockResponse(PrJson(42, "open", mergeable: true));
+                }
+                return new MockResponse(prJson);
             })
             .When("/issues/42/comments", "[]");
         var factory = new FakeGitHubClientFactory(handler);
@@ -297,18 +312,22 @@ public class PullRequestDetailViewModelTests
     public async Task Merge_WithSquashMethod_SendsSquashInRequest()
     {
         string? capturedMethod = null;
+        var prJson = PrJson(42, "open", mergeable: true, mergeableState: "clean");
         var handler = new MockHttpHandler()
-            .When("/pulls/42", PrJson(42, "open", mergeable: true, mergeableState: "clean"))
+            .When("/pulls/42", _ => new MockResponse(prJson))
             .When("/pulls/42/merge", req =>
             {
                 if (req.Method == HttpMethod.Put)
                 {
-                    // Read the request body to capture the merge method.
                     var bodyTask = req.Content?.ReadAsStringAsync();
                     capturedMethod = bodyTask?.Result ?? "";
+                    prJson = GitHubJson.PullRequest(
+                        42, "closed", merged: true, mergeable: false,
+                        headRef: "feature", baseRef: "main",
+                        mergeCommitSha: "squashsha", mergedBy: "merger");
                     return new MockResponse(MergeJson("squashsha", merged: true));
                 }
-                return new MockResponse(PrJson(42, "open", mergeable: true));
+                return new MockResponse(prJson);
             })
             .When("/issues/42/comments", "[]");
         var factory = new FakeGitHubClientFactory(handler);
