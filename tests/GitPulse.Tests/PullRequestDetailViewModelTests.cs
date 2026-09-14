@@ -10,24 +10,18 @@ public class PullRequestDetailViewModelTests
 {
     private static string PrJson(int number, string state = "open", bool draft = false, bool merged = false,
         bool? mergeable = null, string? mergeableState = null, int commits = 0, int additions = 0, int deletions = 0, int changedFiles = 0,
-        string? title = null, string body = "", string? headSha = null) =>
-        $"{{\"number\":{number},\"title\":\"{title ?? $"PR {number}"}\",\"state\":\"{state}\"," +
-        $"\"body\":\"{body}\"," +
-        $"\"draft\":{draft.ToString().ToLower()},\"merged\":{merged.ToString().ToLower()}," +
-        $"\"headRef\":\"feature\",\"baseRef\":\"main\"," +
-        (mergeable.HasValue ? $"\"mergeable\":{mergeable.Value.ToString().ToLower()}," : "") +
-        (mergeableState is not null ? $"\"mergeable_state\":\"{mergeableState}\"," : "") +
-        $"\"commits\":{commits},\"additions\":{additions},\"deletions\":{deletions},\"changed_files\":{changedFiles}," +
-        (headSha is not null ? $"\"head\":{{\"sha\":\"{headSha}\"}}," : "") +
-        $"\"user\":{{\"login\":\"bob\"}}}}";
+        string? title = null, string body = "", string? headSha = null, bool includeHeadSha = true) =>
+        GitHubJson.PullRequest(
+            number, state, draft, merged, mergeable, mergeableState,
+            commits, additions, deletions, changedFiles, title, body, headSha,
+            headRef: "feature", baseRef: "main", includeHeadSha: includeHeadSha);
 
     private static string MergeJson(string sha, bool merged = true) =>
         $"{{\"sha\":\"{sha}\",\"merged\":{merged.ToString().ToLower()}," +
         $"\"message\":\"Pull Request successfully merged\"}}";
 
     private static string CommentJson(int id, string body) =>
-        $"{{\"id\":{id},\"body\":\"{body}\",\"user\":{{\"login\":\"alice\"}}," +
-        $"\"created_at\":\"2025-01-01T00:00:00Z\"}}";
+        GitHubJson.Comment(id, body);
 
     [Fact]
     public void Initialize_SetsOwnerRepoAndPrNumber()
@@ -74,6 +68,11 @@ public class PullRequestDetailViewModelTests
         Assert.Equal("#42 PR 42", vm.Title.Value);
         Assert.Equal(2, vm.Comments.Count);
         Assert.Equal("Looks good", vm.Comments[0].Body);
+        Assert.Equal("feature", vm.PullRequest.Value.HeadRef);
+        Assert.Equal("main", vm.PullRequest.Value.BaseRef);
+        Assert.Equal("https://github.com/octocat/Hello-World/pull/42", vm.PullRequest.Value.HtmlUrl);
+        Assert.Equal(new DateTime(2011, 1, 26, 19, 1, 12, DateTimeKind.Utc), vm.PullRequest.Value.CreatedAt);
+        Assert.Equal(new DateTime(2011, 4, 14, 16, 0, 49, DateTimeKind.Utc), vm.Comments[0].CreatedAt);
         vm.Dispose();
     }
 
@@ -978,7 +977,7 @@ public class PullRequestDetailViewModelTests
     {
         var gateCalled = false;
         var handler = new MockHttpHandler()
-            .When("/pulls/42", PrJson(42, "open"))
+            .When("/pulls/42", PrJson(42, "open", includeHeadSha: false))
             .When("/issues/42/comments", "[]")
             .When("/user", UserJson("alice"))
             .When("/pulls/42/reviews", "[]")
@@ -1214,7 +1213,7 @@ public class PullRequestDetailViewModelTests
     }
 
     private static string PrJsonWithAssignees(string assigneesJson) =>
-        PrJson(42, "open")[..^1] + $",\"assignees\":{assigneesJson}}}";
+        GitHubJson.PullRequest(42, assigneesJson: assigneesJson, headRef: "feature", baseRef: "main");
 
     [Fact]
     public async Task Load_PopulatesAssigneesFromPullPayload()
@@ -1330,7 +1329,7 @@ public class PullRequestDetailViewModelTests
     }
 
     private static string PrJsonWithLabels(string labelsJson) =>
-        PrJson(42, "open")[..^1] + $",\"labels\":{labelsJson}}}";
+        GitHubJson.PullRequest(42, labelsJson: labelsJson, headRef: "feature", baseRef: "main");
 
     [Fact]
     public async Task Load_PopulatesLabelsFromPullPayload()

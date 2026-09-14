@@ -12,17 +12,11 @@ public class IssueDetailViewModelCrudTests
         int number,
         string state = "open",
         string? body = "body",
-        string assigneesJson = "[]")
-    {
-        var issueBody = body ?? "";
-        return $$"""
-            {"number":{{number}},"title":"Issue {{number}}","state":"{{state}}","body":"{{issueBody}}","user":{"login":"alice"},"labels":[],"assignees":{{assigneesJson}}}
-            """.Trim();
-    }
+        string assigneesJson = "[]") =>
+        GitHubJson.Issue(number, state, body, assigneesJson: assigneesJson);
 
     private static string CommentJson(int id, string body) =>
-        $"{{\"id\":{id},\"body\":\"{body}\",\"user\":{{\"login\":\"bob\"}}," +
-        $"\"created_at\":\"2025-01-01T00:00:00Z\"}}";
+        GitHubJson.Comment(id, body, login: "bob");
 
     /// <summary>
     /// POST /repos/.../issues/{number}/comments returns the created comment.
@@ -125,6 +119,9 @@ public class IssueDetailViewModelCrudTests
         Assert.Equal("#42 Issue 42", vm.Title.Value);
         Assert.Equal(2, vm.Comments.Count);
         Assert.Equal("First", vm.Comments[0].Body);
+        Assert.Equal("https://github.com/octocat/Hello-World/issues/42", vm.Issue.Value.HtmlUrl);
+        Assert.Equal(new DateTime(2011, 1, 26, 19, 1, 12, DateTimeKind.Utc), vm.Issue.Value.CreatedAt);
+        Assert.Equal(new DateTime(2011, 4, 14, 16, 0, 49, DateTimeKind.Utc), vm.Comments[0].CreatedAt);
         vm.Dispose();
     }
 
@@ -146,11 +143,9 @@ public class IssueDetailViewModelCrudTests
     [Fact]
     public async Task Load_PopulatesLabelsFromIssuePayload()
     {
-        var issueJsonWithLabels =
-            $"{{\"number\":42,\"title\":\"Issue 42\",\"state\":\"open\"," +
-            $"\"body\":\"body\",\"user\":{{\"login\":\"alice\"}}," +
-            $"\"labels\":[{{\"name\":\"bug\",\"color\":\"ff0000\"}}," +
-            $"{{\"name\":\"help\",\"color\":\"00ff00\"}}]}}";
+        var issueJsonWithLabels = GitHubJson.Issue(
+            42,
+            labelsJson: "[{\"name\":\"bug\",\"color\":\"ff0000\"},{\"name\":\"help\",\"color\":\"00ff00\"}]");
         var handler = new MockHttpHandler()
             .When("/issues/42", issueJsonWithLabels)
             .When("/issues/42/comments", "[]");

@@ -9,11 +9,14 @@ public class PullRequestsViewModelTests
     private static string PrsJson(params (string state, bool draft, bool merged)[] prs)
     {
         var items = prs.Select((p, i) =>
-            $"{{\"number\":{i + 100},\"title\":\"PR {i + 1}\",\"state\":\"{p.state}\"," +
-            $"\"draft\":{p.draft.ToString().ToLower()}," +
-            $"\"merged\":{p.merged.ToString().ToLower()}," +
-            $"\"headRef\":\"feature-{i + 1}\",\"baseRef\":\"main\"," +
-            $"\"user\":{{\"login\":\"bob\"}}}}");
+            GitHubJson.PullRequest(
+                number: i + 100,
+                state: p.state,
+                draft: p.draft,
+                merged: p.merged,
+                title: $"PR {i + 1}",
+                headRef: $"feature-{i + 1}",
+                baseRef: "main"));
         return $"[{string.Join(",", items)}]";
     }
 
@@ -51,6 +54,9 @@ public class PullRequestsViewModelTests
         Assert.Equal(3, vm.PullRequests.Count);
         Assert.True(vm.CanLoadMore.Value);
         Assert.True(vm.PullRequests[2].Draft);
+        Assert.Equal("feature-1", vm.PullRequests[0].HeadRef);
+        Assert.Equal("main", vm.PullRequests[0].BaseRef);
+        Assert.Equal("https://github.com/octocat/Hello-World/pull/100", vm.PullRequests[0].HtmlUrl);
         vm.Dispose();
     }
 
