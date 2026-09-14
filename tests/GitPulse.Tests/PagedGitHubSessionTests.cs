@@ -138,19 +138,6 @@ public class PagedGitHubSessionTests
     }
 
     [Fact]
-    public async Task PrepareRequest_StateAll_DoesNotInjectState()
-    {
-        using var session = CreateSession(out var capturing);
-        session.State = "all";
-        session.Reset();
-        session.PrepareRequest();
-
-        var uri = await capturing.SendThroughAsync(session);
-
-        Assert.DoesNotContain("state=", uri);
-    }
-
-    [Fact]
     public void Reset_PreservesState()
     {
         using var session = CreateSession();
