@@ -18,7 +18,10 @@
 		<!-- App Identifier -->
 		<ApplicationId>com.skymly.gitpulse</ApplicationId>
 
-		<!-- Versions (overridden by MinVer at build time for assembly/version metadata) -->
+		<!-- 0.1.0 is the design-time / format fallback (MinVer skips when
+		     DesignTimeBuild=true, which would otherwise yield ".."). Real
+		     builds overwrite this after MinVer. ApplicationVersion is the
+		     integer Android versionCode / Windows package revision. -->
 		<ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
@@ -60,7 +63,7 @@
 		<PackageReference Include="Observables.Events.R3" Version="0.1.5" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
-		<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
+		<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" Condition="$(TargetFramework.Contains('windows'))" />
 		<PackageReference Include="H.NotifyIcon.WinUI" Version="2.4.1" Condition="$(TargetFramework.Contains('windows'))" />
 	</ItemGroup>
 
@@ -70,5 +73,26 @@
 		<ProjectReference Include="..\GitPulse.Services\GitPulse.Services.csproj" />
 		<ProjectReference Include="..\GitPulse.ViewModels\GitPulse.ViewModels.csproj" />
 	</ItemGroup>
+
+	<!-- MinVer runs before compile. MAUI writes ApplicationDisplayVersion into
+	     the Windows Appx manifest and Android versionName earlier than that,
+	     so pull MinVer in as a dependency of those targets. Use major.minor.patch
+	     only: Windows Identity Version cannot carry a SemVer prerelease label. -->
+	<PropertyGroup>
+		<MauiGeneratePackageAppxManifestDependsOnTargets>
+			MinVer;
+			SetApplicationDisplayVersionFromMinVer;
+			$(MauiGeneratePackageAppxManifestDependsOnTargets)
+		</MauiGeneratePackageAppxManifestDependsOnTargets>
+	</PropertyGroup>
+	<Target Name="SetApplicationDisplayVersionFromMinVer"
+	        DependsOnTargets="MinVer"
+	        BeforeTargets="MauiGeneratePackageAppxManifest;_GetAndroidPackageName">
+		<!-- Target Condition is evaluated before DependsOnTargets. MinVer skips
+		     DesignTimeBuild (dotnet format), so keep the 0.1.0 fallback then. -->
+		<PropertyGroup Condition="'$(MinVerMajor)' != ''">
+			<ApplicationDisplayVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch)</ApplicationDisplayVersion>
+		</PropertyGroup>
+	</Target>
 
 </Project>
