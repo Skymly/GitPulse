@@ -45,6 +45,7 @@ public class GitHubWireFormatTests
         Assert.Equal(new DateTime(2011, 4, 22, 13, 33, 48, DateTimeKind.Utc), issue.CreatedAt);
         Assert.Equal("https://github.com/octocat/Hello-World/pull/1347", issue.PullRequestRef?.HtmlUrl);
         Assert.Equal("https://github.com/octocat/Hello-World/pull/1347.diff", issue.PullRequestRef?.DiffUrl);
+        Assert.True(issue.IsPullRequest);
     }
 
     [Fact]

@@ -34,6 +34,7 @@ public class IssueModelTests
 
         Assert.NotNull(issue.PullRequestRef);
         Assert.Equal("https://github.com/owner/repo/pull/10", issue.PullRequestRef.HtmlUrl);
+        Assert.True(issue.IsPullRequest);
     }
 
     [Fact]

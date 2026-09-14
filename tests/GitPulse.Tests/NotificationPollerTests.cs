@@ -1,17 +1,28 @@
+using System.Net;
 using GitPulse.Core.Models;
-using GitPulse.Tests.TestHelpers;
 using GitPulse.Services;
+using GitPulse.Tests.TestHelpers;
+using Microsoft.Extensions.Time.Testing;
 using Xunit;
 
 namespace GitPulse.Tests;
 
 public class NotificationPollerTests
 {
+    private static string NotificationsJson(string id = "1") =>
+        "[{\"id\":\"" + id + "\",\"unread\":true,\"reason\":\"mention\"," +
+        "\"updated_at\":\"2025-01-01T00:00:00Z\"," +
+        "\"url\":\"https://api.github.com/notifications/threads/" + id + "\"," +
+        "\"subject\":{\"title\":\"Test issue\",\"type\":\"Issue\"," +
+        "\"url\":\"https://api.github.com/repos/o/r/issues/1\"}," +
+        "\"repository\":{\"id\":1,\"name\":\"r\",\"full_name\":\"o/r\"," +
+        "\"html_url\":\"https://github.com/o/r\"}}]";
+
     [Fact]
     public void Start_SetsIsPollingTrue()
     {
         var factory = new FakeGitHubClientFactory(new MockHttpHandler());
-        var poller = new NotificationPoller(factory);
+        using var poller = new NotificationPoller(factory);
 
         bool? isPollingChanged = null;
         poller.IsPollingChanged += v => isPollingChanged = v;
@@ -26,7 +37,7 @@ public class NotificationPollerTests
     public void Stop_SetsIsPollingFalse()
     {
         var factory = new FakeGitHubClientFactory(new MockHttpHandler());
-        var poller = new NotificationPoller(factory);
+        using var poller = new NotificationPoller(factory);
 
         poller.Start();
         bool? isPollingChanged = null;
@@ -42,10 +53,10 @@ public class NotificationPollerTests
     public void Start_CalledTwice_DoesNotRestart()
     {
         var factory = new FakeGitHubClientFactory(new MockHttpHandler());
-        var poller = new NotificationPoller(factory);
+        using var poller = new NotificationPoller(factory);
 
         poller.Start();
-        poller.Start(); // Should be a no-op
+        poller.Start();
 
         Assert.True(poller.IsPolling);
     }
@@ -54,9 +65,9 @@ public class NotificationPollerTests
     public void Stop_WhenNotPolling_IsNoOp()
     {
         var factory = new FakeGitHubClientFactory(new MockHttpHandler());
-        var poller = new NotificationPoller(factory);
+        using var poller = new NotificationPoller(factory);
 
-        poller.Stop(); // Should not throw
+        poller.Stop();
 
         Assert.False(poller.IsPolling);
     }
@@ -66,7 +77,7 @@ public class NotificationPollerTests
     {
         var handler = new MockHttpHandler();
         var factory = new FakeGitHubClientFactory(handler, token: null);
-        var poller = new NotificationPoller(factory);
+        using var poller = new NotificationPoller(factory);
 
         Notification[]? received = null;
         int? receivedUnread = null;
@@ -82,24 +93,15 @@ public class NotificationPollerTests
         Assert.Empty(received!);
         Assert.Equal(0, receivedUnread);
         Assert.Equal(0, poller.UnreadCount);
-        poller.Dispose();
     }
 
     [Fact]
     public async Task RefreshAsync_WithToken_FiresNotificationsFromApi()
     {
-        var notificationsJson =
-            "[{\"id\":\"1\",\"unread\":true,\"reason\":\"mention\"," +
-            "\"updated_at\":\"2025-01-01T00:00:00Z\"," +
-            "\"url\":\"https://api.github.com/notifications/threads/1\"," +
-            "\"subject\":{\"title\":\"Test issue\",\"type\":\"Issue\"," +
-            "\"url\":\"https://api.github.com/repos/o/r/issues/1\"}," +
-            "\"repository\":{\"id\":1,\"name\":\"r\",\"full_name\":\"o/r\"," +
-            "\"html_url\":\"https://github.com/o/r\"}}]";
         var handler = new MockHttpHandler()
-            .When("/notifications", notificationsJson);
+            .When("/notifications", NotificationsJson());
         var factory = new FakeGitHubClientFactory(handler);
-        var poller = new NotificationPoller(factory);
+        using var poller = new NotificationPoller(factory);
 
         Notification[]? received = null;
         int? receivedUnread = null;
@@ -120,25 +122,22 @@ public class NotificationPollerTests
         Assert.Equal("o/r", received[0].Repository.FullName);
         Assert.Equal(1, receivedUnread);
         Assert.Equal(1, poller.UnreadCount);
-        poller.Dispose();
     }
 
     [Fact]
     public async Task RefreshAsync_WithApiError_DoesNotFireEvent()
     {
-        // No mock route → 404 → exception caught internally.
         var handler = new MockHttpHandler();
         var factory = new FakeGitHubClientFactory(handler);
-        var poller = new NotificationPoller(factory);
+        using var poller = new NotificationPoller(factory);
 
-        bool fired = false;
+        var fired = false;
         poller.NotificationsUpdated += (_, _) => fired = true;
 
         await poller.RefreshAsync();
 
-        // The 404 causes an exception which is caught — no event fired.
         Assert.False(fired);
-        poller.Dispose();
+        Assert.NotNull(poller.LastError);
     }
 
     [Fact]
@@ -157,10 +156,101 @@ public class NotificationPollerTests
     public void PollInterval_DefaultIs60Seconds()
     {
         var factory = new FakeGitHubClientFactory(new MockHttpHandler());
-        var poller = new NotificationPoller(factory);
+        using var poller = new NotificationPoller(factory);
 
         Assert.Equal(TimeSpan.FromSeconds(60), poller.PollInterval);
-        poller.Dispose();
+    }
+
+    [Fact]
+    public async Task Start_WithFakeTime_PollsImmediatelyThenOnEachInterval()
+    {
+        var polls = 0;
+        var handler = new MockHttpHandler()
+            .When("/notifications", _ =>
+            {
+                polls++;
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var time = new FakeTimeProvider();
+        using var poller = new NotificationPoller(factory, time);
+        poller.PollInterval = TimeSpan.FromSeconds(10);
+
+        poller.Start();
+        await AsyncTestWait.UntilAsync(() => polls == 1);
+
+        time.Advance(TimeSpan.FromSeconds(10));
+        await AsyncTestWait.UntilAsync(() => polls == 2);
+
+        time.Advance(TimeSpan.FromSeconds(10));
+        await AsyncTestWait.UntilAsync(() => polls == 3);
+    }
+
+    [Fact]
+    public async Task Start_Unauthorized_SetsLastErrorAndSkipsUntilBackoff()
+    {
+        var polls = 0;
+        var handler = new MockHttpHandler()
+            .When("/notifications", _ =>
+            {
+                polls++;
+                return new MockResponse(
+                    "{\"message\":\"Bad credentials\"}",
+                    StatusCode: HttpStatusCode.Unauthorized,
+                    AttachRequest: true);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var time = new FakeTimeProvider();
+        using var poller = new NotificationPoller(factory, time);
+        poller.PollInterval = TimeSpan.FromSeconds(10);
+
+        string? lastError = null;
+        poller.LastErrorChanged += e => lastError = e;
+        var fired = false;
+        poller.NotificationsUpdated += (_, _) => fired = true;
+
+        poller.Start();
+        await AsyncTestWait.UntilAsync(() => polls == 1 && lastError is not null);
+
+        Assert.False(fired);
+        Assert.Contains("401", lastError, StringComparison.Ordinal);
+
+        time.Advance(TimeSpan.FromSeconds(10));
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+        Assert.Equal(1, polls);
+
+        time.Advance(TimeSpan.FromSeconds(20));
+        await AsyncTestWait.UntilAsync(() => polls == 2);
+    }
+
+    [Fact]
+    public async Task Start_HonoursRetryAfterBeforeNextPoll()
+    {
+        var polls = 0;
+        var handler = new MockHttpHandler()
+            .When("/notifications", _ =>
+            {
+                polls++;
+                return new MockResponse(
+                    "{\"message\":\"API rate limit exceeded\"}",
+                    StatusCode: HttpStatusCode.Forbidden,
+                    AttachRequest: true,
+                    RetryAfter: "30");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var time = new FakeTimeProvider();
+        using var poller = new NotificationPoller(factory, time);
+        poller.PollInterval = TimeSpan.FromSeconds(10);
+
+        poller.Start();
+        await AsyncTestWait.UntilAsync(() => polls == 1 && poller.LastError is not null);
+
+        time.Advance(TimeSpan.FromSeconds(20));
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+        Assert.Equal(1, polls);
+
+        time.Advance(TimeSpan.FromSeconds(15));
+        await AsyncTestWait.UntilAsync(() => polls == 2);
     }
 }
 
