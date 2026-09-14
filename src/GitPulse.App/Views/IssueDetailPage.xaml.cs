@@ -14,7 +14,7 @@ public partial class IssueDetailPage : ContentPage
 {
     private const double WideBreakpoint = 840;
     private readonly IssueDetailViewModel _viewModel;
-    private bool _loaded;
+    private string? _appliedQuery;
     private bool _conversationWide;
     private bool _conversationLayoutReady;
     private double _lastWidth;
@@ -43,16 +43,17 @@ public partial class IssueDetailPage : ContentPage
     {
         base.OnAppearing();
 
-        if (!_loaded)
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        var query = $"{owner}/{repo}/{NumberQuery}";
+        if (_appliedQuery == query)
+            return;
+
+        _appliedQuery = query;
+        if (int.TryParse(NumberQuery, out var number))
         {
-            _loaded = true;
-            var owner = Uri.UnescapeDataString(OwnerQuery);
-            var repo = Uri.UnescapeDataString(RepoQuery);
-            if (int.TryParse(NumberQuery, out var number))
-            {
-                _viewModel.Initialize(owner, repo, number);
-                _ = _viewModel.LoadCommand.ExecuteAsync(null);
-            }
+            _viewModel.Initialize(owner, repo, number);
+            _ = _viewModel.LoadCommand.ExecuteAsync(null);
         }
     }
 

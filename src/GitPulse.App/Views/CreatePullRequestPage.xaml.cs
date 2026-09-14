@@ -14,7 +14,7 @@ public partial class CreatePullRequestPage : ContentPage
 {
     private readonly CreatePullRequestViewModel _viewModel;
     private readonly IDisposable _createdSubscription;
-    private bool _initialized;
+    private string? _appliedQuery;
     private bool _navigatingToDetail;
 
     public CreatePullRequestPage(CreatePullRequestViewModel viewModel)
@@ -38,17 +38,18 @@ public partial class CreatePullRequestPage : ContentPage
     {
         base.OnAppearing();
 
-        if (!_initialized)
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        var query = $"{owner}/{repo}";
+        if (_appliedQuery == query)
+            return;
+
+        _appliedQuery = query;
+        IdentityLabel.Text = $"{owner}/{repo}";
+        if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
         {
-            _initialized = true;
-            var owner = Uri.UnescapeDataString(OwnerQuery);
-            var repo = Uri.UnescapeDataString(RepoQuery);
-            IdentityLabel.Text = $"{owner}/{repo}";
-            if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
-            {
-                _viewModel.Initialize(owner, repo);
-                await _viewModel.LoadBranchesCommand.ExecuteAsync(null);
-            }
+            _viewModel.Initialize(owner, repo);
+            await _viewModel.LoadBranchesCommand.ExecuteAsync(null);
         }
     }
 

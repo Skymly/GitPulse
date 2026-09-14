@@ -15,7 +15,7 @@ namespace GitPulse.App.Views;
 public partial class FileBrowserPage : ContentPage
 {
     private readonly FileBrowserViewModel _viewModel;
-    private bool _loaded;
+    private string? _appliedQuery;
 
     public FileBrowserPage(FileBrowserViewModel viewModel)
     {
@@ -32,17 +32,18 @@ public partial class FileBrowserPage : ContentPage
     {
         base.OnAppearing();
 
-        if (!_loaded)
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        var path = Uri.UnescapeDataString(PathQuery);
+        var query = $"{owner}/{repo}/{path}";
+        if (_appliedQuery == query)
+            return;
+
+        _appliedQuery = query;
+        if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
         {
-            _loaded = true;
-            var owner = Uri.UnescapeDataString(OwnerQuery);
-            var repo = Uri.UnescapeDataString(RepoQuery);
-            var path = Uri.UnescapeDataString(PathQuery);
-            if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
-            {
-                _viewModel.Initialize(owner, repo, path);
-                _ = _viewModel.LoadCommand.ExecuteAsync(null);
-            }
+            _viewModel.Initialize(owner, repo, path);
+            _ = _viewModel.LoadCommand.ExecuteAsync(null);
         }
     }
 

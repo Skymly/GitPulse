@@ -11,7 +11,7 @@ namespace GitPulse.App.Views;
 public partial class WorkflowRunDetailPage : ContentPage
 {
     private readonly WorkflowRunDetailViewModel _viewModel;
-    private bool _loaded;
+    private string? _appliedQuery;
 
     public WorkflowRunDetailPage(WorkflowRunDetailViewModel viewModel)
     {
@@ -28,18 +28,19 @@ public partial class WorkflowRunDetailPage : ContentPage
     {
         base.OnAppearing();
 
-        if (!_loaded)
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        var query = $"{owner}/{repo}/{RunIdQuery}";
+        if (_appliedQuery == query)
+            return;
+
+        _appliedQuery = query;
+        if (long.TryParse(RunIdQuery, out var runId)
+            && !string.IsNullOrEmpty(owner)
+            && !string.IsNullOrEmpty(repo))
         {
-            _loaded = true;
-            var owner = Uri.UnescapeDataString(OwnerQuery);
-            var repo = Uri.UnescapeDataString(RepoQuery);
-            if (long.TryParse(RunIdQuery, out var runId)
-                && !string.IsNullOrEmpty(owner)
-                && !string.IsNullOrEmpty(repo))
-            {
-                _viewModel.Initialize(owner, repo, runId);
-                _ = _viewModel.LoadCommand.ExecuteAsync(null);
-            }
+            _viewModel.Initialize(owner, repo, runId);
+            _ = _viewModel.LoadCommand.ExecuteAsync(null);
         }
     }
 

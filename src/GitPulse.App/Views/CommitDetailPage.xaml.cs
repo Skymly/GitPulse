@@ -14,7 +14,7 @@ public partial class CommitDetailPage : ContentPage
 {
     private const double WideBreakpoint = 840;
     private readonly CommitDetailViewModel _viewModel;
-    private bool _loaded;
+    private string? _appliedQuery;
     private bool _filesStacked;
     private bool _showingStackedDiff;
     private bool _filesLayoutReady;
@@ -56,17 +56,18 @@ public partial class CommitDetailPage : ContentPage
     {
         base.OnAppearing();
 
-        if (!_loaded)
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        var sha = Uri.UnescapeDataString(ShaQuery);
+        var query = $"{owner}/{repo}/{sha}";
+        if (_appliedQuery == query)
+            return;
+
+        _appliedQuery = query;
+        if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(sha))
         {
-            _loaded = true;
-            var owner = Uri.UnescapeDataString(OwnerQuery);
-            var repo = Uri.UnescapeDataString(RepoQuery);
-            var sha = Uri.UnescapeDataString(ShaQuery);
-            if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(sha))
-            {
-                _viewModel.Initialize(owner, repo, sha);
-                _ = _viewModel.LoadCommand.ExecuteAsync(null);
-            }
+            _viewModel.Initialize(owner, repo, sha);
+            _ = _viewModel.LoadCommand.ExecuteAsync(null);
         }
     }
 

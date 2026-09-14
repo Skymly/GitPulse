@@ -9,7 +9,7 @@ namespace GitPulse.App.Views;
 public partial class CheckRunDetailPage : ContentPage
 {
     private readonly CheckRunDetailViewModel _viewModel;
-    private bool _loaded;
+    private string? _appliedQuery;
 
     public CheckRunDetailPage(CheckRunDetailViewModel viewModel)
     {
@@ -26,13 +26,15 @@ public partial class CheckRunDetailPage : ContentPage
     {
         base.OnAppearing();
 
-        if (_loaded)
-            return;
-
-        _loaded = true;
         var owner = Uri.UnescapeDataString(OwnerQuery);
         var repo = Uri.UnescapeDataString(RepoQuery);
-        if (long.TryParse(Uri.UnescapeDataString(CheckRunIdQuery), out var id)
+        var checkRunId = Uri.UnescapeDataString(CheckRunIdQuery);
+        var query = $"{owner}/{repo}/{checkRunId}";
+        if (_appliedQuery == query)
+            return;
+
+        _appliedQuery = query;
+        if (long.TryParse(checkRunId, out var id)
             && !string.IsNullOrEmpty(owner)
             && !string.IsNullOrEmpty(repo)
             && id > 0)
