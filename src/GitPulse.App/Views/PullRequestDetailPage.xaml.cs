@@ -1,3 +1,4 @@
+using GitPulse.App.Services;
 using GitPulse.Core.Models;
 using GitPulse.ViewModels;
 
@@ -115,13 +116,12 @@ public partial class PullRequestDetailPage : ContentPage
         if (pr is null)
             return;
 
-        // Cancel is the accept/default so Enter does not merge.
-        var cancelled = await DisplayAlertAsync(
+        var confirmed = await DestructiveConfirm.ShowAsync(
+            this,
             "Merge pull request?",
             $"#{pr.Number} {pr.Title}\nMethod: {_viewModel.MergeMethod.Value}",
-            "Cancel",
             "Merge");
-        if (!cancelled)
+        if (confirmed)
             await _viewModel.MergeCommand.ExecuteAsync(null);
     }
 
