@@ -306,8 +306,8 @@ public interface IGitHubReposApi
     [Get("/notifications")]
     Observable<Notification[]> ListNotifications();
 
-    /// <summary>Mark a single notification thread as read (DELETE).</summary>
-    [Delete("/notifications/threads/{threadId}")]
+    /// <summary>Mark a single notification thread as read (PATCH).</summary>
+    [Patch("/notifications/threads/{threadId}")]
     Observable<Unit> MarkThreadRead(string threadId);
 
     /// <summary>Mark all notifications as read (PUT).</summary>
