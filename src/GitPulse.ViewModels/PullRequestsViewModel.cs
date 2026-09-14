@@ -54,7 +54,7 @@ public sealed partial class PullRequestsViewModel : IDisposable
     public PullRequestsViewModel(IGitHubClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
-        _cycle = new PagedListCycle(clientFactory);
+        _cycle = new PagedListCycle(clientFactory, OnCredentialsInvalidated);
         StateFilter.Subscribe(OnStateChanged).AddTo(_disposables);
     }
 
@@ -85,6 +85,13 @@ public sealed partial class PullRequestsViewModel : IDisposable
         }
 
         _ = LoadCommand.ExecuteAsync(null);
+    }
+
+    private void OnCredentialsInvalidated()
+    {
+        _reloadQueued = false;
+        PullRequests.Clear();
+        CanLoadMore.Value = false;
     }
 
     [RelayCommand]
@@ -168,6 +175,7 @@ public sealed partial class PullRequestsViewModel : IDisposable
 
     public void Dispose()
     {
+        _cycle.Dispose();
         _disposables.Dispose();
         StateFilter.Dispose();
         IsLoading.Dispose();
@@ -176,6 +184,5 @@ public sealed partial class PullRequestsViewModel : IDisposable
         RepoFullName.Dispose();
         Owner.Dispose();
         RepoName.Dispose();
-        _cycle.Dispose();
     }
 }

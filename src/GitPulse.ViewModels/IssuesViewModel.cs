@@ -22,7 +22,8 @@ namespace GitPulse.ViewModels;
 /// The ViewModel creates a fresh <see cref="PagedGitHubSession"/> on each load
 /// (so credential changes are picked up) and holds it so that page cursor and
 /// <c>State</c> persist between the initial load and subsequent "load more"
-/// requests. The session writes these values onto
+/// requests. Clearing or replacing the PAT invalidates the held session so
+/// Load more cannot reuse the previous Bearer. The session writes these values onto
 /// <see cref="GitHubQueryHandler"/> at the HTTP layer, working around the
 /// Observables OBS3004 limitation that prevents <c>[Query]</c> parameters on
 /// declarative interface methods with path parameters.
@@ -65,7 +66,7 @@ public sealed partial class IssuesViewModel : IDisposable
     public IssuesViewModel(IGitHubClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
-        _cycle = new PagedListCycle(clientFactory);
+        _cycle = new PagedListCycle(clientFactory, OnCredentialsInvalidated);
         StateFilter.Subscribe(OnStateChanged).AddTo(_disposables);
     }
 
@@ -96,6 +97,13 @@ public sealed partial class IssuesViewModel : IDisposable
         }
 
         _ = LoadCommand.ExecuteAsync(null);
+    }
+
+    private void OnCredentialsInvalidated()
+    {
+        _reloadQueued = false;
+        Issues.Clear();
+        CanLoadMore.Value = false;
     }
 
     /// <summary>Initial load (page 1) or reload after filter change.</summary>
@@ -180,6 +188,7 @@ public sealed partial class IssuesViewModel : IDisposable
 
     public void Dispose()
     {
+        _cycle.Dispose();
         _disposables.Dispose();
         StateFilter.Dispose();
         IsLoading.Dispose();
@@ -188,6 +197,5 @@ public sealed partial class IssuesViewModel : IDisposable
         RepoFullName.Dispose();
         Owner.Dispose();
         RepoName.Dispose();
-        _cycle.Dispose();
     }
 }

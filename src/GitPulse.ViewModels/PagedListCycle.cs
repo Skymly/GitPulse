@@ -9,15 +9,27 @@ namespace GitPulse.ViewModels;
 /// token check, PrepareRequest, 30s timeout, ApplyLink, CanLoadMore.
 /// List ViewModels map domain items and filters only.
 /// A generation counter drops stale Load / Load more responses when a newer
-/// request has already replaced the session.
+/// request has already replaced the session. Credential invalidation disposes
+/// the held session so Load more cannot reuse an old Bearer.
 /// </summary>
-internal sealed class PagedListCycle(IGitHubClientFactory factory) : IDisposable
+internal sealed class PagedListCycle : IDisposable
 {
     private const int TimeoutSeconds = 30;
+    private readonly IGitHubClientFactory _factory;
+    private readonly Action? _onInvalidated;
+    private readonly Action _drop;
     private PagedGitHubSession? _session;
     private int _generation;
     private CancellationTokenSource _abort = new();
     private CancellationTokenSource? _runCts;
+
+    public PagedListCycle(IGitHubClientFactory factory, Action? onInvalidated = null)
+    {
+        _factory = factory;
+        _onInvalidated = onInvalidated;
+        _drop = OnCredentialsInvalidated;
+        CredentialEpoch.For(factory).Invalidated += _drop;
+    }
 
     public bool HasSession => _session is not null;
 
@@ -39,7 +51,7 @@ internal sealed class PagedListCycle(IGitHubClientFactory factory) : IDisposable
         PagedGitHubSession session;
         try
         {
-            session = await factory.CreatePagedSessionAsync(token);
+            session = await _factory.CreatePagedSessionAsync(token);
         }
         catch (OperationCanceledException)
         {
@@ -80,8 +92,22 @@ internal sealed class PagedListCycle(IGitHubClientFactory factory) : IDisposable
 
     public void Dispose()
     {
+        CredentialEpoch.For(_factory).Invalidated -= _drop;
+        DropSession();
+        _abort.Dispose();
+    }
+
+    private void OnCredentialsInvalidated()
+    {
+        DropSession();
+        _onInvalidated?.Invoke();
+    }
+
+    private void DropSession()
+    {
         _abort.Cancel();
         _abort.Dispose();
+        _abort = new CancellationTokenSource();
         _runCts?.Dispose();
         _runCts = null;
         _session?.Dispose();

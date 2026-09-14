@@ -60,7 +60,7 @@ public sealed partial class ReposViewModel : IDisposable
     public ReposViewModel(IGitHubClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
-        _cycle = new PagedListCycle(clientFactory);
+        _cycle = new PagedListCycle(clientFactory, OnCredentialsInvalidated);
 
         FilteredRepos = new ReadOnlyObservableCollection<Repo>(Repos);
 
@@ -97,8 +97,16 @@ public sealed partial class ReposViewModel : IDisposable
 
     private async Task CheckAuthAsync()
     {
-        var client = await _clientFactory.CreateClientAsync();
-        IsAuthenticated.Value = client.DefaultRequestHeaders.Authorization is not null;
+        using var scope = await _clientFactory.OpenAsync();
+        IsAuthenticated.Value = scope.Client.DefaultRequestHeaders.Authorization is not null;
+    }
+
+    private void OnCredentialsInvalidated()
+    {
+        CanLoadMore.Value = false;
+        _allRepos.Clear();
+        ApplyFilter(SearchText.Value);
+        _ = CheckAuthAsync();
     }
 
     [RelayCommand]
@@ -195,6 +203,7 @@ public sealed partial class ReposViewModel : IDisposable
 
     public void Dispose()
     {
+        _cycle.Dispose();
         _disposables.Dispose();
         SearchText.Dispose();
         IsLoading.Dispose();
@@ -202,6 +211,5 @@ public sealed partial class ReposViewModel : IDisposable
         CanLoadMore.Dispose();
         ErrorMessage.Dispose();
         SelectedHub.Dispose();
-        _cycle.Dispose();
     }
 }

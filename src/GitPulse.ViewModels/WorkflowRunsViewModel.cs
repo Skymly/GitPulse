@@ -36,7 +36,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
     public WorkflowRunsViewModel(IGitHubClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
-        _cycle = new PagedListCycle(clientFactory);
+        _cycle = new PagedListCycle(clientFactory, OnCredentialsInvalidated);
     }
 
     public void Initialize(string owner, string repo)
@@ -46,6 +46,12 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
         Owner.Value = owner;
         RepoName.Value = repo;
         RepoFullName.Value = $"{owner}/{repo}";
+    }
+
+    private void OnCredentialsInvalidated()
+    {
+        Runs.Clear();
+        CanLoadMore.Value = false;
     }
 
     [RelayCommand]
@@ -212,6 +218,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
 
     public void Dispose()
     {
+        _cycle.Dispose();
         IsLoading.Dispose();
         CanLoadMore.Dispose();
         ErrorMessage.Dispose();
@@ -221,6 +228,5 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
         SelectedWorkflow.Dispose();
         DispatchRef.Dispose();
         IsDispatching.Dispose();
-        _cycle.Dispose();
     }
 }
