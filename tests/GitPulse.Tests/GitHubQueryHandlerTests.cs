@@ -73,6 +73,16 @@ public class GitHubQueryHandlerTests
     }
 
     [Fact]
+    public async Task SendAsync_StateAll_InjectsStateParam()
+    {
+        var handler = new GitHubQueryHandler(new CapturingHandler()) { State = "all" };
+
+        var uri = await SendAsync(handler, "https://api.github.com/repos/o/r/issues");
+
+        Assert.Contains("state=all", uri);
+    }
+
+    [Fact]
     public async Task SendAsync_StateNull_DoesNotInjectStateParam()
     {
         var handler = new GitHubQueryHandler(new CapturingHandler()) { State = null };

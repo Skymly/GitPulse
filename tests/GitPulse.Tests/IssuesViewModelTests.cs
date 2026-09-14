@@ -192,6 +192,30 @@ public class IssuesViewModelTests
     }
 
     [Fact]
+    public async Task StateFilter_All_SendsStateAll()
+    {
+        string? lastQuery = null;
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", req =>
+            {
+                lastQuery = req.RequestUri?.Query;
+                return new MockResponse(IssuesJson("open", "closed"), LinkNoNext);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Contains("state=open", lastQuery);
+
+        vm.StateFilter.Value = "all";
+        await AsyncTestWait.UntilAsync(() => lastQuery?.Contains("state=all") == true);
+
+        Assert.Contains("state=all", lastQuery);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task LoadMore_WhileLoading_ReturnsEarly()
     {
         // This is hard to test directly since Load is synchronous in setting IsLoading.
