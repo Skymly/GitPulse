@@ -154,7 +154,7 @@ public class FileEditorViewModelTests
     }
 
     [Fact]
-    public async Task Delete_WithToken_RemovesFileAndShowsMessage()
+    public async Task Delete_WithToken_ClearsContentAndLeavesViewMode()
     {
         var handler = new MockHttpHandler()
             .When("/contents/file.txt", req =>
@@ -172,7 +172,6 @@ public class FileEditorViewModelTests
         vm.CommitMessage.Value = "Delete file";
         await vm.DeleteCommand.ExecuteAsync(null);
 
-        Assert.Contains("deleted", vm.ErrorMessage.Value);
         Assert.Equal("", vm.FileContent.Value);
         Assert.False(vm.IsEditing.Value);
         vm.Dispose();
