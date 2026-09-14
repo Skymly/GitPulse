@@ -97,7 +97,7 @@
                     HorizontalScrollBarVisibility="Never"
                     Padding="16,4,16,8">
             <HorizontalStackLayout Spacing="8">
-                <Label Text="{Binding PullRequest.Value.HeadRef}"
+                <Label Text="{Binding PullRequest.Value.Head.Ref}"
                        FontSize="13"
                        FontAttributes="Bold"
                        VerticalOptions="Center"
@@ -107,7 +107,7 @@
                        FontSize="13"
                        TextColor="{StaticResource Gray500}"
                        VerticalOptions="Center" />
-                <Label Text="{Binding PullRequest.Value.BaseRef}"
+                <Label Text="{Binding PullRequest.Value.Base.Ref}"
                        FontSize="13"
                        FontAttributes="Bold"
                        VerticalOptions="Center"
@@ -245,7 +245,7 @@
                         <!-- Branch ref line: head → base -->
                         <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">
                             <Label Grid.Column="0"
-                                   Text="{Binding PullRequest.Value.HeadRef}"
+                                   Text="{Binding PullRequest.Value.Head.Ref}"
                                    FontSize="13"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Gray600}"
@@ -258,7 +258,7 @@
                                    TextColor="{StaticResource Gray500}"
                                    VerticalOptions="Center" />
                             <Label Grid.Column="2"
-                                   Text="{Binding PullRequest.Value.BaseRef}"
+                                   Text="{Binding PullRequest.Value.Base.Ref}"
                                    FontSize="13"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Gray600}"
@@ -527,9 +527,9 @@
                                            MaxLines="1" />
                                     <Button Grid.Column="1"
                                             Text="Remove"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PullRequestDetailViewModel}}, Path=RemoveAssigneeCommand}"
+                                            Command="{Binding BindingContext.RemoveAssigneeCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                             CommandParameter="{Binding Login}"
-                                            IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:PullRequestDetailViewModel}}, Path=CanManageReviewers.Value}"
+                                            IsVisible="{Binding BindingContext.CanManageReviewers.Value, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                             Padding="12,8"
                                             FontSize="12" />
                                 </Grid>
@@ -616,9 +616,9 @@
                                            MaxLines="1" />
                                     <Button Grid.Column="1"
                                             Text="Remove"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PullRequestDetailViewModel}}, Path=RemoveRequestedReviewerCommand}"
+                                            Command="{Binding BindingContext.RemoveRequestedReviewerCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                             CommandParameter="{Binding Login}"
-                                            IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:PullRequestDetailViewModel}}, Path=CanManageReviewers.Value}"
+                                            IsVisible="{Binding BindingContext.CanManageReviewers.Value, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                             Padding="12,8"
                                             FontSize="12" />
                                 </Grid>
