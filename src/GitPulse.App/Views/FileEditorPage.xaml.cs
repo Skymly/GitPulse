@@ -1,5 +1,6 @@
 using GitPulse.App.Services;
 using GitPulse.ViewModels;
+using R3;
 
 namespace GitPulse.App.Views;
 
@@ -17,13 +18,20 @@ namespace GitPulse.App.Views;
 public partial class FileEditorPage : ContentPage
 {
     private readonly FileEditorViewModel _viewModel;
+    private readonly IDisposable _deletedSubscription;
     private string? _appliedQuery;
+    private bool _leavingAfterDelete;
 
     public FileEditorPage(FileEditorViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
+
+        _deletedSubscription = _viewModel.FileDeleted
+            .Where(deleted => deleted)
+            .ObserveOnCurrentSynchronizationContext()
+            .Subscribe(deleted => _ = LeaveAfterDeleteAsync());
     }
 
     public string OwnerQuery { get; set; } = string.Empty;
@@ -66,6 +74,22 @@ public partial class FileEditorPage : ContentPage
     private void OnBackClicked(object? sender, EventArgs e)
     {
         _ = AppNavigation.GoToAsync("..");
+    }
+
+    private async Task LeaveAfterDeleteAsync()
+    {
+        if (_leavingAfterDelete)
+            return;
+
+        _leavingAfterDelete = true;
+        try
+        {
+            await AppNavigation.GoToAsync("..");
+        }
+        finally
+        {
+            _leavingAfterDelete = false;
+        }
     }
 
     private bool ShowCommitFieldErrorIfEmpty()

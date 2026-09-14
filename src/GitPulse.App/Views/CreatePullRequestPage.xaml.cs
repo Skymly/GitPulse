@@ -23,8 +23,8 @@ public partial class CreatePullRequestPage : ContentPage
         _viewModel = viewModel;
         BindingContext = _viewModel;
 
-        // CreateIssuePage only checks success in OnAppearing, which does not
-        // re-fire after create on the same page. Subscribe so success navigates.
+        // Subscribe so success navigates; OnAppearing does not re-fire
+        // after create on the same page.
         _createdSubscription = _viewModel.CreatedPullRequestNumber
             .Where(n => n is not null)
             .ObserveOnCurrentSynchronizationContext()
