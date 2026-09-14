@@ -134,9 +134,8 @@ public sealed partial class SearchViewModel : IDisposable
 
         var type = SelectedType.Value;
         var session = _sessions[type];
-        session.DisposePaged();
-
         var (version, requestCts) = BeginRequest();
+        session.DisposePaged();
         IsLoading.Value = true;
         ErrorMessage.Value = string.Empty;
 
