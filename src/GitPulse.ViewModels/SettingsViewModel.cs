@@ -15,6 +15,7 @@ public sealed partial class SettingsViewModel : IDisposable
 {
     private readonly ICredentialStore _credentialStore;
     private readonly IGitHubClientFactory? _clientFactory;
+    private readonly INotificationPoller? _poller;
 
     /// <summary>Current PAT input text (two-way bound to Entry).</summary>
     public BindableReactiveProperty<string> TokenInput { get; } = new(string.Empty);
@@ -31,10 +32,14 @@ public sealed partial class SettingsViewModel : IDisposable
     /// <summary>Whether an async operation is in progress.</summary>
     public BindableReactiveProperty<bool> IsBusy { get; } = new(false);
 
-    public SettingsViewModel(ICredentialStore credentialStore, IGitHubClientFactory? clientFactory = null)
+    public SettingsViewModel(
+        ICredentialStore credentialStore,
+        IGitHubClientFactory? clientFactory = null,
+        INotificationPoller? poller = null)
     {
         _credentialStore = credentialStore;
         _clientFactory = clientFactory;
+        _poller = poller;
         _ = LoadStatusAsync();
     }
 
@@ -70,6 +75,7 @@ public sealed partial class SettingsViewModel : IDisposable
                 TokenInput.Value = string.Empty;
                 HasToken.Value = true;
                 StatusMessage.Value = "Token saved.";
+                await ResumePollingAsync();
                 return;
             }
 
@@ -82,6 +88,8 @@ public sealed partial class SettingsViewModel : IDisposable
             HasToken.Value = true;
             ViewerLogin.Value = login;
             StatusMessage.Value = $"Token saved. Signed in as {login}.";
+            CredentialEpoch.For(_clientFactory).Invalidate();
+            await ResumePollingAsync();
         }
         catch (Exception ex)
         {
@@ -103,6 +111,9 @@ public sealed partial class SettingsViewModel : IDisposable
             HasToken.Value = false;
             ViewerLogin.Value = string.Empty;
             StatusMessage.Value = "Token cleared.";
+            if (_clientFactory is not null)
+                CredentialEpoch.For(_clientFactory).Invalidate();
+            _poller?.Stop();
         }
         catch (Exception ex)
         {
@@ -112,6 +123,17 @@ public sealed partial class SettingsViewModel : IDisposable
         {
             IsBusy.Value = false;
         }
+    }
+
+    private async Task ResumePollingAsync()
+    {
+        if (_poller is null)
+            return;
+
+        var wasPolling = _poller.IsPolling;
+        _poller.Start();
+        if (wasPolling)
+            await _poller.RefreshAsync();
     }
 
     private async Task TryLoadViewerAsync(string token)

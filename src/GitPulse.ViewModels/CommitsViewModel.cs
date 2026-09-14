@@ -33,7 +33,7 @@ public sealed partial class CommitsViewModel : IDisposable
     public CommitsViewModel(IGitHubClientFactory clientFactory, IBrowserLauncher browserLauncher)
     {
         _clientFactory = clientFactory;
-        _cycle = new PagedListCycle(clientFactory);
+        _cycle = new PagedListCycle(clientFactory, OnCredentialsInvalidated);
         _browserLauncher = browserLauncher;
     }
 
@@ -44,6 +44,12 @@ public sealed partial class CommitsViewModel : IDisposable
         Owner.Value = owner;
         RepoName.Value = repo;
         RepoFullName.Value = $"{owner}/{repo}";
+    }
+
+    private void OnCredentialsInvalidated()
+    {
+        Commits.Clear();
+        CanLoadMore.Value = false;
     }
 
     [RelayCommand]
@@ -126,12 +132,12 @@ public sealed partial class CommitsViewModel : IDisposable
 
     public void Dispose()
     {
+        _cycle.Dispose();
         IsLoading.Dispose();
         CanLoadMore.Dispose();
         ErrorMessage.Dispose();
         RepoFullName.Dispose();
         Owner.Dispose();
         RepoName.Dispose();
-        _cycle.Dispose();
     }
 }

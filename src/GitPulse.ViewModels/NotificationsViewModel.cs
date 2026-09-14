@@ -34,6 +34,7 @@ public sealed partial class NotificationsViewModel : IDisposable
     private readonly INotificationPoller _poller;
     private readonly IBrowserLauncher _browserLauncher;
     private readonly SynchronizationContext? _uiContext;
+    private readonly IDisposable _credentials;
 
     /// <summary>Notifications currently displayed.</summary>
     public ObservableCollection<Notification> Notifications { get; } = [];
@@ -63,6 +64,7 @@ public sealed partial class NotificationsViewModel : IDisposable
         _poller = poller;
         _browserLauncher = browserLauncher;
         _uiContext = uiContext ?? SynchronizationContext.Current;
+        _credentials = CredentialEpoch.Subscribe(clientFactory, OnCredentialsInvalidated);
 
         // Bridge poller events to R3 reactive state.
         _poller.NotificationsUpdated += OnNotificationsUpdated;
@@ -74,8 +76,18 @@ public sealed partial class NotificationsViewModel : IDisposable
 
     private async Task CheckAuthAsync()
     {
-        var client = await _clientFactory.CreateClientAsync();
-        IsAuthenticated.Value = client.DefaultRequestHeaders.Authorization is not null;
+        using var scope = await _clientFactory.OpenAsync();
+        IsAuthenticated.Value = scope.Client.DefaultRequestHeaders.Authorization is not null;
+    }
+
+    private void OnCredentialsInvalidated()
+    {
+        _ = CheckAuthAsync();
+        OnUi(() =>
+        {
+            Notifications.Clear();
+            UnreadCount.Value = 0;
+        });
     }
 
     private void OnNotificationsUpdated(Notification[] notifications, int unreadCount)
@@ -237,6 +249,7 @@ public sealed partial class NotificationsViewModel : IDisposable
 
     public void Dispose()
     {
+        _credentials.Dispose();
         _poller.NotificationsUpdated -= OnNotificationsUpdated;
         _poller.IsPollingChanged -= OnPollingChanged;
         UnreadCount.Dispose();

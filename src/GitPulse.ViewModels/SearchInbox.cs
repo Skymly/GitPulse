@@ -172,6 +172,14 @@ internal sealed class SearchInbox : IDisposable
         _session.DisposePaged();
     }
 
+    public void DropSession()
+    {
+        _session.DisposePaged();
+        _session.HasSearched = false;
+        _session.TotalCount = 0;
+        Items.Clear();
+    }
+
     private async Task FetchPageAsync(
         IGitHubSearchApi api,
         bool replace,

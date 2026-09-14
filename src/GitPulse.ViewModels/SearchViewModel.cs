@@ -31,6 +31,7 @@ public sealed partial class SearchViewModel : IDisposable
 
     private readonly IGitHubClientFactory _clientFactory;
     private readonly CompositeDisposable _disposables = [];
+    private readonly IDisposable _credentials;
     private readonly Dictionary<SearchType, SearchSession> _sessions = [];
     private readonly SearchInbox _reviewInbox;
     private readonly SearchInbox _assignedInbox;
@@ -72,6 +73,7 @@ public sealed partial class SearchViewModel : IDisposable
     public SearchViewModel(IGitHubClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
+        _credentials = CredentialEpoch.Subscribe(clientFactory, OnCredentialsInvalidated);
         _reviewInbox = new SearchInbox(
             ReviewRequestedQuery, SearchInboxKind.PullRequests, ReviewRequested);
         _assignedInbox = new SearchInbox(
@@ -520,6 +522,31 @@ public sealed partial class SearchViewModel : IDisposable
         return Uri.EscapeDataString(query);
     }
 
+    private void OnCredentialsInvalidated()
+    {
+        CancelActiveRequest();
+        IsLoading.Value = false;
+        ErrorMessage.Value = string.Empty;
+        foreach (var session in _sessions.Values)
+        {
+            session.DisposePaged();
+            session.HasSearched = false;
+            session.TotalCount = 0;
+        }
+
+        _reviewInbox.DropSession();
+        _assignedInbox.DropSession();
+        _mentionsInbox.DropSession();
+        Repositories.Clear();
+        Issues.Clear();
+        PullRequests.Clear();
+        ReviewRequested.Clear();
+        Assigned.Clear();
+        Mentions.Clear();
+        CodeResults.Clear();
+        RefreshSelectedState();
+    }
+
     private static void EnsureSearchSucceeded<T>(ApiResponse<T> response)
     {
         if (!response.IsSuccessStatusCode)
@@ -589,6 +616,7 @@ public sealed partial class SearchViewModel : IDisposable
 
     public void Dispose()
     {
+        _credentials.Dispose();
         CancelActiveRequest();
         _disposables.Dispose();
         foreach (var session in _sessions.Values)
