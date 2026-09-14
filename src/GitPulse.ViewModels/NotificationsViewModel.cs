@@ -33,6 +33,7 @@ public sealed partial class NotificationsViewModel : IDisposable
     private readonly IGitHubClientFactory _clientFactory;
     private readonly INotificationPoller _poller;
     private readonly IBrowserLauncher _browserLauncher;
+    private readonly SynchronizationContext? _uiContext;
 
     /// <summary>Notifications currently displayed.</summary>
     public ObservableCollection<Notification> Notifications { get; } = [];
@@ -55,11 +56,13 @@ public sealed partial class NotificationsViewModel : IDisposable
     public NotificationsViewModel(
         IGitHubClientFactory clientFactory,
         INotificationPoller poller,
-        IBrowserLauncher browserLauncher)
+        IBrowserLauncher browserLauncher,
+        SynchronizationContext? uiContext = null)
     {
         _clientFactory = clientFactory;
         _poller = poller;
         _browserLauncher = browserLauncher;
+        _uiContext = uiContext ?? SynchronizationContext.Current;
 
         // Bridge poller events to R3 reactive state.
         _poller.NotificationsUpdated += OnNotificationsUpdated;
@@ -76,16 +79,27 @@ public sealed partial class NotificationsViewModel : IDisposable
     }
 
     private void OnNotificationsUpdated(Notification[] notifications, int unreadCount)
-    {
-        Notifications.Clear();
-        foreach (var n in notifications)
-            Notifications.Add(n);
-        UnreadCount.Value = unreadCount;
-    }
+        => OnUi(() =>
+        {
+            Notifications.Clear();
+            foreach (var n in notifications)
+                Notifications.Add(n);
+            UnreadCount.Value = unreadCount;
+        });
 
     private void OnPollingChanged(bool isPolling)
+        => OnUi(() => IsPolling.Value = isPolling);
+
+    private void OnUi(Action action)
     {
-        IsPolling.Value = isPolling;
+        var context = _uiContext;
+        if (context is null || ReferenceEquals(SynchronizationContext.Current, context))
+        {
+            action();
+            return;
+        }
+
+        context.Post(_ => action(), null);
     }
 
     /// <summary>Start polling (called when the page appears).</summary>
@@ -145,10 +159,11 @@ public sealed partial class NotificationsViewModel : IDisposable
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             await api.MarkThreadRead(notification.Id).FirstAsync(cts.Token);
 
-            // Remove from list and update count.
-            Notifications.Remove(notification);
-            if (UnreadCount.Value > 0)
-                UnreadCount.Value--;
+            OnUi(() =>
+            {
+                RemoveById(notification.Id);
+                UnreadCount.Value = Notifications.Count(n => n.Unread);
+            });
         }
         catch (OperationCanceledException)
         {
@@ -187,11 +202,16 @@ public sealed partial class NotificationsViewModel : IDisposable
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             await api.MarkAllRead().FirstAsync(cts.Token);
 
-            // Clear all unread notifications locally.
-            var read = Notifications.Where(n => n.Unread).ToList();
-            foreach (var n in read)
-                Notifications.Remove(n);
-            UnreadCount.Value = 0;
+            OnUi(() =>
+            {
+                for (var i = Notifications.Count - 1; i >= 0; i--)
+                {
+                    if (Notifications[i].Unread)
+                        Notifications.RemoveAt(i);
+                }
+
+                UnreadCount.Value = Notifications.Count(n => n.Unread);
+            });
         }
         catch (OperationCanceledException)
         {
@@ -224,5 +244,14 @@ public sealed partial class NotificationsViewModel : IDisposable
         IsBusy.Dispose();
         ErrorMessage.Dispose();
         IsAuthenticated.Dispose();
+    }
+
+    private void RemoveById(string id)
+    {
+        for (var i = Notifications.Count - 1; i >= 0; i--)
+        {
+            if (Notifications[i].Id == id)
+                Notifications.RemoveAt(i);
+        }
     }
 }
