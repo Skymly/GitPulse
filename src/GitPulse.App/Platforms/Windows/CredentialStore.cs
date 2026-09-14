@@ -6,17 +6,24 @@ namespace GitPulse.App.Platforms.Windows;
 
 /// <summary>
 /// Windows credential store using DPAPI (CurrentUser scope).
-/// The token is encrypted and persisted to %APPDATA%/GitPulse/token.bin.
+/// The token is encrypted and persisted to
+/// %LOCALAPPDATA%/GitPulse/token.bin (not roaming).
 /// </summary>
 public sealed class WindowsCredentialStore : ICredentialStore
 {
     private static readonly string StorePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "GitPulse",
+        "token.bin");
+
+    private static readonly string LegacyStorePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "GitPulse",
         "token.bin");
 
     public Task<string?> GetTokenAsync(CancellationToken ct = default)
     {
+        MigrateLegacyStore();
         if (!File.Exists(StorePath))
             return Task.FromResult<string?>(null);
 
@@ -35,6 +42,7 @@ public sealed class WindowsCredentialStore : ICredentialStore
 
     public Task SetTokenAsync(string token, CancellationToken ct = default)
     {
+        MigrateLegacyStore();
         var dir = Path.GetDirectoryName(StorePath)!;
         Directory.CreateDirectory(dir);
 
@@ -49,7 +57,24 @@ public sealed class WindowsCredentialStore : ICredentialStore
     {
         if (File.Exists(StorePath))
             File.Delete(StorePath);
+        if (File.Exists(LegacyStorePath))
+            File.Delete(LegacyStorePath);
 
         return Task.CompletedTask;
+    }
+
+    private static void MigrateLegacyStore()
+    {
+        if (!File.Exists(LegacyStorePath))
+            return;
+
+        if (!File.Exists(StorePath))
+        {
+            var dir = Path.GetDirectoryName(StorePath)!;
+            Directory.CreateDirectory(dir);
+            File.Copy(LegacyStorePath, StorePath, overwrite: false);
+        }
+
+        File.Delete(LegacyStorePath);
     }
 }
