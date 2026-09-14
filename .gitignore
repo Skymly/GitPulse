@@ -50,6 +50,12 @@ Desktop.ini
 appsettings.local.json
 *.secret.json
 .env
+token.bin
+
+## Scratch / editor local
+.scratch/
+.claude/
+nul
 
 ## Nuke
 .nuke/temp/
