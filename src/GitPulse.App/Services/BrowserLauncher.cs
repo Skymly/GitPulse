@@ -10,7 +10,15 @@ public sealed class BrowserLauncher : IBrowserLauncher
 {
     public async Task OpenAsync(string url)
     {
-        if (!string.IsNullOrEmpty(url))
-            await Launcher.OpenAsync(url);
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return;
+        if (!IsAllowedScheme(uri.Scheme))
+            return;
+
+        await Launcher.OpenAsync(uri);
     }
+
+    private static bool IsAllowedScheme(string scheme)
+        => scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+            || scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
 }
