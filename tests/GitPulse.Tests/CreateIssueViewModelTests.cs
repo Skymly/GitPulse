@@ -8,8 +8,7 @@ namespace GitPulse.Tests;
 public class CreateIssueViewModelTests
 {
     private static string IssueJson(int number, string title) =>
-        $"{{\"number\":{number},\"title\":\"{title}\",\"state\":\"open\"," +
-        $"\"body\":\"\",\"user\":{{\"login\":\"alice\"}}}}";
+        GitHubJson.Issue(number, body: "", title: title);
 
     [Fact]
     public void Initialize_SetsOwnerAndRepo()

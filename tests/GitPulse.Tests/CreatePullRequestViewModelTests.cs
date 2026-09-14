@@ -7,8 +7,7 @@ namespace GitPulse.Tests;
 public class CreatePullRequestViewModelTests
 {
     private static string PrJson(int number, string title) =>
-        $"{{\"number\":{number},\"title\":\"{title}\",\"state\":\"open\"," +
-        $"\"body\":\"\",\"user\":{{\"login\":\"alice\"}}}}";
+        GitHubJson.PullRequest(number, title: title, body: "", login: "alice");
 
     private static void SetValidInputs(CreatePullRequestViewModel vm, string title = "My new PR")
     {

@@ -10,8 +10,7 @@ public class IssuesViewModelTests
     private static string IssuesJson(params string[] states)
     {
         var items = states.Select((s, i) =>
-            $"{{\"number\":{i + 1},\"title\":\"Issue {i + 1}\",\"state\":\"{s}\"," +
-            $"\"body\":\"body {i + 1}\",\"user\":{{\"login\":\"alice\"}}}}");
+            GitHubJson.Issue(i + 1, state: s, body: $"body {i + 1}"));
         return $"[{string.Join(",", items)}]";
     }
 
@@ -71,6 +70,8 @@ public class IssuesViewModelTests
         // The query handler injects state=open, but the mock doesn't filter.
         Assert.Equal(3, vm.Issues.Count);
         Assert.True(vm.CanLoadMore.Value);
+        Assert.Equal("https://github.com/octocat/Hello-World/issues/1", vm.Issues[0].HtmlUrl);
+        Assert.Equal(new DateTime(2011, 1, 26, 19, 1, 12, DateTimeKind.Utc), vm.Issues[0].CreatedAt);
         vm.Dispose();
     }
 
