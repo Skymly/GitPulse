@@ -59,6 +59,9 @@ public sealed partial class FileEditorViewModel : IDisposable
     /// <summary>Error message; empty when no error.</summary>
     public BindableReactiveProperty<string> ErrorMessage { get; } = new(string.Empty);
 
+    /// <summary>True after a successful Contents delete. Not an error.</summary>
+    public BindableReactiveProperty<bool> FileDeleted { get; } = new(false);
+
     /// <summary>Whether this is a new file (no existing SHA).</summary>
     public BindableReactiveProperty<bool> IsNewFile { get; } = new(true);
 
@@ -106,6 +109,7 @@ public sealed partial class FileEditorViewModel : IDisposable
         FileName.Value = path.Contains('/') ? path[(path.LastIndexOf('/') + 1)..] : path;
         IsReadOnly.Value = _gitRef.Length > 0;
         IsNewFile.Value = string.IsNullOrEmpty(_sha) && string.IsNullOrEmpty(_gitRef);
+        FileDeleted.Value = false;
         Title.Value = IsNewFile.Value ? $"New: {FileName.Value}" : FileName.Value;
     }
 
@@ -265,6 +269,7 @@ public sealed partial class FileEditorViewModel : IDisposable
 
         IsBusy.Value = true;
         ErrorMessage.Value = string.Empty;
+        FileDeleted.Value = false;
 
         try
         {
@@ -286,7 +291,7 @@ public sealed partial class FileEditorViewModel : IDisposable
 
             await api.DeleteFile(_owner, _repo, _path, request).FirstAsync(cts.Token);
 
-            ErrorMessage.Value = "File deleted successfully.";
+            FileDeleted.Value = true;
             FileContent.Value = string.Empty;
             IsEditing.Value = false;
         }
@@ -321,6 +326,7 @@ public sealed partial class FileEditorViewModel : IDisposable
         IsEditing.Dispose();
         IsBusy.Dispose();
         ErrorMessage.Dispose();
+        FileDeleted.Dispose();
         IsNewFile.Dispose();
         IsBinary.Dispose();
         RepoFullName.Dispose();
