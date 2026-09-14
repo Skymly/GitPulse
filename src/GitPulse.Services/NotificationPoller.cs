@@ -24,7 +24,8 @@ namespace GitPulse.Services;
 /// <para>
 /// The poller handles auth gracefully: if no token is configured, it
 /// fires <see cref="INotificationPoller.NotificationsUpdated"/> with an
-/// empty array and unread count 0.
+/// empty array and unread count 0, then <see cref="Stop"/>s so the timer
+/// does not keep ticking.
 /// </para>
 /// </remarks>
 public sealed class NotificationPoller : INotificationPoller
@@ -83,17 +84,27 @@ public sealed class NotificationPoller : INotificationPoller
                 return;
 
             IsPolling = true;
+        }
 
-            // R3 Observable.Interval emits Unit values at each interval.
-            // Prepend(Unit.Default) triggers an immediate poll on Start
-            // (before the first interval tick).
-            _pollSubscription = Observable
-                .Interval(PollInterval, _timeProvider)
-                .Prepend(Unit.Default)
-                .SubscribeAwait(async (_, ct) =>
-                {
-                    await PollAsync(ct);
-                });
+        // Subscribe outside the lock so a synchronous first poll that
+        // Stop()s (no token) cannot deadlock on this lock.
+        var subscription = Observable
+            .Interval(PollInterval, _timeProvider)
+            .Prepend(Unit.Default)
+            .SubscribeAwait(async (_, ct) =>
+            {
+                await PollAsync(ct);
+            });
+
+        lock (_lock)
+        {
+            if (_disposed || !_isPolling)
+            {
+                subscription.Dispose();
+                return;
+            }
+
+            _pollSubscription = subscription;
         }
     }
 
@@ -124,6 +135,7 @@ public sealed class NotificationPoller : INotificationPoller
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 OnNotificationsUpdated([], 0);
+                Stop();
                 return;
             }
 
