@@ -66,7 +66,7 @@ public sealed class MockHttpHandler : HttpMessageHandler
         return this;
     }
 
-    protected override Task<HttpResponseMessage> SendAsync(
+    protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -103,6 +103,9 @@ public sealed class MockHttpHandler : HttpMessageHandler
         if (matched is not null)
         {
             var mock = matched.Respond(request);
+            if (mock.Gate is not null)
+                await mock.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
             var response = new HttpResponseMessage(mock.StatusCode)
             {
                 Content = new StringContent(
@@ -112,15 +115,17 @@ public sealed class MockHttpHandler : HttpMessageHandler
             };
             if (!string.IsNullOrEmpty(mock.LinkHeader))
                 response.Headers.Add("Link", mock.LinkHeader);
+            if (!string.IsNullOrEmpty(mock.RetryAfter))
+                response.Headers.TryAddWithoutValidation("Retry-After", mock.RetryAfter);
             if (mock.AttachRequest)
                 response.RequestMessage = request;
-            return Task.FromResult(response);
+            return response;
         }
 
-        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound)
+        return new HttpResponseMessage(HttpStatusCode.NotFound)
         {
             Content = new StringContent($"No mock for {request.Method} {path}", Encoding.UTF8, "text/plain"),
-        });
+        };
     }
 
     private sealed record MockRoute(
@@ -134,4 +139,6 @@ public sealed record MockResponse(
     string Body,
     string? LinkHeader = null,
     HttpStatusCode StatusCode = HttpStatusCode.OK,
-    bool AttachRequest = false);
+    bool AttachRequest = false,
+    Task? Gate = null,
+    string? RetryAfter = null);

@@ -213,4 +213,107 @@ public class CreatePullRequestViewModelTests
         Assert.Empty(vm.ErrorMessage.Value);
         vm.Dispose();
     }
+
+    private const string BranchesJson =
+        "[{\"name\":\"main\",\"commit\":{\"sha\":\"abc123def456\",\"url\":\"https://api.github.com/repos/owner/repo/commits/abc123def456\"},\"protected\":false}," +
+        "{\"name\":\"develop\",\"commit\":{\"sha\":\"789012abcdef\",\"url\":\"https://api.github.com/repos/owner/repo/commits/789012abcdef\"},\"protected\":true}]";
+
+    [Fact]
+    public async Task LoadBranches_PopulatesBranchesCollection()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/branches", BranchesJson);
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreatePullRequestViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadBranchesCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(2, vm.Branches.Count);
+        Assert.Equal("main", vm.Branches[0].Name);
+        Assert.Equal("develop", vm.Branches[1].Name);
+        Assert.True(vm.Branches[1].Protected);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task LoadBranches_WithoutToken_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/branches", BranchesJson);
+        var factory = new FakeGitHubClientFactory(handler, token: null);
+        var vm = new CreatePullRequestViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadBranchesCommand.ExecuteAsync(null);
+
+        Assert.Contains("No token", vm.ErrorMessage.Value);
+        Assert.Empty(vm.Branches);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task LoadBranches_WithEmptyOwner_DoesNothing()
+    {
+        var hits = 0;
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/branches", _ =>
+            {
+                hits++;
+                return new MockResponse(BranchesJson);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreatePullRequestViewModel(factory);
+
+        await vm.LoadBranchesCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, hits);
+        Assert.Empty(vm.Branches);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task LoadBranches_WhileLoading_DoesNotStartASecondRequest()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var hits = 0;
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/branches", _ =>
+            {
+                hits++;
+                return new MockResponse(BranchesJson, Gate: gate.Task);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreatePullRequestViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        var first = vm.LoadBranchesCommand.ExecuteAsync(null);
+        await AsyncTestWait.UntilAsync(() => vm.IsLoadingBranches.Value && hits > 0);
+
+        await vm.LoadBranchesCommand.ExecuteAsync(null);
+        Assert.Equal(1, hits);
+
+        gate.SetResult();
+        await first;
+
+        Assert.Equal(2, vm.Branches.Count);
+        Assert.Equal(1, hits);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task LoadBranches_WithNotFoundResponse_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler();
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreatePullRequestViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadBranchesCommand.ExecuteAsync(null);
+
+        Assert.Contains("Branches load failed", vm.ErrorMessage.Value);
+        Assert.Empty(vm.Branches);
+        vm.Dispose();
+    }
 }

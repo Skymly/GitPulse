@@ -1,3 +1,4 @@
+using System.Net;
 using GitPulse.Core.Models;
 using GitPulse.Tests.TestHelpers;
 using GitPulse.ViewModels;
@@ -249,6 +250,166 @@ public class IssuesViewModelTests
 
         Assert.NotEmpty(vm.ErrorMessage.Value);
         Assert.Contains("Load failed", vm.ErrorMessage.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WithUnauthorizedResponse_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", HttpStatusCode.Unauthorized, "{\"message\":\"Bad credentials\"}");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.NotEmpty(vm.ErrorMessage.Value);
+        Assert.Contains("Load failed", vm.ErrorMessage.Value);
+        Assert.Empty(vm.Issues);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_DropsPullRequestsFromTheList()
+    {
+        var json = $"[{GitHubJson.Issue(1, title: "Real issue")}," +
+                   $"{GitHubJson.Issue(2, title: "Actually a PR", pullRequest: true)}," +
+                   $"{GitHubJson.Issue(3, title: "Another issue")}]";
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", json, LinkNoNext);
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, vm.Issues.Count);
+        Assert.Equal(1, vm.Issues[0].Number);
+        Assert.Equal(3, vm.Issues[1].Number);
+        Assert.All(vm.Issues, issue => Assert.False(issue.IsPullRequest));
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task LoadMore_DropsPullRequestsFromThePage()
+    {
+        var page1 = $"[{GitHubJson.Issue(1, title: "Issue one")}]";
+        var page2 = $"[{GitHubJson.Issue(2, title: "PR two", pullRequest: true)}," +
+                    $"{GitHubJson.Issue(3, title: "Issue three")}]";
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", req =>
+            {
+                var query = req.RequestUri?.Query ?? "";
+                if (query.Contains("page=2"))
+                    return new MockResponse(page2, LinkNoNext);
+                return new MockResponse(page1, LinkHasNext);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        await vm.LoadMoreCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, vm.Issues.Count);
+        Assert.Equal(1, vm.Issues[0].Number);
+        Assert.Equal(3, vm.Issues[1].Number);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task LoadMore_WhileFirstPageHangs_DoesNotRequestPageTwo()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pages = new List<string>();
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", req =>
+            {
+                pages.Add(req.RequestUri?.Query ?? "");
+                return new MockResponse(IssuesJson("open"), LinkHasNext, Gate: gate.Task);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        var load = vm.LoadCommand.ExecuteAsync(null);
+        await AsyncTestWait.UntilAsync(() => vm.IsLoading.Value && pages.Count > 0);
+
+        await vm.LoadMoreCommand.ExecuteAsync(null);
+        Assert.Single(pages);
+
+        gate.SetResult();
+        await load;
+
+        Assert.Single(vm.Issues);
+        Assert.Single(pages);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhilePreviousLoadHangs_KeepsOnlyTheNewerPage()
+    {
+        var first = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var second = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var n = 0;
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", _ =>
+            {
+                var i = Interlocked.Increment(ref n);
+                return i == 1
+                    ? new MockResponse($"[{GitHubJson.Issue(1, title: "Stale")}]", LinkNoNext, Gate: first.Task)
+                    : new MockResponse($"[{GitHubJson.Issue(2, title: "Fresh")}]", LinkNoNext, Gate: second.Task);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        var load1 = vm.LoadCommand.ExecuteAsync(null);
+        await AsyncTestWait.UntilAsync(() => n >= 1);
+
+        var load2 = vm.LoadCommand.ExecuteAsync(null);
+        await AsyncTestWait.UntilAsync(() => n >= 2);
+
+        first.SetResult();
+        await load1;
+        second.SetResult();
+        await load2;
+
+        Assert.Single(vm.Issues);
+        Assert.Equal(2, vm.Issues[0].Number);
+        Assert.Equal("Fresh", vm.Issues[0].Title);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task StateFilter_ChangeWhileLoading_QueuesReload()
+    {
+        var first = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var queries = new List<string>();
+        var n = 0;
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", req =>
+            {
+                var i = Interlocked.Increment(ref n);
+                queries.Add(req.RequestUri?.Query ?? "");
+                return i == 1
+                    ? new MockResponse(IssuesJson("open"), LinkNoNext, Gate: first.Task)
+                    : new MockResponse(IssuesJson("closed"), LinkNoNext);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new IssuesViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        var load = vm.LoadCommand.ExecuteAsync(null);
+        await AsyncTestWait.UntilAsync(() => vm.IsLoading.Value && n >= 1);
+
+        vm.StateFilter.Value = "closed";
+        first.SetResult();
+        await load;
+        await AsyncTestWait.UntilAsync(() => queries.Exists(q => q.Contains("state=closed")));
+
+        Assert.Contains(queries, q => q.Contains("state=closed"));
         vm.Dispose();
     }
 }

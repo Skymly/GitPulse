@@ -353,9 +353,14 @@ public class PullRequestDetailViewModelTests
     [Fact]
     public async Task Merge_WithNonMergeablePR_DoesNothing()
     {
+        var merges = 0;
         var handler = new MockHttpHandler()
             .When("/pulls/42", PrJson(42, "open", mergeable: false, mergeableState: "dirty"))
-            .When("/pulls/42/merge", _ => new MockResponse(MergeJson("should-not-happen")))
+            .When("/pulls/42/merge", _ =>
+            {
+                merges++;
+                return new MockResponse(MergeJson("should-not-happen"));
+            })
             .When("/issues/42/comments", "[]");
         var factory = new FakeGitHubClientFactory(handler);
         var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
@@ -365,7 +370,7 @@ public class PullRequestDetailViewModelTests
 
         await vm.MergeCommand.ExecuteAsync(null);
 
-        // Should not have attempted merge.
+        Assert.Equal(0, merges);
         Assert.False(vm.IsMerged.Value);
         Assert.Empty(vm.ErrorMessage.Value);
         vm.Dispose();

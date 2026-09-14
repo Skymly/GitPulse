@@ -181,7 +181,13 @@ public class FileEditorViewModelTests
     [Fact]
     public async Task Delete_WithoutCommitMessage_SetsErrorMessage()
     {
-        var handler = new MockHttpHandler();
+        var deletes = 0;
+        var handler = new MockHttpHandler()
+            .When(HttpMethod.Delete, "/contents/file.txt", _ =>
+            {
+                deletes++;
+                return new MockResponse("{}");
+            });
         var factory = new FakeGitHubClientFactory(handler);
         var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
         vm.Initialize("owner", "repo", "file.txt", "sha-123");
@@ -189,6 +195,7 @@ public class FileEditorViewModelTests
         await vm.DeleteCommand.ExecuteAsync(null);
 
         Assert.Contains("commit message", vm.ErrorMessage.Value);
+        Assert.Equal(0, deletes);
         vm.Dispose();
     }
 

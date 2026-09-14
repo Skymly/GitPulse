@@ -27,10 +27,18 @@ internal static class GitHubJson
         int comments = 0,
         string assigneesJson = "[]",
         string labelsJson = "[]",
-        string? title = null)
+        string? title = null,
+        bool pullRequest = false)
     {
         var issueBody = body ?? "";
         var issueTitle = title ?? $"{titlePrefix} {number}";
+        var pr = pullRequest
+            ? ",\"pull_request\":{" +
+              $"\"url\":\"https://api.github.com/repos/octocat/Hello-World/pulls/{number}\"," +
+              $"\"html_url\":\"https://github.com/octocat/Hello-World/pull/{number}\"," +
+              $"\"diff_url\":\"https://github.com/octocat/Hello-World/pull/{number}.diff\"" +
+              "}"
+            : "";
         return "{" +
             $"\"number\":{number}," +
             $"\"title\":\"{issueTitle}\"," +
@@ -43,6 +51,7 @@ internal static class GitHubJson
             $"\"user\":{User(login)}," +
             $"\"labels\":{labelsJson}," +
             $"\"assignees\":{assigneesJson}" +
+            pr +
             "}";
     }
 

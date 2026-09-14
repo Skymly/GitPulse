@@ -1,3 +1,4 @@
+using System.Net;
 using GitPulse.Tests.TestHelpers;
 using GitPulse.ViewModels;
 using Xunit;
@@ -214,6 +215,23 @@ public class PullRequestsViewModelTests
         await AsyncTestWait.UntilAsync(() => lastQuery?.Contains("state=all") == true);
 
         Assert.Contains("state=all", lastQuery);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WithUnauthorizedResponse_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/pulls", HttpStatusCode.Unauthorized, "{\"message\":\"Bad credentials\"}");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestsViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.NotEmpty(vm.ErrorMessage.Value);
+        Assert.Contains("Load failed", vm.ErrorMessage.Value);
+        Assert.Empty(vm.PullRequests);
         vm.Dispose();
     }
 }
