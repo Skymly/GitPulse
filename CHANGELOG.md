@@ -101,6 +101,9 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Fixed
 
+- Closing or saving an issue/PR no longer sends JSON `null` for unset title,
+  body, state, or labels. GitHub's Update-an-issue endpoint returns 422 for
+  those members instead of leaving them unchanged.
 - Notifications **Mark read** uses `PATCH /notifications/threads/{id}` (mark as
   read). It no longer calls `DELETE` (mark as done).
 - Detail destinations push onto the current tab. Android no longer lists them
