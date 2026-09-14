@@ -13,21 +13,56 @@ public sealed class PullRequest
     public string State { get; init; } = string.Empty;
     public bool Draft { get; init; }
     public bool Merged { get; init; }
+
+    [JsonPropertyName("html_url")]
     public string HtmlUrl { get; init; } = string.Empty;
+
+    [JsonPropertyName("created_at")]
     public DateTime CreatedAt { get; init; }
+
+    [JsonPropertyName("updated_at")]
     public DateTime UpdatedAt { get; init; }
+
     public User? User { get; init; }
+
+    [JsonPropertyName("merged_by")]
     public User? MergedBy { get; init; }
+
     public User[] Assignees { get; init; } = [];
     public Label[] Labels { get; init; } = [];
-    public string HeadRef { get; init; } = string.Empty;
-    public string BaseRef { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Head branch name. GitHub does not send a top-level <c>headRef</c>;
+    /// this reads <see cref="Head"/>.<see cref="PullRequestHead.Ref"/>.
+    /// The init setter keeps object initializers working when <see cref="Head"/> is absent.
+    /// </summary>
+    [JsonIgnore]
+    public string HeadRef
+    {
+        get => Head?.Ref ?? field;
+        init;
+    } = string.Empty;
+
+    /// <summary>
+    /// Base branch name. GitHub does not send a top-level <c>baseRef</c>;
+    /// this reads <see cref="Base"/>.<see cref="PullRequestHead.Ref"/>.
+    /// </summary>
+    [JsonIgnore]
+    public string BaseRef
+    {
+        get => Base?.Ref ?? field;
+        init;
+    } = string.Empty;
 
     // ── M8: PR diff viewer fields ─────────────────────────────────
 
-    /// <summary>SHA of the head commit (needed for review comment creation).</summary>
+    /// <summary>Head branch (name, SHA, user) from the nested <c>head</c> object.</summary>
     [JsonPropertyName("head")]
     public PullRequestHead? Head { get; init; }
+
+    /// <summary>Base branch from the nested <c>base</c> object. Same shape as <see cref="Head"/>.</summary>
+    [JsonPropertyName("base")]
+    public PullRequestHead? Base { get; init; }
 
     // ── M6: PR review & merge fields ─────────────────────────────
 
@@ -64,7 +99,10 @@ public sealed class PullRequest
 public sealed class PullRequestHead
 {
     public string Label { get; init; } = string.Empty;
+
+    [JsonPropertyName("ref")]
     public string Ref { get; init; } = string.Empty;
+
     public string Sha { get; init; } = string.Empty;
     public User? User { get; init; }
 }
