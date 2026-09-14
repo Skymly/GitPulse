@@ -27,8 +27,8 @@ iterates on until genuinely useful.
 git clone https://github.com/Skymly/GitPulse.git
 cd GitPulse
 
-# Via Nuke (CI-authoritative)
-./build.ps1 --target Ci --configuration Release
+# Via Nuke (CI-authoritative: format + Windows App compile + Android compile + library tests)
+./build.ps1 --target CiAll --configuration Release
 
 # Or traditional dotnet
 dotnet build GitPulse.slnx -c Release
@@ -113,7 +113,7 @@ docs/                   — ADRs, subsystem design docs, and roadmap
 | **FormatFix** | `dotnet format` (applies formatting) |
 | **Publish** | Self-contained Windows exe → `artifacts/publish/{Runtime}/` |
 | **PublishVerify** | `Publish` + verify entry point exists |
-| **Release** | `CiAll` + `PublishVerify` (full release pipeline) |
+| **Release** | `CiAll` + `PublishVerify` + `PublishAndroidVerify` (Windows zip + signed APK) |
 
 ```powershell
 ./build.ps1 --target CiAll --configuration Release

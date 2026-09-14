@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| **状态** | Accepted |
+| **状态** | Superseded by [ADR-015](ADR-015-searchbar-public-event-adapter.md) |
 | **日期** | 2026-04-01 |
 | **关联 Issue** | 无 |
 

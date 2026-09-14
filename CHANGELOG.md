@@ -64,7 +64,7 @@ Versions are derived automatically from Git tags by MinVer.
 - Group pull request Conversation into lifecycle, metadata, and review sections.
 - Route SearchBar filter/query and remaining-items load more through
   Observables.Events.R3 pipelines on Repos, Search, Issues, pull requests,
-  Commits, and Actions (SearchBar still uses the ADR-007 adapter).
+  Commits, and Actions (SearchBar still uses the ADR-015 adapter).
 - Search Review / Assigned / Mentions empty states use title + reason copy
   instead of typed-search "No results".
 - Tapping a notification opens the matching Issue, pull request, or Commit
@@ -95,6 +95,33 @@ Versions are derived automatically from Git tags by MinVer.
 - Pull request Page Error sits under the detail header on Conversation and
   Files. Empty States on Notifications, pull requests, Commits, and Actions
   stay hidden while loading (and Notifications also after a failure).
+
+### Fixed
+
+- Escape on Windows and Back on Android cancel Merge and Delete; they no
+  longer run the destructive action.
+- Pull request branch names, issue comment counts, timestamps, and Open in
+  browser URLs fill from GitHub's snake_case payloads (`html_url`,
+  `created_at`, `head.ref` / `base.ref`, `comments`).
+- The Issues and Pull Requests All filter sends `state=all`, so it no longer
+  returns the same rows as Open.
+- Notification list updates run on the UI thread. Mark-as-read removes the
+  row by thread id.
+- After close or merge, pull request detail re-reads `GET /pulls/{n}` so
+  `MergedBy` and related fields match the server.
+- Clearing the PAT stops notification polling and drops held GitHub sessions.
+- Notification polling reports GitHub errors, honours `Retry-After`, and
+  backs off instead of looking healthy while frozen.
+- The Issues list no longer includes pull requests (GitHub's issues endpoints
+  return both).
+
+### Security
+
+- Android sets `allowBackup="false"` so a backup restore cannot leave a PAT
+  that cannot be decrypted.
+- The Windows token file lives under `LocalApplicationData` (a leftover
+  roaming `token.bin` is migrated once).
+- In-app browser opens only absolute `http` and `https` URLs.
 
 ### Notes
 

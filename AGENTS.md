@@ -14,7 +14,7 @@
 ## 技术栈
 
 - **.NET 10** (LTS) + **.NET MAUI**
-- **R3** 1.3.0+ + **R3Extensions.Maui**（`UseR3()`、`BindableReactiveProperty<T>`）
+- **R3** 1.3.0+（`BindableReactiveProperty<T>`）+ **R3Extensions.Maui**（`UseR3()`）
 - **Observables.RestAPI.R3** + **Observables.Events.R3** 0.1.5+
 - **CommunityToolkit.Mvvm**（`[RelayCommand]`）
 - **Indiko.Maui.Controls.Markdown** 1.5.0
@@ -76,7 +76,7 @@ build/                  — Nuke
 **已知上游限制**（须在 Design Doc 中保持同步）：
 
 1. **OBS3004** — 0.1.5 已修复 path + `[Body]`；分页仍用 `GitHubQueryHandler`（[ADR-006](docs/adr/ADR-006-github-query-handler-pagination.md)）
-2. **SearchBar `.Events()` CS0122** — 手动 `Subject` 桥接（[ADR-007](docs/adr/ADR-007-manual-searchbar-event-bridge.md)）
+2. **SearchBar `.Events()` CS0122** — 公开事件适配器 + 源生成 `.Events()`（[ADR-015](docs/adr/ADR-015-searchbar-public-event-adapter.md)）
 
 ## 认证
 

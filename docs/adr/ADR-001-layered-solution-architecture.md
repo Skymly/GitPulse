@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| **状态** | Accepted |
+| **状态** | Superseded by [ADR-016](ADR-016-viewmodels-depend-on-abstractions.md)（分层与 Core 无 IO 的表述；五项目划分仍适用） |
 | **日期** | 2026-03-01 |
 | **关联 Issue** | 无 — 项目骨架阶段直接决策 |
 
