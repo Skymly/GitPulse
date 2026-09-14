@@ -103,6 +103,7 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 2. 分页列表不得改为 `Observable<T[]>` 若需 `Link` 头。
 3. GitHub snake_case JSON 须在 Core 模型上用 `[JsonPropertyName]` 映射。
 4. Search 的 `q` 必须保留在声明式接口签名中；分页参数继续由 handler 注入。
+5. 写请求 DTO 的可空成员序列化时省略 JSON `null`（`JsonIgnoreCondition.WhenWritingNull`）。GitHub Update-an-issue 对 `title` / `body` / `state` / `labels` 的 JSON `null` 返回 422，不会当作 unchanged；close-only PATCH 必须是 `{"state":"closed"}`。
 
 ## 实现概览
 
@@ -119,6 +120,7 @@ Typed Search 与每个 Search Inbox 使用 `PagedGitHubSession`。
 ### CRUD（M3+）
 
 - `CreateIssue`、`UpdateIssue`、`CreateIssueComment` 等使用 `[Body]` DTO（`Core/Models/IssueRequests.cs`）
+- 写请求 DTO（`IssueUpdateRequest` 等）对未设置的可空成员省略 JSON `null`。GitHub 对 Update-an-issue 的 `null` 返回 422，不会保留原值
 - PR 评论复用 issue comments 端点
 
 ### Create PR（M14）
