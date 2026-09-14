@@ -20,7 +20,14 @@ public sealed class Issue
     public DateTime UpdatedAt { get; init; }
 
     public User? User { get; init; }
-    public bool IsPullRequest { get; init; }
+
+    /// <summary>
+    /// GitHub's issues endpoints also return pull requests. Those payloads
+    /// include a <c>pull_request</c> object; there is no <c>is_pull_request</c>
+    /// field. Derived so callers do not have to remember that mapping.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsPullRequest => PullRequestRef is not null;
 
     /// <summary>GitHub returns a non-null object when the issue is actually a PR.</summary>
     [JsonPropertyName("pull_request")]
