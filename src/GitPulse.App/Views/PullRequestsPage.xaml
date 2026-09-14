@@ -139,9 +139,9 @@
                                         <FormattedString>
                                             <Span Text="{Binding ., Converter={StaticResource PullRequestStateTextConverter}}" />
                                             <Span Text=" · " />
-                                            <Span Text="{Binding HeadRef}" />
+                                            <Span Text="{Binding Head.Ref}" />
                                             <Span Text=" → " />
-                                            <Span Text="{Binding BaseRef}" />
+                                            <Span Text="{Binding Base.Ref}" />
                                         </FormattedString>
                                     </Label.FormattedText>
                                 </Label>

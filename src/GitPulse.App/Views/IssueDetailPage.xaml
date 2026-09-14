@@ -250,7 +250,7 @@
                                                    MaxLines="1" />
                                             <Button Grid.Column="1"
                                                     Text="Remove"
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:IssueDetailViewModel}}, Path=RemoveAssigneeCommand}"
+                                                    Command="{Binding BindingContext.RemoveAssigneeCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                                     CommandParameter="{Binding Login}"
                                                     Padding="12,8"
                                                     FontSize="12" />
