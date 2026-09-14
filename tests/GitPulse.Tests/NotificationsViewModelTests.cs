@@ -156,6 +156,52 @@ public class NotificationsViewModelTests
     }
 
     [Fact]
+    public async Task MarkAsRead_DifferentInstanceSameId_RemovesRowAndRecomputesUnread()
+    {
+        var handler = new MockHttpHandler()
+            .When("/notifications/threads/1", _ => new MockResponse("{}"));
+        var factory = new FakeGitHubClientFactory(handler);
+        var poller = new FakeNotificationPoller();
+        var vm = new NotificationsViewModel(factory, poller, new FakeBrowserLauncher());
+
+        poller.SimulateNotifications(
+            [new Notification { Id = "1", Unread = true }, new Notification { Id = "2", Unread = true }],
+            2);
+
+        await vm.MarkAsReadCommand.ExecuteAsync(new Notification { Id = "1", Unread = true });
+
+        Assert.Single(vm.Notifications);
+        Assert.Equal("2", vm.Notifications[0].Id);
+        Assert.Equal(1, vm.UnreadCount.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public void NotificationsUpdated_PostsOntoCapturedSynchronizationContext()
+    {
+        var ui = new RecordingSynchronizationContext();
+        var poller = new FakeNotificationPoller();
+        var factory = new FakeGitHubClientFactory(new MockHttpHandler());
+        var vm = new NotificationsViewModel(factory, poller, new FakeBrowserLauncher(), ui);
+
+        var previous = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
+        try
+        {
+            poller.SimulateNotifications(
+                [new Notification { Id = "1", Unread = true }], 1);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+
+        Assert.Equal(1, ui.PostCount);
+        Assert.Single(vm.Notifications);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task MarkAsRead_WithoutToken_SetsErrorMessage()
     {
         var handler = new MockHttpHandler();
@@ -232,5 +278,18 @@ public class NotificationsViewModelTests
 
         // The VM's Notifications should still be empty (event was unsubscribed).
         Assert.Empty(vm.Notifications);
+    }
+
+    private sealed class RecordingSynchronizationContext : SynchronizationContext
+    {
+        public int PostCount { get; private set; }
+
+        public override void Post(SendOrPostCallback d, object? state)
+        {
+            PostCount++;
+            d(state);
+        }
+
+        public override void Send(SendOrPostCallback d, object? state) => d(state);
     }
 }
