@@ -36,6 +36,7 @@ public sealed partial class IssuesViewModel : IDisposable
     private string _owner = string.Empty;
     private string _repo = string.Empty;
     private readonly PagedListCycle _cycle;
+    private bool _reloadQueued;
 
     /// <summary>Issues currently displayed.</summary>
     public ObservableCollection<Issue> Issues { get; } = [];
@@ -85,8 +86,16 @@ public sealed partial class IssuesViewModel : IDisposable
     {
         // Filter change reloads from page 1 once a session cycle has started.
         // Load recreates the session so credential changes apply.
-        if (_cycle.HasSession)
-            _ = LoadCommand.ExecuteAsync(null);
+        if (!_cycle.HasSession)
+            return;
+
+        if (IsLoading.Value)
+        {
+            _reloadQueued = true;
+            return;
+        }
+
+        _ = LoadCommand.ExecuteAsync(null);
     }
 
     /// <summary>Initial load (page 1) or reload after filter change.</summary>
@@ -97,28 +106,35 @@ public sealed partial class IssuesViewModel : IDisposable
             return;
 
         IsLoading.Value = true;
-        ErrorMessage.Value = string.Empty;
-
         try
         {
-            var result = await _cycle.LoadAsync(StateFilter.Value, async (client, ct) =>
+            while (true)
             {
-                var api = RestService.For<IGitHubReposApi>(client);
-                var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync(ct);
-                return new PagedListPage<Issue>(response.Content ?? [], response.Headers);
-            });
-            if (!result.Completed)
-                return;
-            if (result.Error is not null)
-            {
-                ErrorMessage.Value = result.Error;
-                return;
-            }
+                _reloadQueued = false;
+                ErrorMessage.Value = string.Empty;
+                var result = await _cycle.LoadAsync(StateFilter.Value, async (client, ct) =>
+                {
+                    var api = RestService.For<IGitHubReposApi>(client);
+                    var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync(ct);
+                    return new PagedListPage<Issue>(response.Content ?? [], response.Headers);
+                });
+                if (_reloadQueued)
+                    continue;
+                if (!result.Completed)
+                    return;
+                if (result.Error is not null)
+                {
+                    ErrorMessage.Value = result.Error;
+                    return;
+                }
 
-            Issues.Clear();
-            foreach (var issue in result.Items)
-                Issues.Add(issue);
-            CanLoadMore.Value = result.HasNextPage;
+                Issues.Clear();
+                foreach (var issue in result.Items)
+                    Issues.Add(issue);
+                CanLoadMore.Value = result.HasNextPage;
+                if (!_reloadQueued)
+                    break;
+            }
         }
         finally
         {

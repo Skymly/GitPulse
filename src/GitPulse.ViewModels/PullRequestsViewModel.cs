@@ -25,6 +25,7 @@ public sealed partial class PullRequestsViewModel : IDisposable
     private string _owner = string.Empty;
     private string _repo = string.Empty;
     private readonly PagedListCycle _cycle;
+    private bool _reloadQueued;
 
     /// <summary>Pull requests currently displayed.</summary>
     public ObservableCollection<PullRequest> PullRequests { get; } = [];
@@ -74,8 +75,16 @@ public sealed partial class PullRequestsViewModel : IDisposable
     {
         // Filter change reloads from page 1 once a session cycle has started.
         // Load recreates the session so credential changes apply.
-        if (_cycle.HasSession)
-            _ = LoadCommand.ExecuteAsync(null);
+        if (!_cycle.HasSession)
+            return;
+
+        if (IsLoading.Value)
+        {
+            _reloadQueued = true;
+            return;
+        }
+
+        _ = LoadCommand.ExecuteAsync(null);
     }
 
     [RelayCommand]
@@ -85,28 +94,35 @@ public sealed partial class PullRequestsViewModel : IDisposable
             return;
 
         IsLoading.Value = true;
-        ErrorMessage.Value = string.Empty;
-
         try
         {
-            var result = await _cycle.LoadAsync(StateFilter.Value, async (client, ct) =>
+            while (true)
             {
-                var api = RestService.For<IGitHubReposApi>(client);
-                var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(ct);
-                return new PagedListPage<PullRequest>(response.Content ?? [], response.Headers);
-            });
-            if (!result.Completed)
-                return;
-            if (result.Error is not null)
-            {
-                ErrorMessage.Value = result.Error;
-                return;
-            }
+                _reloadQueued = false;
+                ErrorMessage.Value = string.Empty;
+                var result = await _cycle.LoadAsync(StateFilter.Value, async (client, ct) =>
+                {
+                    var api = RestService.For<IGitHubReposApi>(client);
+                    var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(ct);
+                    return new PagedListPage<PullRequest>(response.Content ?? [], response.Headers);
+                });
+                if (_reloadQueued)
+                    continue;
+                if (!result.Completed)
+                    return;
+                if (result.Error is not null)
+                {
+                    ErrorMessage.Value = result.Error;
+                    return;
+                }
 
-            PullRequests.Clear();
-            foreach (var pr in result.Items)
-                PullRequests.Add(pr);
-            CanLoadMore.Value = result.HasNextPage;
+                PullRequests.Clear();
+                foreach (var pr in result.Items)
+                    PullRequests.Add(pr);
+                CanLoadMore.Value = result.HasNextPage;
+                if (!_reloadQueued)
+                    break;
+            }
         }
         finally
         {

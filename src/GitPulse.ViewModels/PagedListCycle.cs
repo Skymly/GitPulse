@@ -8,11 +8,16 @@ namespace GitPulse.ViewModels;
 /// Leftover list envelope around <see cref="PagedGitHubSession"/>:
 /// token check, PrepareRequest, 30s timeout, ApplyLink, CanLoadMore.
 /// List ViewModels map domain items and filters only.
+/// A generation counter drops stale Load / Load more responses when a newer
+/// request has already replaced the session.
 /// </summary>
 internal sealed class PagedListCycle(IGitHubClientFactory factory) : IDisposable
 {
     private const int TimeoutSeconds = 30;
     private PagedGitHubSession? _session;
+    private int _generation;
+    private CancellationTokenSource _abort = new();
+    private CancellationTokenSource? _runCts;
 
     public bool HasSession => _session is not null;
 
@@ -26,10 +31,27 @@ internal sealed class PagedListCycle(IGitHubClientFactory factory) : IDisposable
         string? state,
         Func<HttpClient, CancellationToken, Task<PagedListPage<T>>> fetch)
     {
+        var generation = BeginRun(out var token);
+
         _session?.Dispose();
         _session = null;
 
-        var session = await factory.CreatePagedSessionAsync();
+        PagedGitHubSession session;
+        try
+        {
+            session = await factory.CreatePagedSessionAsync(token);
+        }
+        catch (OperationCanceledException)
+        {
+            return StaleOrTimeout<T>(generation);
+        }
+
+        if (!IsCurrent(generation))
+        {
+            session.Dispose();
+            return PagedListCycleResult<T>.Noop;
+        }
+
         if (session.Client.DefaultRequestHeaders.Authorization is null)
         {
             session.Dispose();
@@ -40,47 +62,84 @@ internal sealed class PagedListCycle(IGitHubClientFactory factory) : IDisposable
         _session.State = state;
         _session.Reset();
         _session.PrepareRequest();
-        return await RunAsync(fetch, loadMore: false);
+        return await RunAsync(fetch, loadMore: false, generation, token);
     }
 
     public async Task<PagedListCycleResult<T>> LoadMoreAsync<T>(
         Func<HttpClient, CancellationToken, Task<PagedListPage<T>>> fetch)
     {
+        var generation = Volatile.Read(ref _generation);
         if (_session is null || !_session.HasNextPage || !_session.Advance())
             return PagedListCycleResult<T>.Noop;
 
         _session.PrepareRequest();
-        return await RunAsync(fetch, loadMore: true);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_abort.Token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(TimeoutSeconds));
+        return await RunAsync(fetch, loadMore: true, generation, timeout.Token);
     }
 
     public void Dispose()
     {
+        _abort.Cancel();
+        _abort.Dispose();
+        _runCts?.Dispose();
+        _runCts = null;
         _session?.Dispose();
         _session = null;
+        Interlocked.Increment(ref _generation);
     }
+
+    private int BeginRun(out CancellationToken token)
+    {
+        _abort.Cancel();
+        _abort.Dispose();
+        _abort = new CancellationTokenSource();
+        _runCts?.Dispose();
+        _runCts = CancellationTokenSource.CreateLinkedTokenSource(_abort.Token);
+        _runCts.CancelAfter(TimeSpan.FromSeconds(TimeoutSeconds));
+        token = _runCts.Token;
+        return Interlocked.Increment(ref _generation);
+    }
+
+    private bool IsCurrent(int generation) => Volatile.Read(ref _generation) == generation;
 
     private async Task<PagedListCycleResult<T>> RunAsync<T>(
         Func<HttpClient, CancellationToken, Task<PagedListPage<T>>> fetch,
-        bool loadMore)
+        bool loadMore,
+        int generation,
+        CancellationToken token)
     {
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds));
-            var page = await fetch(_session!.Client, cts.Token);
+            var page = await fetch(_session!.Client, token);
+            if (!IsCurrent(generation))
+                return PagedListCycleResult<T>.Noop;
+
             _session.ApplyLink(page.Headers);
             return PagedListCycleResult<T>.Ok(page.Items, _session.HasNextPage);
         }
         catch (OperationCanceledException)
         {
-            return PagedListCycleResult<T>.Fail("Request timed out.", _session!.HasNextPage);
+            return StaleOrTimeout<T>(generation);
         }
         catch (Exception ex)
         {
+            if (!IsCurrent(generation))
+                return PagedListCycleResult<T>.Noop;
+
             var message = loadMore
                 ? $"Load more failed: {ex.Message}"
                 : $"Load failed: {ex.Message}";
             return PagedListCycleResult<T>.Fail(message, _session!.HasNextPage);
         }
+    }
+
+    private PagedListCycleResult<T> StaleOrTimeout<T>(int generation)
+    {
+        if (!IsCurrent(generation))
+            return PagedListCycleResult<T>.Noop;
+
+        return PagedListCycleResult<T>.Fail("Request timed out.", _session?.HasNextPage == true);
     }
 }
 
