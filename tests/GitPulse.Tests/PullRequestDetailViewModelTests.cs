@@ -147,6 +147,9 @@ public class PullRequestDetailViewModelTests
 
         Assert.Empty(vm.ErrorMessage.Value);
         Assert.Equal("closed", vm.PullRequest.Value!.State);
+        Assert.False(vm.CanMerge.Value);
+        Assert.False(vm.CanUpdateBranch.Value);
+        Assert.Equal("feature", vm.PullRequest.Value.Head?.Ref);
         vm.Dispose();
     }
 
@@ -305,6 +308,8 @@ public class PullRequestDetailViewModelTests
         Assert.True(vm.PullRequest.Value!.Merged);
         Assert.Equal("abc123sha", vm.PullRequest.Value!.MergeCommitSha);
         Assert.Equal("closed", vm.PullRequest.Value!.State);
+        Assert.Equal("merger", vm.PullRequest.Value.MergedBy?.Login);
+        Assert.False(vm.CanUpdateBranch.Value);
         vm.Dispose();
     }
 
