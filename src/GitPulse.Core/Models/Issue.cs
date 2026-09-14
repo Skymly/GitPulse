@@ -9,9 +9,16 @@ public sealed class Issue
     public string Title { get; init; } = string.Empty;
     public string Body { get; init; } = string.Empty;
     public string State { get; init; } = string.Empty;
+
+    [JsonPropertyName("html_url")]
     public string HtmlUrl { get; init; } = string.Empty;
+
+    [JsonPropertyName("created_at")]
     public DateTime CreatedAt { get; init; }
+
+    [JsonPropertyName("updated_at")]
     public DateTime UpdatedAt { get; init; }
+
     public User? User { get; init; }
     public bool IsPullRequest { get; init; }
 
@@ -19,6 +26,7 @@ public sealed class Issue
     [JsonPropertyName("pull_request")]
     public PullRequestRef? PullRequestRef { get; init; }
 
+    [JsonPropertyName("comments")]
     public int CommentsCount { get; init; }
     public Label[] Labels { get; init; } = [];
     public User[] Assignees { get; init; } = [];
@@ -29,7 +37,17 @@ public sealed class Issue
 public sealed class PullRequestRef
 {
     public string Url { get; init; } = string.Empty;
+
+    [JsonPropertyName("html_url")]
     public string HtmlUrl { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Not a GitHub field on the embedded <c>pull_request</c> object
+    /// (that payload is urls only). Kept for in-process use.
+    /// </summary>
+    [JsonIgnore]
     public bool? Merged { get; init; }
+
+    [JsonPropertyName("diff_url")]
     public string? DiffUrl { get; init; }
 }

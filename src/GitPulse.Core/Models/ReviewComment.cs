@@ -42,7 +42,10 @@ public sealed class ReviewComment
 
     public string Body { get; init; } = string.Empty;
 
+    [JsonPropertyName("created_at")]
     public DateTime CreatedAt { get; init; }
+
+    [JsonPropertyName("updated_at")]
     public DateTime UpdatedAt { get; init; }
 
     [JsonPropertyName("html_url")]
