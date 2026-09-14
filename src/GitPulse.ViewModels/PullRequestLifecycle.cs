@@ -12,8 +12,7 @@ internal sealed class PullRequestLifecycle(
     PullRequestConversationIo io,
     BindableReactiveProperty<PullRequest?> pullRequest,
     BindableReactiveProperty<bool> isSaving,
-    Action<PullRequest> apply,
-    Action<PullRequest> syncReviewPermissions) : IDisposable
+    Action<PullRequest> apply) : IDisposable
 {
     public BindableReactiveProperty<string> MergeMethod { get; } = new("merge");
 
@@ -97,24 +96,8 @@ internal sealed class PullRequestLifecycle(
                 var request = new IssueUpdateRequest { State = newState };
                 await api.UpdateIssue(io.Owner, io.Repo, io.Number, request).FirstAsync(cts.Token);
 
-                var pr = pullRequest.Value;
-                pullRequest.Value = new PullRequest
-                {
-                    Number = pr.Number,
-                    Title = pr.Title,
-                    Body = pr.Body,
-                    State = newState,
-                    Draft = pr.Draft,
-                    Merged = pr.Merged,
-                    HtmlUrl = pr.HtmlUrl,
-                    CreatedAt = pr.CreatedAt,
-                    UpdatedAt = pr.UpdatedAt,
-                    User = pr.User,
-                    MergedBy = pr.MergedBy,
-                    HeadRef = pr.HeadRef,
-                    BaseRef = pr.BaseRef,
-                };
-                syncReviewPermissions(pullRequest.Value);
+                var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(cts.Token);
+                apply(pr);
             }
         }
         catch (OperationCanceledException)
@@ -158,32 +141,8 @@ internal sealed class PullRequestLifecycle(
 
                 if (response.Merged)
                 {
-                    var pr = pullRequest.Value;
-                    pullRequest.Value = new PullRequest
-                    {
-                        Number = pr.Number,
-                        Title = pr.Title,
-                        Body = pr.Body,
-                        State = "closed",
-                        Draft = pr.Draft,
-                        Merged = true,
-                        HtmlUrl = pr.HtmlUrl,
-                        CreatedAt = pr.CreatedAt,
-                        UpdatedAt = DateTime.UtcNow,
-                        User = pr.User,
-                        MergedBy = pr.User,
-                        HeadRef = pr.HeadRef,
-                        BaseRef = pr.BaseRef,
-                        Mergeable = false,
-                        MergeableState = pr.MergeableState,
-                        MergeCommitSha = response.Sha,
-                        Commits = pr.Commits,
-                        Additions = pr.Additions,
-                        Deletions = pr.Deletions,
-                        ChangedFiles = pr.ChangedFiles,
-                    };
-                    SyncMergeStatus(pullRequest.Value);
-                    syncReviewPermissions(pullRequest.Value);
+                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(cts.Token);
+                    apply(pr);
                 }
                 else
                 {
