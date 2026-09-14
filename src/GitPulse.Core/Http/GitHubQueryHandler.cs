@@ -53,7 +53,7 @@ public sealed class GitHubQueryHandler : DelegatingHandler
                 existing["page"] = Page.ToString();
             if (PerPage != 30)
                 existing["per_page"] = PerPage.ToString();
-            if (!string.IsNullOrEmpty(State) && State != "all")
+            if (!string.IsNullOrEmpty(State))
                 existing["state"] = State;
 
             builder.Query = BuildQuery(existing);
