@@ -13,11 +13,11 @@ namespace GitPulse.Core.Http;
 /// See <see href="https://github.com/Skymly/Observables/issues/111"/>.
 /// </para>
 /// <para>
-/// The handler is <b>per-request stateful</b>: set <see cref="Page"/>,
+/// The handler is <b>per-session stateful</b>: set <see cref="Page"/>,
 /// <see cref="PerPage"/>, and <see cref="State"/> before each request to
-/// control pagination/filtering. A fresh handler instance is created per
-/// ViewModel load cycle (the factory creates one per <c>CreateClientAsync</c>
-/// call).
+/// control pagination/filtering. A fresh query-handler instance is created
+/// per paged session. The inner <see cref="HttpMessageHandler"/> may be
+/// owned and shared by <c>IGitHubClientFactory</c> for the process lifetime.
 /// </para>
 /// </remarks>
 public sealed class GitHubQueryHandler : DelegatingHandler
