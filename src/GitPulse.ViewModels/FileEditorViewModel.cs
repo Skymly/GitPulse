@@ -1,3 +1,4 @@
+using System.Text;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Models;
@@ -29,6 +30,10 @@ namespace GitPulse.ViewModels;
 /// </remarks>
 public sealed partial class FileEditorViewModel : IDisposable
 {
+    private static readonly Encoding StrictUtf8 = new UTF8Encoding(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true);
+
     private readonly IGitHubClientFactory _clientFactory;
     private readonly IBrowserLauncher _browserLauncher;
 
@@ -149,16 +154,13 @@ public sealed partial class FileEditorViewModel : IDisposable
             IsNewFile.Value = false;
             Title.Value = content.Name;
 
-            // Decode base64 content to UTF-8 string.
-            try
+            if (TryDecodeUtf8Text(content.Content, out var text))
             {
-                var bytes = Convert.FromBase64String(content.Content.Replace("\n", "").Replace("\r", ""));
-                FileContent.Value = System.Text.Encoding.UTF8.GetString(bytes);
+                FileContent.Value = text;
                 IsBinary.Value = false;
             }
-            catch
+            else
             {
-                // If base64 decode or UTF-8 decode fails, it's a binary file.
                 FileContent.Value = "[Binary file — cannot display as text]";
                 IsBinary.Value = true;
                 IsEditing.Value = false;
@@ -216,7 +218,7 @@ public sealed partial class FileEditorViewModel : IDisposable
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
             var encodedContent = Convert.ToBase64String(
-                System.Text.Encoding.UTF8.GetBytes(FileContent.Value));
+                Encoding.UTF8.GetBytes(FileContent.Value));
 
             var request = new FileUpdateRequest
             {
@@ -228,11 +230,9 @@ public sealed partial class FileEditorViewModel : IDisposable
             var response = await api.CreateOrUpdateFile(_owner, _repo, _path, request)
                 .FirstAsync(cts.Token);
 
-            // Update SHA from response for subsequent edits.
-            if (response.Content?.Sha is { } newSha)
+            // Contents updates require the blob SHA, never the commit SHA.
+            if (response.Content?.Sha is { Length: > 0 } newSha)
                 _sha = newSha;
-            else if (response.Commit?.Sha is { } commitSha)
-                _sha = commitSha;
 
             IsNewFile.Value = false;
             IsEditing.Value = false;
@@ -313,8 +313,31 @@ public sealed partial class FileEditorViewModel : IDisposable
     [RelayCommand]
     private async Task OpenInBrowserAsync()
     {
-        var url = $"https://github.com/{_owner}/{_repo}/blob/HEAD/{_path}";
-        await _browserLauncher.OpenAsync(url);
+        await _browserLauncher.OpenAsync(GitHubWebUrl.RepoBlob(_owner, _repo, _path));
+    }
+
+    private static bool TryDecodeUtf8Text(string base64Content, out string text)
+    {
+        text = string.Empty;
+        try
+        {
+            var bytes = Convert.FromBase64String(
+                base64Content.Replace("\n", "", StringComparison.Ordinal)
+                    .Replace("\r", "", StringComparison.Ordinal));
+            if (Array.IndexOf(bytes, (byte)0) >= 0)
+                return false;
+
+            text = StrictUtf8.GetString(bytes);
+            return true;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+        catch (DecoderFallbackException)
+        {
+            return false;
+        }
     }
 
     public void Dispose()

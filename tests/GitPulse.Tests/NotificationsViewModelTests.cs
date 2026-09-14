@@ -280,6 +280,75 @@ public class NotificationsViewModelTests
         Assert.Empty(vm.Notifications);
     }
 
+    [Fact]
+    public async Task OpenNotification_MapsIssueApiUrlToGitHubHtml()
+    {
+        var launcher = new FakeBrowserLauncher();
+        var vm = new NotificationsViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()),
+            new FakeNotificationPoller(),
+            launcher);
+        var notification = new Notification
+        {
+            Subject = new NotificationSubject
+            {
+                Type = "Issue",
+                Url = "https://api.github.com/repos/o/r/issues/42",
+                LatestCommentUrl = "https://api.github.com/repos/o/r/issues/comments/99",
+            },
+            Repository = new NotificationRepository { HtmlUrl = "https://github.com/o/r" },
+        };
+
+        await vm.OpenNotificationCommand.ExecuteAsync(notification);
+
+        Assert.Equal("https://github.com/o/r/issues/42", Assert.Single(launcher.OpenedUrls));
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task OpenNotification_MapsPullRequestApiUrlToGitHubHtml()
+    {
+        var launcher = new FakeBrowserLauncher();
+        var vm = new NotificationsViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()),
+            new FakeNotificationPoller(),
+            launcher);
+        var notification = new Notification
+        {
+            Subject = new NotificationSubject
+            {
+                Type = "PullRequest",
+                Url = "https://api.github.com/repos/o/r/pulls/7",
+            },
+            Repository = new NotificationRepository { HtmlUrl = "https://github.com/o/r" },
+        };
+
+        await vm.OpenNotificationCommand.ExecuteAsync(notification);
+
+        Assert.Equal("https://github.com/o/r/pull/7", Assert.Single(launcher.OpenedUrls));
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task OpenNotification_FallsBackToRepositoryHtmlUrl()
+    {
+        var launcher = new FakeBrowserLauncher();
+        var vm = new NotificationsViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()),
+            new FakeNotificationPoller(),
+            launcher);
+        var notification = new Notification
+        {
+            Subject = new NotificationSubject { Type = "CheckSuite", Url = string.Empty },
+            Repository = new NotificationRepository { HtmlUrl = "https://github.com/o/r" },
+        };
+
+        await vm.OpenNotificationCommand.ExecuteAsync(notification);
+
+        Assert.Equal("https://github.com/o/r", Assert.Single(launcher.OpenedUrls));
+        vm.Dispose();
+    }
+
     private sealed class RecordingSynchronizationContext : SynchronizationContext
     {
         public int PostCount { get; private set; }

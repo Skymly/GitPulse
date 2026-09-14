@@ -247,6 +247,22 @@ public sealed partial class NotificationsViewModel : IDisposable
             await _browserLauncher.OpenAsync(url);
     }
 
+    /// <summary>
+    /// Open the notification subject on github.com. GitHub's notification payload
+    /// only has API URLs on <see cref="NotificationSubject"/>; those must not be
+    /// launched in a browser.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenNotificationAsync(Notification? notification)
+    {
+        if (notification is null)
+            return;
+
+        var url = GitHubWebUrl.FromNotification(notification);
+        if (!string.IsNullOrEmpty(url))
+            await _browserLauncher.OpenAsync(url);
+    }
+
     public void Dispose()
     {
         _credentials.Dispose();
