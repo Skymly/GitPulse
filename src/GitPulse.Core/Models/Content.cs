@@ -87,10 +87,12 @@ public sealed class FileUpdateRequest
     /// SHA of the existing file (required for updates, omit for creates).
     /// </summary>
     [JsonPropertyName("sha")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Sha { get; set; }
 
     /// <summary>Target branch (optional, defaults to repo default branch).</summary>
     [JsonPropertyName("branch")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Branch { get; set; }
 }
 
@@ -107,6 +109,7 @@ public sealed class FileDeleteRequest
     public string Sha { get; set; } = string.Empty;
 
     [JsonPropertyName("branch")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Branch { get; set; }
 }
 

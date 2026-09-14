@@ -138,10 +138,12 @@ public sealed class PullRequestCreateRequest
     public string Base { get; set; } = string.Empty;
 
     [JsonPropertyName("body")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Body { get; set; }
 
     /// <summary>Optional create-time draft flag (Glossary: Draft PR).</summary>
     [JsonPropertyName("draft")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Draft { get; set; }
 }
 
@@ -152,10 +154,12 @@ public sealed class MergeRequest
 {
     /// <summary>Optional commit message for the merge.</summary>
     [JsonPropertyName("commit_message")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? CommitMessage { get; set; }
 
     /// <summary>Optional commit title for the merge.</summary>
     [JsonPropertyName("commit_title")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? CommitTitle { get; set; }
 
     /// <summary>Merge method: "merge", "squash", or "rebase".</summary>
@@ -164,6 +168,7 @@ public sealed class MergeRequest
 
     /// <summary>SHA that the PR head must match (optional safety check).</summary>
     [JsonPropertyName("sha")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Sha { get; set; }
 }
 
@@ -190,6 +195,7 @@ public sealed class UpdatePullRequestBranchRequest
 {
     /// <summary>SHA the pull request head must match (optional safety check).</summary>
     [JsonPropertyName("expected_head_sha")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ExpectedHeadSha { get; set; }
 }
 

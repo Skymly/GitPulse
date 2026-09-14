@@ -33,5 +33,6 @@ public sealed class ReviewersRequest
     public string[] Reviewers { get; set; } = [];
 
     [JsonPropertyName("team_reviewers")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string[]? TeamReviewers { get; set; }
 }

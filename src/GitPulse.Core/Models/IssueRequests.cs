@@ -16,23 +16,27 @@ public sealed class CommentCreateRequest
 
 /// <summary>
 /// Request body for PATCH /repos/{owner}/{repo}/issues/{number}.
-/// Only the fields being updated need to be set; GitHub treats null
-/// fields as "unchanged".
+/// Only the fields being updated need to be set. GitHub 422s JSON null
+/// for title, body, state, and labels; omit unset members.
 /// </summary>
 public sealed class IssueUpdateRequest
 {
     [JsonPropertyName("title")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Title { get; set; }
 
     [JsonPropertyName("body")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Body { get; set; }
 
     /// <summary>"open" or "closed".</summary>
     [JsonPropertyName("state")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? State { get; set; }
 
     /// <summary>Array of label names to replace the current labels.</summary>
     [JsonPropertyName("labels")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string[]? Labels { get; set; }
 }
 
@@ -45,10 +49,12 @@ public sealed class IssueCreateRequest
     public string Title { get; set; } = string.Empty;
 
     [JsonPropertyName("body")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Body { get; set; }
 
     /// <summary>Optional array of label names to assign on creation.</summary>
     [JsonPropertyName("labels")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string[]? Labels { get; set; }
 }
 
