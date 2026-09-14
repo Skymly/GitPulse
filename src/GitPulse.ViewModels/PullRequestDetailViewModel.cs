@@ -96,7 +96,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         _review = new PullRequestReviewComposer(
             _io, PullRequest, IsSaving, ApplyPullRequest, _meta.LoadRequestedAsync);
         _lifecycle = new PullRequestLifecycle(
-            _io, PullRequest, IsSaving, ApplyPullRequest, _review.SyncPermissions);
+            _io, PullRequest, IsSaving, ApplyPullRequest);
     }
 
     [RelayCommand]
