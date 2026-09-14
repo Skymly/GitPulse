@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Net.Http.Headers;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Models;
 using GitPulse.GitHubApi;
@@ -27,9 +29,16 @@ namespace GitPulse.Services;
 /// empty array and unread count 0, then <see cref="Stop"/>s so the timer
 /// does not keep ticking.
 /// </para>
+/// <para>
+/// HTTP failures set <see cref="LastError"/> and skip the next ticks until
+/// <c>Retry-After</c> or an exponential backoff elapses. A successful poll
+/// clears the error. <see cref="RefreshAsync"/> polls immediately.
+/// </para>
 /// </remarks>
 public sealed class NotificationPoller : INotificationPoller
 {
+    private static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(15);
+
     private readonly IGitHubClientFactory _clientFactory;
     private readonly TimeProvider _timeProvider;
     private readonly object _lock = new();
@@ -37,25 +46,23 @@ public sealed class NotificationPoller : INotificationPoller
     private IDisposable? _pollSubscription;
     private bool _isPolling;
     private bool _disposed;
+    private int _busy;
+    private int _failures;
+    private DateTimeOffset _notBefore;
+    private string? _lastError;
 
     public event Action<Notification[], int>? NotificationsUpdated;
 
+    public event Action<bool>? IsPollingChanged;
+
+    public event Action<string?>? LastErrorChanged;
+
     public int UnreadCount { get; private set; }
 
-    public bool IsPolling
-    {
-        get => _isPolling;
-        private set
-        {
-            if (_isPolling != value)
-            {
-                _isPolling = value;
-                IsPollingChanged?.Invoke(value);
-            }
-        }
-    }
+    public bool IsPolling => _isPolling;
 
-    public event Action<bool>? IsPollingChanged;
+    /// <summary>Last poll failure; null after a successful poll or unauthenticated stop.</summary>
+    public string? LastError => _lastError;
 
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(60);
 
@@ -78,13 +85,18 @@ public sealed class NotificationPoller : INotificationPoller
 
     public void Start()
     {
+        var raised = false;
         lock (_lock)
         {
             if (_isPolling || _disposed)
                 return;
 
-            IsPolling = true;
+            _isPolling = true;
+            raised = true;
         }
+
+        if (raised)
+            IsPollingChanged?.Invoke(true);
 
         // Subscribe outside the lock so a synchronous first poll that
         // Stop()s (no token) cannot deadlock on this lock.
@@ -93,7 +105,7 @@ public sealed class NotificationPoller : INotificationPoller
             .Prepend(Unit.Default)
             .SubscribeAwait(async (_, ct) =>
             {
-                await PollAsync(ct);
+                await PollAsync(ct, force: false);
             });
 
         lock (_lock)
@@ -110,65 +122,202 @@ public sealed class NotificationPoller : INotificationPoller
 
     public void Stop()
     {
+        IDisposable? subscription = null;
+        var raised = false;
         lock (_lock)
         {
             if (!_isPolling)
                 return;
 
-            IsPolling = false;
-            _pollSubscription?.Dispose();
+            _isPolling = false;
+            raised = true;
+            subscription = _pollSubscription;
             _pollSubscription = null;
         }
+
+        subscription?.Dispose();
+        if (raised)
+            IsPollingChanged?.Invoke(false);
     }
 
     public async Task RefreshAsync()
     {
-        await PollAsync(CancellationToken.None);
+        await PollAsync(CancellationToken.None, force: true);
     }
 
-    private async Task PollAsync(CancellationToken ct)
+    private async Task PollAsync(CancellationToken ct, bool force)
     {
+        if (!force)
+        {
+            DateTimeOffset notBefore;
+            lock (_lock)
+                notBefore = _notBefore;
+            if (_timeProvider.GetUtcNow() < notBefore)
+                return;
+        }
+
+        if (Interlocked.Exchange(ref _busy, 1) != 0)
+            return;
+
+        Notification[]? snapshot = null;
+        var unread = 0;
+        string? error = null;
+        var stop = false;
+        TimeSpan? wait = null;
+
         try
         {
             using var scope = await _clientFactory.OpenAsync(ct);
             var client = scope.Client;
             if (client.DefaultRequestHeaders.Authorization is null)
             {
-                OnNotificationsUpdated([], 0);
-                Stop();
-                return;
+                snapshot = [];
+                unread = 0;
+                stop = true;
             }
+            else
+            {
+                var api = RestService.For<IGitHubReposApi>(client);
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                cts.CancelAfter(TimeSpan.FromSeconds(30));
 
-            var api = RestService.For<IGitHubReposApi>(client);
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            cts.CancelAfter(TimeSpan.FromSeconds(30));
-
-            var notifications = await api.ListNotifications().FirstAsync(cts.Token);
-            var unread = notifications.Count(n => n.Unread);
-            OnNotificationsUpdated(notifications, unread);
+                var notifications = await api.ListNotifications().FirstAsync(cts.Token);
+                snapshot = notifications;
+                unread = notifications.Count(n => n.Unread);
+            }
+        }
+        catch (OperationCanceledException) when (_disposed || (!force && !_isPolling))
+        {
+            // Stop / dispose cancelled the tick.
         }
         catch (OperationCanceledException)
         {
-            // Timeout or cancellation — don't update, keep last state.
+            error = "Request timed out.";
+            wait = NextBackoff();
         }
-        catch (Exception)
+        catch (ApiException ex)
         {
-            // Network/API error — don't crash the poller, just skip this cycle.
+            error = FormatApiError(ex);
+            wait = ReadRetryAfter(ex) ?? NextBackoff();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            wait = NextBackoff();
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _busy, 0);
+        }
+
+        if (snapshot is not null)
+        {
+            UnreadCount = unread;
+            NotificationsUpdated?.Invoke(snapshot, unread);
+            ClearFailures();
+            SetLastError(null);
+        }
+        else if (error is not null)
+        {
+            RecordFailure(wait ?? NextBackoff());
+            SetLastError(error);
+        }
+
+        if (stop)
+            Stop();
+    }
+
+    private void ClearFailures()
+    {
+        lock (_lock)
+        {
+            _failures = 0;
+            _notBefore = default;
         }
     }
 
-    private void OnNotificationsUpdated(Notification[] notifications, int unreadCount)
+    private void RecordFailure(TimeSpan wait)
     {
-        UnreadCount = unreadCount;
-        NotificationsUpdated?.Invoke(notifications, unreadCount);
+        lock (_lock)
+        {
+            _failures++;
+            var delay = wait < TimeSpan.Zero ? TimeSpan.Zero : wait;
+            if (delay > MaxBackoff)
+                delay = MaxBackoff;
+            _notBefore = _timeProvider.GetUtcNow() + delay;
+        }
+    }
+
+    private TimeSpan NextBackoff()
+    {
+        int failures;
+        lock (_lock)
+            failures = _failures;
+        var steps = Math.Min(failures + 1, 5);
+        var delay = TimeSpan.FromTicks(PollInterval.Ticks * (1L << steps));
+        return delay > MaxBackoff ? MaxBackoff : delay;
+    }
+
+    private TimeSpan? ReadRetryAfter(ApiException ex)
+    {
+        if (ex.Headers is HttpResponseHeaders http && http.RetryAfter is { } retry)
+        {
+            if (retry.Delta is { } delta && delta > TimeSpan.Zero)
+                return delta;
+            if (retry.Date is { } date)
+            {
+                var wait = date - _timeProvider.GetUtcNow();
+                if (wait > TimeSpan.Zero)
+                    return wait;
+            }
+        }
+
+        if (ex.Headers is not null
+            && ex.Headers.TryGetValues("Retry-After", out var values))
+        {
+            var raw = values.FirstOrDefault();
+            if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds)
+                && seconds > 0)
+                return TimeSpan.FromSeconds(seconds);
+            if (DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var when))
+            {
+                var wait = when - _timeProvider.GetUtcNow();
+                if (wait > TimeSpan.Zero)
+                    return wait;
+            }
+        }
+
+        return null;
+    }
+
+    private static string FormatApiError(ApiException ex)
+    {
+        var code = (int)ex.StatusCode;
+        var reason = ex.ReasonPhrase?.Trim();
+        return string.IsNullOrEmpty(reason)
+            ? $"GitHub returned {code}."
+            : $"GitHub returned {code} ({reason}).";
+    }
+
+    private void SetLastError(string? error)
+    {
+        if (string.Equals(_lastError, error, StringComparison.Ordinal))
+            return;
+
+        _lastError = error;
+        LastErrorChanged?.Invoke(error);
     }
 
     public void Dispose()
     {
-        if (_disposed)
-            return;
+        lock (_lock)
+        {
+            if (_disposed)
+                return;
 
-        _disposed = true;
+            _disposed = true;
+        }
+
         Stop();
     }
 }
