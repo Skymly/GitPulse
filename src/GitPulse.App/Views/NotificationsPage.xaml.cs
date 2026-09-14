@@ -50,9 +50,7 @@ public partial class NotificationsPage : ContentPage
             return;
         }
 
-        var url = notification.Subject.LatestCommentUrl ?? notification.Repository.HtmlUrl;
-        if (!string.IsNullOrEmpty(url))
-            await _viewModel.OpenInBrowserCommand.ExecuteAsync(url);
+        await _viewModel.OpenNotificationCommand.ExecuteAsync(notification);
     }
 
     private static bool TryGetInAppRoute(Notification notification, out string route)
