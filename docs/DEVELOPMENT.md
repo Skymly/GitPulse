@@ -6,7 +6,7 @@
 
 | 工具 | 版本建议 |
 |------|----------|
-| [.NET SDK](https://dotnet.microsoft.com/download) | 10.0.302+（LTS；根目录 `global.json`，`rollForward: latestFeature`） |
+| [.NET SDK](https://dotnet.microsoft.com/download) | 10.0.302+（LTS；根目录 `global.json`，`rollForward: latestPatch`） |
 | .NET MAUI workload | `dotnet workload install maui` |
 | Git | 2.x |
 | IDE | Visual Studio 2022、Rider 或 VS Code + C# Dev Kit |
