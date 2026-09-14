@@ -192,4 +192,28 @@ public class PullRequestsViewModelTests
         Assert.Single(vm.PullRequests);
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task StateFilter_All_SendsStateAll()
+    {
+        string? lastQuery = null;
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/pulls", req =>
+            {
+                lastQuery = req.RequestUri?.Query;
+                return new MockResponse(PrsJson(("open", false, false), ("closed", false, true)), LinkNoNext);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestsViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Contains("state=open", lastQuery);
+
+        vm.StateFilter.Value = "all";
+        await AsyncTestWait.UntilAsync(() => lastQuery?.Contains("state=all") == true);
+
+        Assert.Contains("state=all", lastQuery);
+        vm.Dispose();
+    }
 }
