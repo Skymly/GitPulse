@@ -18,10 +18,11 @@
 		<!-- App Identifier -->
 		<ApplicationId>com.skymly.gitpulse</ApplicationId>
 
-		<!-- MinVer writes Version / AssemblyVersion / InformationalVersion.
-		     ApplicationDisplayVersion is set after MinVer (see
-		     SetApplicationDisplayVersionFromMinVer). ApplicationVersion is the
+		<!-- 0.1.0 is the design-time / format fallback (MinVer skips when
+		     DesignTimeBuild=true, which would otherwise yield ".."). Real
+		     builds overwrite this after MinVer. ApplicationVersion is the
 		     integer Android versionCode / Windows package revision. -->
+		<ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
@@ -87,7 +88,9 @@
 	<Target Name="SetApplicationDisplayVersionFromMinVer"
 	        DependsOnTargets="MinVer"
 	        BeforeTargets="MauiGeneratePackageAppxManifest;_GetAndroidPackageName">
-		<PropertyGroup>
+		<!-- Target Condition is evaluated before DependsOnTargets. MinVer skips
+		     DesignTimeBuild (dotnet format), so keep the 0.1.0 fallback then. -->
+		<PropertyGroup Condition="'$(MinVerMajor)' != ''">
 			<ApplicationDisplayVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch)</ApplicationDisplayVersion>
 		</PropertyGroup>
 	</Target>
