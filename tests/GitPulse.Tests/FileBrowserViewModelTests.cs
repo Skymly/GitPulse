@@ -203,4 +203,34 @@ public class FileBrowserViewModelTests
         Assert.False(vm.CanGoUp.Value);
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task OpenInBrowser_AtRoot_OpensRepoPage()
+    {
+        var launcher = new FakeBrowserLauncher();
+        var vm = new FileBrowserViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()), launcher);
+        vm.Initialize("owner", "repo", "");
+
+        await vm.OpenInBrowserCommand.ExecuteAsync(null);
+
+        Assert.Equal("https://github.com/owner/repo", Assert.Single(launcher.OpenedUrls));
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task OpenInBrowser_InSubdirectory_UsesHeadRefAndEncodesPath()
+    {
+        var launcher = new FakeBrowserLauncher();
+        var vm = new FileBrowserViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()), launcher);
+        vm.Initialize("owner", "repo", "src/GitPulse Core");
+
+        await vm.OpenInBrowserCommand.ExecuteAsync(null);
+
+        Assert.Equal(
+            "https://github.com/owner/repo/tree/HEAD/src/GitPulse%20Core",
+            Assert.Single(launcher.OpenedUrls));
+        vm.Dispose();
+    }
 }

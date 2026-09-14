@@ -162,10 +162,7 @@ public sealed partial class FileBrowserViewModel : IDisposable
     [RelayCommand]
     private async Task OpenInBrowserAsync()
     {
-        var url = $"https://github.com/{_owner}/{_repo}/tree/{_currentPath}";
-        if (string.IsNullOrEmpty(_currentPath))
-            url = $"https://github.com/{_owner}/{_repo}";
-        await _browserLauncher.OpenAsync(url);
+        await _browserLauncher.OpenAsync(GitHubWebUrl.RepoTree(_owner, _repo, _currentPath));
     }
 
     public void Dispose()
