@@ -1,7 +1,7 @@
 # Design Doc: Architecture
 
 > **版本**：0.33.0（公开 git tag 仍为 v0.32.0）
-> **关联 ADR**：[ADR-001](../adr/ADR-001-layered-solution-architecture.md)、[ADR-004](../adr/ADR-004-pat-auth-platform-credential-store.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)、[ADR-011](../adr/ADR-011-android-m11-daily-usable-phone.md)、[ADR-014](../adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md)
+> **关联 ADR**：[ADR-001](../adr/ADR-001-layered-solution-architecture.md)、[ADR-016](../adr/ADR-016-viewmodels-depend-on-abstractions.md)、[ADR-004](../adr/ADR-004-pat-auth-platform-credential-store.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)、[ADR-011](../adr/ADR-011-android-m11-daily-usable-phone.md)、[ADR-014](../adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md)
 
 ## 概述
 

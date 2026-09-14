@@ -1,7 +1,7 @@
 # Design Doc: Events
 
 > **版本**：0.33.0（公开 git tag 仍为 v0.32.0）
-> **关联 ADR**：[ADR-007](../adr/ADR-007-manual-searchbar-event-bridge.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)、[ADR-011](../adr/ADR-011-android-m11-daily-usable-phone.md)
+> **关联 ADR**：[ADR-007](../adr/ADR-007-manual-searchbar-event-bridge.md)、[ADR-015](../adr/ADR-015-searchbar-public-event-adapter.md)、[ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md)、[ADR-011](../adr/ADR-011-android-m11-daily-usable-phone.md)
 
 ## 概述
 
@@ -15,8 +15,8 @@ MAUI UI 事件与 R3 响应式管道的集成约定；通知轮询的进程级�
 
 | 场景 | 管道 | 位置 |
 |------|------|------|
-| 仓库过滤防抖 | SearchBar → ADR-007 adapter → `.Events().TextChanged` → Debounce(300ms) → DistinctUntilChanged → VM | `ReposPage` / `UiEventPipelines` |
-| GitHub Search 输入 | SearchBar → ADR-007 adapter → `.Events().TextChanged` → Debounce(300ms) → DistinctUntilChanged → 查询状态 | `SearchPage` / `UiEventPipelines` |
+| 仓库过滤防抖 | SearchBar → ADR-015 adapter → `.Events().TextChanged` → Debounce(300ms) → DistinctUntilChanged → VM | `ReposPage` / `UiEventPipelines` |
+| GitHub Search 输入 | SearchBar → ADR-015 adapter → `.Events().TextChanged` → Debounce(300ms) → DistinctUntilChanged → 查询状态 | `SearchPage` / `UiEventPipelines` |
 | Repos 加载更多 | CollectionView remaining-items → adapter → `.Events().Requested` → `LoadMoreCommand` | `ReposPage` / `UiEventPipelines` |
 | 通知轮询 | `Observable.Interval` → REST → event | `NotificationPoller` |
 | 轮询 → UI | poller event → R3 绑定 | `NotificationsViewModel` |
@@ -31,12 +31,12 @@ MAUI UI 事件与 R3 响应式管道的集成约定；通知轮询的进程级�
 
 1. 事件订阅在 Page `OnDisappearing` 或 ViewModel `Dispose` 中释放（ViewModel 在 Shell Tab 复用期间不因 disappear 而 Dispose）。
 2. UI 线程更新经 `ObserveOn` 或 MAUI 调度器。
-3. 若 Observables `.Events()` 因 MAUI internal API 不可用，须用公开 event 的 adapter（ADR-007）并文档化；管道走 `.Events()`，不要在页面里手写 Subject。
+3. 若 Observables `.Events()` 因 MAUI internal API 不可用，须用公开 event 的 adapter（ADR-015）并文档化；管道走 `.Events()`，不要在页面里手写 Subject。
 4. `INotificationPoller` 由 App 层 `NotificationToastHost` 在进程启动时 `Start`，仅在 Exit（host `Dispose`）时 `Stop`；`NotificationsPage` 不再在 disappear 时停轮询（ADR-010）。
 
 ## 实现概览
 
-### ReposPage / SearchPage 搜索（Observables.Events + ADR-007 adapter）
+### ReposPage / SearchPage 搜索（Observables.Events + ADR-015 adapter）
 
 MAUI `SearchBar.Events()` 仍会 CS0122。`SearchTextSource` 是带公开 `event Action<string>? TextChanged` 的适配器，由 Observables.Events.R3 生成 `.Events()`。页面把 `SearchBar.TextChanged` 转发到 adapter，管道本身是源生成的：
 
@@ -75,7 +75,7 @@ Search 的独立限额（普通搜索 30 次/分钟，代码搜索 10 次/分钟
 
 ## 已知局限
 
-- MAUI 控件 `.Events()` 仍可能 CS0122；公开 event 的 adapter 已验证（SearchTextSource / LoadMoreSource）。遇 CS0122 复用 ADR-007 adapter，而不是页面里手写 Subject 管道。
+- MAUI 控件 `.Events()` 仍可能 CS0122；公开 event 的 adapter 已验证（SearchTextSource / LoadMoreSource）。遇 CS0122 复用 ADR-015 adapter，而不是页面里手写 Subject 管道。
 - 轮询非 WebSocket；展示「伪实时」足够，非生产级推送。
 - 本切片无托盘未读角标、无 Actions 状态 Toast。
 

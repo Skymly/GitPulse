@@ -6,9 +6,9 @@
 - **Agent 上下文**：[../AGENTS.md](../AGENTS.md)
 - **变更日志**：[../CHANGELOG.md](../CHANGELOG.md)
 
-## 策略说明（2026-07-06 修订）
+## 策略说明（2026-09-14 修订）
 
-Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原生增强（Mica/Acrylic、系统托盘、Toast）穿插在各里程碑中，而非堆在末尾。全部功能完成后发布 **v0.1.0**，不设中间预发布 tag。
+公开 git tag 为 **v0.32.0**；产品 **0.33.0** 已关闭、未打 tag。继续 **Windows 优先** 深化 GitHub API 覆盖；Android 为次要目标。Windows 原生增强（托盘、Toast）已按 ADR-010 落地。不要把 v0.1.0 写成尚未发生的首发。
 
 ---
 
@@ -36,9 +36,9 @@ Android 适配延后，**Windows 优先**深化 GitHub API 覆盖。Windows 原�
 
 | 项 | 理由 |
 |----|------|
-| GitHub App OAuth | 当前仅 PAT；OAuth 推迟至 v0.1.0 之后 |
+| GitHub App OAuth | 当前仅 PAT；OAuth 推迟至后续 minor（ADR-004） |
 | iOS / MacCatalyst | MAUI 目标平台未稳定，暂不投入 |
-| Android 系统通知 / 出应用提醒 | ADR-011：M11 与 v0.1.0 保持应用内 Notifications；Toast 仍为 Windows 语义（ADR-010） |
+| Android 系统通知 / 出应用提醒 | ADR-011：保持应用内 Notifications；Toast 仍为 Windows 语义（ADR-010） |
 
 ---
 

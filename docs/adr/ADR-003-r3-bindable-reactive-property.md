@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| **状态** | Accepted |
+| **状态** | Superseded by [ADR-017](ADR-017-bindable-reactive-property-in-r3.md)（`BindableReactiveProperty` 的包归属；其余状态管理决策仍适用） |
 | **日期** | 2026-03-01 |
 | **关联 Issue** | 无 |
 

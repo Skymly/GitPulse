@@ -14,7 +14,7 @@ This document is the handoff spec. The map remains the decision index; closed ti
 
 Visual language, interaction standard, chrome atoms, ranked Surfaces (structural spec for Daily; inherit for the rest), and dual-platform expressions of every shared rule. Tray Presence, Tray Menu, and Toast are a Windows-only appendix.
 
-The app is unchanged until a later map implements. Distribution stays GitHub Releases. Auth stays PAT only.
+The document describes the language as implemented. Distribution stays GitHub Releases. Auth stays PAT only.
 
 ## Visual language
 

@@ -269,6 +269,6 @@ v0.1.0 经 **GitHub Release** 分发且 **仅 Windows zip**（[ADR-013](adr/ADR-
 - [CONTEXT.md](CONTEXT.md) — Release Artifact / GitHub Release / Android Emulator UI Smoke 术语
 - [adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md](adr/ADR-014-android-emulator-ui-smoke-and-apk-release.md) — 现行：模拟器冒烟解锁 APK
 - [adr/ADR-013-v0.1.0-windows-only-github-release.md](adr/ADR-013-v0.1.0-windows-only-github-release.md) — v0.1.0 Win-only（已取代）
-- [adr/ADR-012-v0.1.0-github-release-distribution.md](adr/ADR-012-v0.1.0-github-release-distribution.md) — 原双产物决策（已取代）
+- [adr/ADR-012-v0.1.0-github-release-artifacts.md](adr/ADR-012-v0.1.0-github-release-artifacts.md) — 原双产物决策（已取代）
 - [../CONTRIBUTING.md](../CONTRIBUTING.md) — 贡献流程
 - [../AGENTS.md](../AGENTS.md) — AI Agent 上下文

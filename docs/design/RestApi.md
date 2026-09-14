@@ -147,7 +147,7 @@ Typed Search 与每个 Search Inbox 使用 `PagedGitHubSession`。
 
 - `SearchViewModel` 分别维护 repository、Issue、PR 与 code 结果域，并保存各域分页会话。
 - Search 页为 Shell 第四个主 Tab；Repo/Issue/PR 结果进入现有详情页，代码结果直接进入 `FileEditorPage`。
-- `SearchBar.TextChanged` 通过手动 R3 `Subject<string>` 桥接；防抖不触发网络请求。
+- `SearchBar.TextChanged` 经 ADR-015 适配器走 Observables.Events.R3 `.Events()`；防抖不触发网络请求。
 
 #### API 级自动化（可选，`GITPULSE_TEST_PAT`）
 
