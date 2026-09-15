@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net.Http.Headers;
 using GitPulse.Core.Abstractions;
+using GitPulse.Core.Http;
 using GitPulse.Core.Models;
 using GitPulse.GitHubApi;
 using Observables.RestAPI;
@@ -27,7 +28,9 @@ namespace GitPulse.Services;
 /// The poller handles auth gracefully: if no token is configured, it
 /// fires <see cref="INotificationPoller.NotificationsUpdated"/> with an
 /// empty array and unread count 0, then <see cref="Stop"/>s so the timer
-/// does not keep ticking.
+/// does not keep ticking. Authenticated polls follow
+/// <c>Link: rel="next"</c> up to 10 pages so the unread badge is not
+/// truncated at GitHub's first page.
 /// </para>
 /// <para>
 /// HTTP failures set <see cref="LastError"/> and skip the next ticks until
@@ -38,6 +41,7 @@ namespace GitPulse.Services;
 public sealed class NotificationPoller : INotificationPoller
 {
     private static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(15);
+    private const int MaxNotificationPages = 10;
 
     private readonly IGitHubClientFactory _clientFactory;
     private readonly TimeProvider _timeProvider;
@@ -167,8 +171,8 @@ public sealed class NotificationPoller : INotificationPoller
 
         try
         {
-            using var scope = await _clientFactory.OpenAsync(ct);
-            var client = scope.Client;
+            using var session = await _clientFactory.CreatePagedSessionAsync(ct);
+            var client = session.Client;
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 snapshot = [];
@@ -181,21 +185,7 @@ public sealed class NotificationPoller : INotificationPoller
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 cts.CancelAfter(TimeSpan.FromSeconds(30));
 
-                var response = await api.ListNotifications().FirstAsync(cts.Token);
-                if (response.HasRequestError(out var requestError))
-                    throw requestError;
-                if (response.HasResponseError(out var apiError))
-                    throw apiError;
-                if (!response.IsSuccessStatusCode)
-                {
-                    var code = (int)(response.StatusCode ?? 0);
-                    throw new HttpRequestException(
-                        $"Response status code does not indicate success: {code}.",
-                        inner: null,
-                        statusCode: response.StatusCode);
-                }
-
-                var notifications = response.Content ?? [];
+                var notifications = await ListAllNotificationsAsync(api, session, cts.Token);
                 snapshot = notifications;
                 unread = notifications.Count(n => n.Unread);
             }
@@ -311,6 +301,44 @@ public sealed class NotificationPoller : INotificationPoller
         return string.IsNullOrEmpty(reason)
             ? $"GitHub returned {code}."
             : $"GitHub returned {code} ({reason}).";
+    }
+
+    private static async Task<Notification[]> ListAllNotificationsAsync(
+        IGitHubReposApi api,
+        PagedGitHubSession session,
+        CancellationToken token)
+    {
+        session.Reset();
+        var items = new List<Notification>();
+        for (var page = 0; page < MaxNotificationPages; page++)
+        {
+            if (page > 0 && (!session.HasNextPage || !session.Advance()))
+                break;
+
+            session.PrepareRequest();
+            var response = await api.ListNotifications().FirstAsync(token);
+            ThrowIfFailed(response);
+            items.AddRange(response.Content ?? []);
+            session.ApplyLink(response.Headers);
+        }
+
+        return [.. items];
+    }
+
+    private static void ThrowIfFailed<T>(ApiResponse<T> response)
+    {
+        if (response.HasRequestError(out var requestError))
+            throw requestError;
+        if (response.HasResponseError(out var apiError))
+            throw apiError;
+        if (!response.IsSuccessStatusCode)
+        {
+            var code = (int)(response.StatusCode ?? 0);
+            throw new HttpRequestException(
+                $"Response status code does not indicate success: {code}.",
+                inner: null,
+                statusCode: response.StatusCode);
+        }
     }
 
     private void SetLastError(string? error)
