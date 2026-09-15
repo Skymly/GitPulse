@@ -154,6 +154,16 @@ public sealed partial class FileEditorViewModel : IDisposable
             IsNewFile.Value = false;
             Title.Value = content.Name;
 
+            if (CannotEditInApp(content))
+            {
+                IsReadOnly.Value = true;
+                IsEditing.Value = false;
+                IsBinary.Value = false;
+                FileContent.Value = string.Empty;
+                ErrorMessage.Value = "This file cannot be edited in GitPulse. Open it on GitHub.";
+                return;
+            }
+
             if (TryDecodeUtf8Text(content.Content, out var text))
             {
                 FileContent.Value = text;
@@ -316,9 +326,28 @@ public sealed partial class FileEditorViewModel : IDisposable
         await _browserLauncher.OpenAsync(GitHubWebUrl.RepoBlob(_owner, _repo, _path));
     }
 
-    private static bool TryDecodeUtf8Text(string base64Content, out string text)
+    /// <summary>
+    /// GitHub omits usable bytes when encoding is not base64 (files 1–100 MB
+    /// use <c>encoding: none</c> and an empty or null content). Saving would
+    /// PUT empty bytes with the real blob SHA.
+    /// </summary>
+    private static bool CannotEditInApp(FileContent content)
+    {
+        if (!string.Equals(content.Encoding, "base64", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (content.Size > 1_048_576)
+            return true;
+        if (content.Content is null || (content.Size > 0 && content.Content.Length == 0))
+            return true;
+        return false;
+    }
+
+    private static bool TryDecodeUtf8Text(string? base64Content, out string text)
     {
         text = string.Empty;
+        if (base64Content is null)
+            return false;
+
         try
         {
             var bytes = Convert.FromBase64String(
