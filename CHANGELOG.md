@@ -101,6 +101,11 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Fixed
 
+- **Notifications / Actions:** Mark as read (one thread or all) and workflow
+  rerun treat GitHub's empty 205 / 201 bodies as success instead of a false
+  deserialize error (`#545`).
+- **Issues / PRs / Commits / Repos / Actions:** List pages show Page Error
+  when GitHub returns a non-2xx status, instead of an empty list (`#548`).
 - Closing or saving an issue/PR no longer sends JSON `null` for unset title,
   body, state, or labels. GitHub's Update-an-issue endpoint returns 422 for
   those members instead of leaving them unchanged.

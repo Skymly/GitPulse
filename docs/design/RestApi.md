@@ -30,7 +30,14 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 | 分页列表 | `Observable<ApiResponse<T[]>>` | `ListIssuesPaged`, `ListMyReposPaged` |
 | 单资源 GET | `Observable<T>` | `GetRepo`, `GetIssue` |
 | 写操作 | `Observable<T>` + `[Body]` | `CreateIssue`, `CreatePullRequest`, `MergePullRequest` |
-| 无 body PATCH | `Observable<Unit>` | `MarkThreadRead` |
+| 无 body 写 | `Observable<ApiResponse<Unit>>` | `MarkThreadRead` (205), `MarkAllRead` (205), `RerunWorkflow` (201), `StarRepo` (204) |
+
+生成器有两条 HTTP 通道，互不自动转换：
+
+- `Observable<T>`：非 2xx 由生成器抛 `ApiException`。空体成功响应不能反序列化为 `Unit`，会变成反序列化 `ApiException`。
+- `Observable<ApiResponse<T>>`：非 2xx 不抛。调用方必须检查 `StatusCode` / `IsSuccessStatusCode`。GitHub 的 empty-body 写端点（204 / 201 / 205）必须声明为 `ApiResponse<Unit>`。
+
+Issues / PRs / Commits / Starred / Workflow runs 列表在 `ApiResponse` 通道上把非 2xx 映射为 Page Error，而不是空列表。
 
 ## 里程碑 API 面（已实现）
 
@@ -104,6 +111,8 @@ ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按
 3. GitHub snake_case JSON 须在 Core 模型上用 `[JsonPropertyName]` 映射。
 4. Search 的 `q` 必须保留在声明式接口签名中；分页参数继续由 handler 注入。
 5. 写请求 DTO 的可空成员序列化时省略 JSON `null`（`JsonIgnoreCondition.WhenWritingNull`）。GitHub Update-an-issue 对 `title` / `body` / `state` / `labels` 的 JSON `null` 返回 422，不会当作 unchanged；close-only PATCH 必须是 `{"state":"closed"}`。
+6. 写操作不返回响应体时使用 `Observable<ApiResponse<Unit>>`。GitHub 的 empty-body 成功码（204 / 201 / 205）不能走 `Observable<Unit>`：生成器会按 JSON 反序列化空体并抛 `ApiException`。
+7. `Observable<T>` 与 `Observable<ApiResponse<T>>` 互不自动转换。前者非 2xx 抛 `ApiException`；后者不抛，调用方必须检查 `StatusCode`。列表页不得把 `ApiResponse` 通道上的非 2xx 显示成空成功。
 
 ## 实现概览
 
@@ -188,7 +197,7 @@ Typed Search 与每个 Search Inbox 使用 `PagedGitHubSession`。
 | 重跑 run | `POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun` |
 | job 日志 | `GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs` |
 
-列表返回 `ApiResponse<T>`；日志下载需处理重定向。Windows 托盘 / Toast 见 [ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md) 与 [Events.md](Events.md)（App/platform，非本 API 文档范围）。
+列表返回 `ApiResponse<T>`；非 2xx 须检查 `StatusCode`（ViewModel 映射为 Page Error）。`RerunWorkflow` 是 empty-body 201，声明为 `ApiResponse<Unit>`。日志下载需处理重定向。Windows 托盘 / Toast 见 [ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md) 与 [Events.md](Events.md)（App/platform，非本 API 文档范围）。
 
 
 ### Pull Request Reviews (M15)
