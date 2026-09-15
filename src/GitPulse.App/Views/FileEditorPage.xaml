@@ -69,7 +69,7 @@
                        VerticalOptions="Center" />
                 <Button Grid.Column="1"
                         Text="Retry"
-                        Command="{Binding LoadCommand}"
+                        Clicked="OnRetryClicked"
                         BackgroundColor="Transparent"
                         TextColor="{StaticResource Red900}"
                         Padding="8,10"

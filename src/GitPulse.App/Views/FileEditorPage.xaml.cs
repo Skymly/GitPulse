@@ -21,6 +21,14 @@ public partial class FileEditorPage : ContentPage
     private readonly IDisposable _deletedSubscription;
     private string? _appliedQuery;
     private bool _leavingAfterDelete;
+    private RetryAction _retryAction = RetryAction.Load;
+
+    private enum RetryAction
+    {
+        Load,
+        Save,
+        Delete,
+    }
 
     public FileEditorPage(FileEditorViewModel viewModel)
     {
@@ -62,6 +70,7 @@ public partial class FileEditorPage : ContentPage
                 path,
                 string.IsNullOrEmpty(sha) ? null : sha,
                 string.IsNullOrEmpty(gitRef) ? null : gitRef);
+            _retryAction = RetryAction.Load;
             _ = _viewModel.LoadCommand.ExecuteAsync(null);
             if (!string.IsNullOrEmpty(gitRef))
             {
@@ -103,6 +112,7 @@ public partial class FileEditorPage : ContentPage
     {
         if (ShowCommitFieldErrorIfEmpty())
             return;
+        _retryAction = RetryAction.Save;
         await _viewModel.SaveCommand.ExecuteAsync(null);
     }
 
@@ -117,7 +127,28 @@ public partial class FileEditorPage : ContentPage
             _viewModel.FilePath.Value,
             "Delete");
         if (confirmed)
+        {
+            _retryAction = RetryAction.Delete;
             await _viewModel.DeleteCommand.ExecuteAsync(null);
+        }
+    }
+
+    private async void OnRetryClicked(object? sender, EventArgs e)
+    {
+        switch (_retryAction)
+        {
+            case RetryAction.Save:
+                if (ShowCommitFieldErrorIfEmpty())
+                    return;
+                await _viewModel.SaveCommand.ExecuteAsync(null);
+                break;
+            case RetryAction.Delete:
+                await _viewModel.DeleteCommand.ExecuteAsync(null);
+                break;
+            default:
+                await _viewModel.LoadCommand.ExecuteAsync(null);
+                break;
+        }
     }
 
     protected override void OnDisappearing()
