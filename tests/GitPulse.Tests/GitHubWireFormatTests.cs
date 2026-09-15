@@ -92,6 +92,64 @@ public class MockHttpHandlerTests
 
         Assert.Equal(HttpStatusCode.OK, get.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, patch.StatusCode);
+        Assert.NotNull(patch.RequestMessage);
+    }
+
+    [Fact]
+    public async Task SendAsync_MatchedRoute_AttachesRequestByDefault()
+    {
+        var handler = new MockHttpHandler().When("/repos/o/r", "{}");
+        using var client = new HttpClient(handler);
+
+        var response = await client.GetAsync(
+            "https://api.github.com/repos/o/r",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(response.RequestMessage);
+    }
+
+    [Fact]
+    public async Task SendAsync_UnmatchedRoute_AttachesRequest()
+    {
+        var handler = new MockHttpHandler();
+        using var client = new HttpClient(handler);
+
+        var response = await client.GetAsync(
+            "https://api.github.com/repos/o/r",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.NotNull(response.RequestMessage);
+    }
+
+    [Fact]
+    public void Empty_HasNoBodyAndGivenStatus()
+    {
+        var empty = MockResponse.Empty(HttpStatusCode.ResetContent);
+
+        Assert.Equal("", empty.Body);
+        Assert.Equal(HttpStatusCode.ResetContent, empty.StatusCode);
+        Assert.True(empty.AttachRequest);
+    }
+
+    [Fact]
+    public async Task SendAsync_EmptyFactory_WritesEmptyBodyWithStatus()
+    {
+        var handler = new MockHttpHandler()
+            .When(HttpMethod.Patch, "/notifications/threads/1",
+                _ => MockResponse.Empty(HttpStatusCode.ResetContent));
+        using var client = new HttpClient(handler);
+
+        var response = await client.SendAsync(
+            new HttpRequestMessage(
+                HttpMethod.Patch,
+                "https://api.github.com/notifications/threads/1"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.ResetContent, response.StatusCode);
+        Assert.Equal("", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.NotNull(response.RequestMessage);
     }
 
     [Fact]

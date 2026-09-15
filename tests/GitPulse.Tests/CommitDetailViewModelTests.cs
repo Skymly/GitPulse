@@ -191,7 +191,8 @@ public class CommitDetailViewModelTests
 
         await vm.LoadCommand.ExecuteAsync(null);
 
-        Assert.NotEmpty(vm.ErrorMessage.Value);
+        Assert.Contains("Load failed", vm.ErrorMessage.Value);
+        Assert.Contains("404", vm.ErrorMessage.Value, StringComparison.Ordinal);
         Assert.Empty(vm.Files);
         Assert.Null(vm.Commit.Value);
     }

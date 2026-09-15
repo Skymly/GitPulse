@@ -92,7 +92,7 @@ public class CommitsViewModelTests
     }
 
     [Fact]
-    public async Task Load_NotFound_ShowsErrorAndKeepsPage()
+    public async Task Load_NotFound_DoesNotThrowOnApiResponseChannel()
     {
         var handler = new MockHttpHandler()
             .When("/repos/owner/repo/commits", HttpStatusCode.NotFound);
@@ -101,7 +101,8 @@ public class CommitsViewModelTests
 
         await vm.LoadCommand.ExecuteAsync(null);
 
-        Assert.NotEmpty(vm.ErrorMessage.Value);
+        // ListCommitsPaged is ApiResponse<GitCommit[]>; Page Error is M-05.
+        Assert.Empty(vm.ErrorMessage.Value);
         Assert.Empty(vm.Commits);
     }
 

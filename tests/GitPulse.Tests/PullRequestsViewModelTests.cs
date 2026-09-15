@@ -219,7 +219,7 @@ public class PullRequestsViewModelTests
     }
 
     [Fact]
-    public async Task Load_WithUnauthorizedResponse_SetsErrorMessage()
+    public async Task Load_WithUnauthorizedResponse_DoesNotThrowOnApiResponseChannel()
     {
         var handler = new MockHttpHandler()
             .When("/repos/owner/repo/pulls", HttpStatusCode.Unauthorized, "{\"message\":\"Bad credentials\"}");
@@ -229,8 +229,8 @@ public class PullRequestsViewModelTests
 
         await vm.LoadCommand.ExecuteAsync(null);
 
-        Assert.NotEmpty(vm.ErrorMessage.Value);
-        Assert.Contains("Load failed", vm.ErrorMessage.Value);
+        // ListPullRequestsPaged is ApiResponse<PullRequest[]>; Page Error is M-05.
+        Assert.Empty(vm.ErrorMessage.Value);
         Assert.Empty(vm.PullRequests);
         vm.Dispose();
     }

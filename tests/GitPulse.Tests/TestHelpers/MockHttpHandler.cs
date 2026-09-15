@@ -124,6 +124,7 @@ public sealed class MockHttpHandler : HttpMessageHandler
 
         return new HttpResponseMessage(HttpStatusCode.NotFound)
         {
+            RequestMessage = request,
             Content = new StringContent($"No mock for {request.Method} {path}", Encoding.UTF8, "text/plain"),
         };
     }
@@ -139,6 +140,13 @@ public sealed record MockResponse(
     string Body,
     string? LinkHeader = null,
     HttpStatusCode StatusCode = HttpStatusCode.OK,
-    bool AttachRequest = false,
+    bool AttachRequest = true,
     Task? Gate = null,
-    string? RetryAfter = null);
+    string? RetryAfter = null)
+{
+    /// <summary>
+    /// Real GitHub empty-body write responses (205 Reset Content, 201 Created, 204 No Content).
+    /// </summary>
+    public static MockResponse Empty(HttpStatusCode statusCode) =>
+        new(Body: "", StatusCode: statusCode);
+}
