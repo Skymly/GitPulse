@@ -70,6 +70,7 @@ public sealed partial class NotificationsViewModel : IDisposable
         // Bridge poller events to R3 reactive state.
         _poller.NotificationsUpdated += OnNotificationsUpdated;
         _poller.IsPollingChanged += OnPollingChanged;
+        _poller.LastErrorChanged += OnLastErrorChanged;
 
         // Check auth on construction.
         _ = CheckAuthAsync();
@@ -79,6 +80,7 @@ public sealed partial class NotificationsViewModel : IDisposable
     {
         using var scope = await _clientFactory.OpenAsync();
         IsAuthenticated.Value = scope.Client.DefaultRequestHeaders.Authorization is not null;
+        ApplyPollerError(_poller.LastError);
     }
 
     private void OnCredentialsInvalidated()
@@ -98,10 +100,24 @@ public sealed partial class NotificationsViewModel : IDisposable
             foreach (var n in notifications)
                 Notifications.Add(n);
             UnreadCount.Value = unreadCount;
+            ApplyPollerError(_poller.LastError);
         });
 
     private void OnPollingChanged(bool isPolling)
         => OnUi(() => IsPolling.Value = isPolling);
+
+    private void OnLastErrorChanged(string? error)
+        => OnUi(() => ApplyPollerError(error));
+
+    private void ApplyPollerError(string? error)
+    {
+        if (!string.IsNullOrEmpty(error))
+            ErrorMessage.Value = error;
+        else if (!IsAuthenticated.Value)
+            ErrorMessage.Value = "No token configured.";
+        else
+            ErrorMessage.Value = string.Empty;
+    }
 
     private void OnUi(Action action)
     {
@@ -279,6 +295,7 @@ public sealed partial class NotificationsViewModel : IDisposable
         _credentials.Dispose();
         _poller.NotificationsUpdated -= OnNotificationsUpdated;
         _poller.IsPollingChanged -= OnPollingChanged;
+        _poller.LastErrorChanged -= OnLastErrorChanged;
         UnreadCount.Dispose();
         IsPolling.Dispose();
         IsBusy.Dispose();
