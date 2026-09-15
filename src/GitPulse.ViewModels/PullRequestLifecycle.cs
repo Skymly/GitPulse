@@ -1,5 +1,7 @@
+using System.Net;
 using GitPulse.Core.Models;
 using GitPulse.GitHubApi;
+using Observables.RestAPI;
 using R3;
 
 namespace GitPulse.ViewModels;
@@ -130,10 +132,12 @@ internal sealed class PullRequestLifecycle(
 
             using (cts)
             {
+                var headSha = pullRequest.Value.Head?.Sha;
                 var request = new MergeRequest
                 {
                     Method = MergeMethod.Value,
                     CommitTitle = $"Merge #{pullRequest.Value.Number} {pullRequest.Value.Title}",
+                    Sha = string.IsNullOrEmpty(headSha) ? null : headSha,
                 };
 
                 var response = await api.MergePullRequest(io.Owner, io.Repo, io.Number, request)
@@ -153,6 +157,14 @@ internal sealed class PullRequestLifecycle(
         catch (OperationCanceledException)
         {
             io.Timeout();
+        }
+        catch (ApiException ex) when ((int)ex.StatusCode == 409)
+        {
+            io.Error.Value = "The pull request branch has changed. Refresh and try again.";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
+        {
+            io.Error.Value = "The pull request branch has changed. Refresh and try again.";
         }
         catch (Exception ex)
         {
