@@ -1567,6 +1567,37 @@ public class PullRequestDetailViewModelTests
     }
 
     [Fact]
+    public async Task SaveLabels_KeepsConcurrentServerLabel()
+    {
+        string? putBody = null;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJsonWithLabels("[{\"name\":\"bug\"}]"))
+            .When("/issues/42/comments", "[]")
+            .When("/issues/42/labels", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                {
+                    putBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return new MockResponse("[{\"name\":\"bug\"},{\"name\":\"docs\"},{\"name\":\"wontfix\"}]");
+                }
+
+                return new MockResponse("[{\"name\":\"bug\"},{\"name\":\"docs\"}]");
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        vm.LabelInput.Value = "bug, wontfix";
+        await vm.SaveLabelsCommand.ExecuteAsync(null);
+
+        Assert.Contains("docs", putBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("wontfix", putBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("bug", putBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(["bug", "docs", "wontfix"], vm.Labels.Select(l => l.Name));
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task SaveLabels_ClosedPullRequest_DoesNothing()
     {
         var puts = 0;

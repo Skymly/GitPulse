@@ -186,10 +186,14 @@ internal sealed class PullRequestConversationMeta(
 
             using (cts)
             {
-                var names = LabelInput.Value
-                    .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                    .ToArray();
-                var updated = await api.ReplaceIssueLabels(io.Owner, io.Repo, io.Number, new LabelsReplaceRequest { Labels = names })
+                var desired = LabelInput.Value
+                    .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                var baseline = Labels.Select(label => label.Name);
+                var server = await api.ListIssueLabels(io.Owner, io.Repo, io.Number)
+                    .FirstAsync(cts.Token);
+                var names = ComposeLabelNames(baseline, desired, server.Select(label => label.Name));
+                var updated = await api.ReplaceIssueLabels(
+                        io.Owner, io.Repo, io.Number, new LabelsReplaceRequest { Labels = names })
                     .FirstAsync(cts.Token);
                 ApplyLabels(updated);
             }
@@ -309,5 +313,19 @@ internal sealed class PullRequestConversationMeta(
         foreach (var label in labels ?? [])
             Labels.Add(label);
         LabelInput.Value = string.Join(", ", Labels.Select(l => l.Name));
+    }
+
+    private static string[] ComposeLabelNames(
+        IEnumerable<string> baseline,
+        IEnumerable<string> desired,
+        IEnumerable<string> server)
+    {
+        var cmp = StringComparer.OrdinalIgnoreCase;
+        var baseSet = baseline.ToHashSet(cmp);
+        var desiredSet = desired.ToHashSet(cmp);
+        var serverSet = server.ToHashSet(cmp);
+        var removed = baseSet.Except(desiredSet, cmp);
+        var added = desiredSet.Except(baseSet, cmp);
+        return serverSet.Except(removed, cmp).Union(added, cmp).ToArray();
     }
 }
