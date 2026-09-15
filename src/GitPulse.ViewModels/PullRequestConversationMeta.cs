@@ -39,7 +39,10 @@ internal sealed class PullRequestConversationMeta(
         ApplyLabels(pr.Labels);
     }
 
-    public async Task LoadRequestedAsync(IGitHubReposApi api, CancellationToken cancellationToken)
+    public async Task LoadRequestedAsync(
+        IGitHubReposApi api,
+        CancellationToken cancellationToken,
+        bool reportFailure = false)
     {
         try
         {
@@ -49,9 +52,8 @@ internal sealed class PullRequestConversationMeta(
         }
         catch
         {
-            RequestedReviewers.Clear();
-            RequestedTeams.Clear();
-            HasRequestedReviewers.Value = false;
+            if (reportFailure)
+                io.Error.Value = "The change was saved. Refresh to see the latest state.";
         }
     }
 
@@ -83,7 +85,7 @@ internal sealed class PullRequestConversationMeta(
                     return;
 
                 ReviewerLogin.Value = string.Empty;
-                await LoadRequestedAsync(api, cts.Token);
+                await LoadRequestedAsync(api, cts.Token, reportFailure: true);
             }
         }
         catch (OperationCanceledException)
@@ -123,7 +125,7 @@ internal sealed class PullRequestConversationMeta(
                 if (!ApplyReviewerWriteStatus(response.StatusCode, requesting: false))
                     return;
 
-                await LoadRequestedAsync(api, cts.Token);
+                await LoadRequestedAsync(api, cts.Token, reportFailure: true);
             }
         }
         catch (OperationCanceledException)

@@ -94,7 +94,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         _io = new PullRequestConversationIo(clientFactory, ErrorMessage);
         _meta = new PullRequestConversationMeta(_io, PullRequest, IsSaving);
         _review = new PullRequestReviewComposer(
-            _io, PullRequest, IsSaving, ApplyPullRequest, _meta.LoadRequestedAsync);
+            _io, PullRequest, IsSaving, ApplyPullRequest,
+            (api, token) => _meta.LoadRequestedAsync(api, token));
         _lifecycle = new PullRequestLifecycle(
             _io, PullRequest, IsSaving, ApplyPullRequest);
     }
