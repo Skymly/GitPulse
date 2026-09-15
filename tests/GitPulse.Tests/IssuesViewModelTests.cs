@@ -239,7 +239,7 @@ public class IssuesViewModelTests
     }
 
     [Fact]
-    public async Task Load_WithNotFoundResponse_DoesNotThrowOnApiResponseChannel()
+    public async Task Load_WithNotFoundResponse_SetsErrorMessage()
     {
         var handler = new MockHttpHandler(); // No routes → 404 for everything
         var factory = new FakeGitHubClientFactory(handler);
@@ -248,16 +248,15 @@ public class IssuesViewModelTests
 
         await vm.LoadCommand.ExecuteAsync(null);
 
-        // ListIssuesPaged is ApiResponse<Issue[]>: non-2xx does not throw.
-        // Before AttachRequest defaulted true, this path NREd inside the generator
-        // and the test asserted "Load failed". Page Error for this channel is M-05.
-        Assert.Empty(vm.ErrorMessage.Value);
+        // ListIssuesPaged is ApiResponse<Issue[]>: non-2xx must be Page Error (M-05).
+        Assert.Contains("Load failed", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.Contains("404", vm.ErrorMessage.Value, StringComparison.Ordinal);
         Assert.Empty(vm.Issues);
         vm.Dispose();
     }
 
     [Fact]
-    public async Task Load_WithUnauthorizedResponse_DoesNotThrowOnApiResponseChannel()
+    public async Task Load_WithUnauthorizedResponse_SetsErrorMessage()
     {
         var handler = new MockHttpHandler()
             .When("/repos/owner/repo/issues", HttpStatusCode.Unauthorized, "{\"message\":\"Bad credentials\"}");
@@ -267,8 +266,9 @@ public class IssuesViewModelTests
 
         await vm.LoadCommand.ExecuteAsync(null);
 
-        // Same ApiResponse channel as the 404 case above; M-05 owns Page Error.
-        Assert.Empty(vm.ErrorMessage.Value);
+        // Same ApiResponse channel as the 404 case above.
+        Assert.Contains("Load failed", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.Contains("401", vm.ErrorMessage.Value, StringComparison.Ordinal);
         Assert.Empty(vm.Issues);
         vm.Dispose();
     }

@@ -75,7 +75,7 @@ public sealed partial class CommitsViewModel : IDisposable
             {
                 var api = RestService.For<IGitHubReposApi>(client);
                 var response = await api.ListCommitsPaged(_owner, _repo).FirstAsync(ct);
-                return new PagedListPage<GitCommit>(response.Content ?? [], response.Headers);
+                return ApiResponses.PageOrThrow(response);
             });
             if (!result.Completed)
                 return;
@@ -110,7 +110,7 @@ public sealed partial class CommitsViewModel : IDisposable
             {
                 var api = RestService.For<IGitHubReposApi>(client);
                 var response = await api.ListCommitsPaged(_owner, _repo).FirstAsync(ct);
-                return new PagedListPage<GitCommit>(response.Content ?? [], response.Headers);
+                return ApiResponses.PageOrThrow(response);
             });
             if (!result.Completed)
                 return;

@@ -69,6 +69,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
             {
                 var api = RestService.For<IGitHubActionsApi>(client);
                 var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(ct);
+                ApiResponses.EnsureSuccess(response);
                 return new PagedListPage<WorkflowRun>(
                     response.Content?.WorkflowRuns ?? [], response.Headers);
             });
@@ -121,6 +122,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
             {
                 var api = RestService.For<IGitHubActionsApi>(client);
                 var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(ct);
+                ApiResponses.EnsureSuccess(response);
                 return new PagedListPage<WorkflowRun>(
                     response.Content?.WorkflowRuns ?? [], response.Headers);
             });

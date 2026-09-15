@@ -73,6 +73,21 @@ public class WorkflowRunsViewModelTests
     }
 
     [Fact]
+    public async Task Load_Unauthorized_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/actions/runs", HttpStatusCode.Unauthorized, "{\"message\":\"Bad credentials\"}");
+        using var vm = new WorkflowRunsViewModel(new FakeGitHubClientFactory(handler));
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Contains("Load failed", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.Contains("401", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.Empty(vm.Runs);
+    }
+
+    [Fact]
     public async Task Load_WithToken_PopulatesRunsAndCanLoadMore()
     {
         var handler = new MockHttpHandler()
