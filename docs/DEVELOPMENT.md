@@ -145,7 +145,7 @@ docs/                   — ADR、设计文档与路线图（见 DOCUMENTATION.m
 
 ## 架构原则
 
-1. **分层依赖单向**：App → ViewModels → Services/GitHubApi → Core；Core 不依赖 UI/MAUI。
+1. **分层依赖单向**：App → ViewModels → GitHubApi → Core；App → Services → GitHubApi → Core。ViewModels 不引用 Services；Core 不依赖 UI/MAUI。
 2. **ViewModel 可测**：ViewModel 不引用 MAUI；通过 `IGitHubClientFactory` 等抽象注入。
 3. **声明式 GitHub API**：`IGitHubReposApi` 由 Observables 源生成 HttpClient 代理。
 4. **R3 响应式状态**：`BindableReactiveProperty<T>` + `[RelayCommand]`；MAUI 绑定在 View 层。
