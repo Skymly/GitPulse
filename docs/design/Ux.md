@@ -91,6 +91,7 @@ Every request failure stays on the current page: first load, Load more, writes, 
 One slot per page. A new failure replaces the previous Page Error. Must include a readable reason (not color alone, not a raw exception) and at least one action:
 
 - Retryable failure → Retry (replay the failed request; do not reset already-loaded rows).
+- File editor: Retry after a failed save or delete replays that write (path, SHA, message). It is not a silent content GET.
 - 401 / missing PAT → Settings.
 - 404 on a detail → Retry and Back (Back is user-initiated leave).
 - Search 403/422 → stay on the query with the dedicated copy.
@@ -127,11 +128,15 @@ Escape and Android Back cancel. The destructive button is not the default; Enter
 
 ### Success navigation
 
-- Writes that update the current object: stay and refresh.
+- Writes that update the current object: stay and refresh. If the GET after a successful write fails, stay with the local write result. Inline Error: "The change was saved. Refresh to see the latest state."
 - Create issue / Create PR: pop the Create page, then open the new detail so Back from the detail returns to the list, not an empty form.
+- After a write that returns to a list (create issue/PR, save or delete file), the list reloads when it appears again. Shell pop does not retarget the page below, so Issues, PRs, and File Browser listen for an App-layer stale signal instead of a `refresh=` query.
 - Delete file: pop to the File Browser.
 - Fork: keep the existing “may open the new repo” behavior.
+- Merge HTTP 409: stay. Inline Error: "The pull request branch has changed. Refresh and try again."
 - Failures never navigate.
+
+GitHub Contents with `encoding` other than `base64`, `size` greater than 1 MB, or empty content stay on File editor as read-only with a reason. Save and delete are disabled. This is not Page Error.
 
 ### Access floor
 

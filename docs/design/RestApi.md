@@ -142,6 +142,7 @@ Typed Search 与每个 Search Inbox 使用 `PagedGitHubSession`。
 
 - `ListPullRequestFiles`、`ListReviewComments`、`CreateReviewComment`
 - `PrDiffViewModel` 并行加载 files + comments，按 `path` 分组
+- File-level `CreateReviewComment` sets `subject_type=file` and omits `line` (GitHub 422 if `line` is sent, including `0`)
 
 #### Windows 手工验收清单（带 PAT）
 
@@ -265,7 +266,7 @@ Write + read. Lives on `IGitHubReposApi` — no fourth interface. Distinct from 
 | `RequestReviewers` | `POST .../requested_reviewers` | Body `reviewers[]` logins. Returns `ApiResponse<PullRequest>` so 403/422 stay on the PR page. |
 | `RemoveRequestedReviewers` | `DELETE .../requested_reviewers` | Same body shape. Teams are display-only in v0.9.0. |
 
-Load failure of this call does not fail PR detail. Closed/merged PRs cannot manage reviewers.
+Load failure of this call does not fail PR detail. Closed/merged PRs cannot manage reviewers. After add/remove, a failed GET of requested reviewers keeps the existing list and shows Inline Error to refresh. Composer load of this list remains silent.
 
 ### Check Run detail (M22)
 
@@ -360,7 +361,7 @@ Read-only. Reuses `IGitHubSearchApi.SearchIssues`. Canned query: `is:open mentio
 
 ### PR labels (M38)
 
-Write + read. No new GitHubApi method. `PullRequest.Labels` comes from GET pull. Replace reuses `ReplaceIssueLabels`. Writes only when the PR is open and not merged. Creating repo labels is out of scope.
+Write + read. No new GitHubApi method. `PullRequest.Labels` comes from GET pull. Replace GETs `ListIssueLabels` first, then PUTs `ReplaceIssueLabels` with the 3-way compose `(server − (baseline − desired)) ∪ (desired − baseline)` so a concurrent server label is not dropped. Writes only when the PR is open and not merged. Creating repo labels is out of scope.
 
 ### Repo language and license (M39)
 
@@ -388,6 +389,16 @@ Read-only. No new GitHubApi method. `Repo.Homepage` comes from GET repo. An empt
 
 
 
+
+### Pull merge (M6)
+
+`MergePullRequest` is `PUT .../pulls/{number}/merge` with `MergeRequest`. `Sha` is the current `Head.Sha` so GitHub returns 409 when the branch moved. Conversation maps 409 to stay-on-page copy asking the user to refresh.
+
+### File contents (M5)
+
+File editor (`GetFileContent`): when `encoding` is not `base64`, `size` is greater than 1 MiB, or content is empty, the blob is read-only in-app. Retry after a failed PUT/DELETE replays that write, not a content GET.
+
+Pull-request writes that succeed then fail the follow-up GET keep the local write result and show Inline Error to refresh.
 
 ### Update Branch (M43)
 
