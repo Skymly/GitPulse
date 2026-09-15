@@ -181,7 +181,21 @@ public sealed class NotificationPoller : INotificationPoller
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 cts.CancelAfter(TimeSpan.FromSeconds(30));
 
-                var notifications = await api.ListNotifications().FirstAsync(cts.Token);
+                var response = await api.ListNotifications().FirstAsync(cts.Token);
+                if (response.HasRequestError(out var requestError))
+                    throw requestError;
+                if (response.HasResponseError(out var apiError))
+                    throw apiError;
+                if (!response.IsSuccessStatusCode)
+                {
+                    var code = (int)(response.StatusCode ?? 0);
+                    throw new HttpRequestException(
+                        $"Response status code does not indicate success: {code}.",
+                        inner: null,
+                        statusCode: response.StatusCode);
+                }
+
+                var notifications = response.Content ?? [];
                 snapshot = notifications;
                 unread = notifications.Count(n => n.Unread);
             }
