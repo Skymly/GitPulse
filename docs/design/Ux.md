@@ -321,9 +321,9 @@ Shared type ramp as in Visual language. Row minimum height: **Windows 48px**, **
 
 ### Notifications unread badge
 
-Both platforms: unread count badge on the Notifications Chrome Icon (GitHub `unread` on fetched items; `99+` when greater). Opening the tab does not clear it; mark-as-read or a poll that returns `unread: false` does. The badge is chrome metadata, not a Surface, and is not New Notification. Row Accent unread edge and the badge count the same unread.
+Both platforms: unread count badge on the Notifications Chrome Icon (GitHub `unread` on fetched items; `99+` when greater). The count is the poller's snapshot, not a page-local decrement. Opening the tab does not clear it; mark-as-read (then an immediate poller refresh), a poll that returns `unread: false`, clearing the PAT, or `Stop()` (empty snapshot) does. The badge is chrome metadata, not a Surface, and is not New Notification. Row Accent unread edge and the badge count the same unread.
 
-Android is silent in the background; returning to the foreground updates on the next poll. Toast remains Windows-only.
+Android is silent in the background; returning to the foreground updates on the next poll. Toast remains Windows-only. An empty snapshot (logout / no token / `Stop`) resets the toast baseline; the next non-empty poll is a quiet first snapshot.
 
 ### Pull-to-refresh
 

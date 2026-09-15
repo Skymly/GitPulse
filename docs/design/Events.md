@@ -18,7 +18,7 @@ MAUI UI 事件与 R3 响应式管道的集成约定；通知轮询的进程级�
 | 仓库过滤防抖 | SearchBar → ADR-015 adapter → `.Events().TextChanged` → Debounce(300ms) → DistinctUntilChanged → VM | `ReposPage` / `UiEventPipelines` |
 | GitHub Search 输入 | SearchBar → ADR-015 adapter → `.Events().TextChanged` → Debounce(300ms) → DistinctUntilChanged → 查询状态 | `SearchPage` / `UiEventPipelines` |
 | Repos 加载更多 | CollectionView remaining-items → adapter → `.Events().Requested` → `LoadMoreCommand` | `ReposPage` / `UiEventPipelines` |
-| 通知轮询 | `Observable.Interval` → REST → event | `NotificationPoller` |
+| 通知轮询 | `Observable.Interval` → REST（`ApiResponse` + `Link`，≤10 页）→ event | `NotificationPoller` |
 | 轮询 → UI | poller event → R3 绑定 | `NotificationsViewModel` |
 | 轮询 → Toast | poller event → id 差集 → `IToastNotifier`（仅主窗隐藏） | `NotificationToastHost` / `NotificationToastCoordinator` |
 | 列表过期 | CommunityToolkit `WeakReferenceMessenger` (`RepoListStaleMessage`) | Create issue/PR、File editor save/delete → Issues / PRs / File Browser `OnAppearing` 再加载 |
@@ -33,7 +33,9 @@ MAUI UI 事件与 R3 响应式管道的集成约定；通知轮询的进程级�
 1. 事件订阅在 Page `OnDisappearing` 或 ViewModel `Dispose` 中释放（ViewModel 在 Shell Tab 复用期间不因 disappear 而 Dispose）。
 2. UI 线程更新经 `ObserveOn` 或 MAUI 调度器。
 3. 若 Observables `.Events()` 因 MAUI internal API 不可用，须用公开 event 的 adapter（ADR-015）并文档化；管道走 `.Events()`，不要在页面里手写 Subject。
-4. `INotificationPoller` 由 App 层 `NotificationToastHost` 在进程启动时 `Start`，仅在 Exit（host `Dispose`）时 `Stop`；`NotificationsPage` 不再在 disappear 时停轮询（ADR-010）。
+4. `INotificationPoller` 由 App 层 `NotificationToastHost` 在进程启动时 `Start`，仅在 Exit（host `Dispose`）时 `Stop`；`NotificationsPage` 不再在 disappear 时停轮询（ADR-010）。`Stop()` 始终发布空快照（`UnreadCount = 0`），清 PAT 后角标归零。
+5. `INotificationPoller.LastError` / `LastErrorChanged` 是轮询失败的契约面。`NotificationsViewModel` 映射为 Page Error；401 / 缺 PAT 给 Settings 动作。
+6. 空通知快照不进入 Toast 已知 id 集：`NotificationToastCoordinator` 对其 `ResetBaseline`。下一份非空列表是安静的首次基线。
 
 ## 实现概览
 
@@ -68,9 +70,13 @@ Shell `GoToAsync("..")` 不会给下层页面带 query。Create issue/PR 成功 
 
 ### 通知轮询与 Tray Toast（M4 + M10）
 
-- `NotificationPoller`：`Observable.Interval` + `IGitHubReposApi.ListNotifications`
-- `NotificationsViewModel` 订阅 poller 输出（页面 appear 时幂等 `Start`）
-- `NotificationToastHost`（App）：进程级订阅 poller → `NotificationToastCoordinator`；进入 Tray Presence 时 `ResetBaseline`
+- `ListNotifications` 返回 `Observable<ApiResponse<Notification[]>>`，以便读取 `Link`。
+- `NotificationPoller`：`Observable.Interval`（`Prepend` 立即首轮）+ paged session 跟随 `rel="next"`，上限 10 页；后页失败不发布部分快照。每页 30s 超时。
+- `RefreshAsync` 与 `Stop` / `Dispose` 共用 run cancellation token；busy 时排队到本轮结束再拉一次。取消不当成 timeout `LastError`。完成后若已 dispose / token 已取消则不发布。
+- `Stop()` 取消 in-flight 并发布 `NotificationsUpdated([], 0)`。
+- HTTP 失败设 `LastError` 并按 `Retry-After` 或指数退避跳过后续 tick；成功或未认证 stop 清错误。401 走 backoff，不 `Stop`。
+- `NotificationsViewModel` 订阅 poller 输出与 `LastErrorChanged`（页面 appear 时幂等 `Start`）。标记已读后调用 `RefreshAsync`，角标以 poller 快照为准。
+- `NotificationToastHost`（App）：进程级订阅 poller → `NotificationToastCoordinator`（快照更新有锁）；进入 Tray Presence 时 `ResetBaseline`。空快照也 `ResetBaseline`。
 - Windows：`AppWindow.Closing` 取消关闭并隐藏到托盘；汇总 Toast 经 `AppNotificationManager`；Android 为空操作（M11 / ADR-011：v0.1.0 前不做 Android 出应用通知）
 
 ## 设计权衡
@@ -101,6 +107,7 @@ Shell `GoToAsync("..")` 不会给下层页面带 query。Create issue/PR 成功 
 - `src/GitPulse.App/Views/SearchPage.xaml.cs`
 - `src/GitPulse.App/Services/NotificationToastHost.cs`
 - `src/GitPulse.Services/NotificationPoller.cs`
+- `src/GitPulse.Core/Abstractions/INotificationPoller.cs`
 - `src/GitPulse.Core/Notifications/NotificationToastCoordinator.cs`
 
 
