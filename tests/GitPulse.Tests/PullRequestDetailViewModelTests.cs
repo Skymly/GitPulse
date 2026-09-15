@@ -182,6 +182,43 @@ public class PullRequestDetailViewModelTests
         vm.Dispose();
     }
 
+    [Fact]
+    public async Task ToggleState_WhenRefreshFails_UpdatesLocalStateAndSetsInlineError()
+    {
+        var pullGets = 0;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", req =>
+            {
+                if (req.Method != HttpMethod.Get)
+                    return new MockResponse("{}", StatusCode: HttpStatusCode.MethodNotAllowed);
+                pullGets++;
+                if (pullGets == 1)
+                    return new MockResponse(PrJson(42, "open"));
+                return new MockResponse(
+                    "{}",
+                    StatusCode: HttpStatusCode.InternalServerError,
+                    AttachRequest: true);
+            })
+            .When("/issues/42", req =>
+            {
+                if (req.Method == HttpMethod.Patch)
+                    return new MockResponse("{\"number\":42,\"state\":\"closed\"}");
+                return new MockResponse("[]");
+            })
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(
+            new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.ToggleStateCommand.ExecuteAsync(null);
+
+        Assert.Equal("closed", vm.PullRequest.Value!.State);
+        Assert.False(vm.CanMerge.Value);
+        Assert.Equal("The change was saved. Refresh to see the latest state.", vm.ErrorMessage.Value);
+        vm.Dispose();
+    }
+
     // ── M6: Merge tests ──────────────────────────────────────────
 
     [Fact]
@@ -403,6 +440,44 @@ public class PullRequestDetailViewModelTests
 
         Assert.Equal("The pull request branch has changed. Refresh and try again.", vm.ErrorMessage.Value);
         Assert.False(vm.IsMerged.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Merge_WhenRefreshFails_MarksMergedAndSetsInlineError()
+    {
+        var pullGets = 0;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", req =>
+            {
+                if (req.Method != HttpMethod.Get)
+                    return new MockResponse("{}", StatusCode: HttpStatusCode.MethodNotAllowed);
+                pullGets++;
+                if (pullGets == 1)
+                    return new MockResponse(PrJson(42, "open", mergeable: true, mergeableState: "clean"));
+                return new MockResponse(
+                    "{}",
+                    StatusCode: HttpStatusCode.InternalServerError,
+                    AttachRequest: true);
+            })
+            .When("/pulls/42/merge", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                    return new MockResponse(MergeJson("mergedsha", merged: true));
+                return new MockResponse("{}", StatusCode: HttpStatusCode.MethodNotAllowed);
+            })
+            .When("/issues/42/comments", "[]");
+        var vm = new PullRequestDetailViewModel(
+            new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.MergeCommand.ExecuteAsync(null);
+
+        Assert.True(vm.IsMerged.Value);
+        Assert.False(vm.CanMerge.Value);
+        Assert.Equal("closed", vm.PullRequest.Value!.State);
+        Assert.Equal("The change was saved. Refresh to see the latest state.", vm.ErrorMessage.Value);
         vm.Dispose();
     }
 
