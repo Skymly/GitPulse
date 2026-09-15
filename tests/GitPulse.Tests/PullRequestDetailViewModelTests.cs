@@ -346,7 +346,63 @@ public class PullRequestDetailViewModelTests
         Assert.NotNull(capturedMethod);
         Assert.NotEmpty(capturedMethod);
         Assert.Contains("\"merge_method\":\"squash\"", capturedMethod);
+        Assert.Contains("\"sha\":\"6dcb09b5b57875f334f61aebed695e2e4193db5e\"", capturedMethod);
         Assert.True(vm.IsMerged.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Merge_SendsHeadShaInRequest()
+    {
+        string? capturedBody = null;
+        var prJson = PrJson(42, "open", mergeable: true, mergeableState: "clean", headSha: "abc123headsha");
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", _ => new MockResponse(prJson))
+            .When("/pulls/42/merge", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                {
+                    capturedBody = req.Content?.ReadAsStringAsync().GetAwaiter().GetResult() ?? "";
+                    prJson = GitHubJson.PullRequest(
+                        42, "closed", merged: true, mergeable: false,
+                        headRef: "feature", baseRef: "main",
+                        mergeCommitSha: "mergedsha", mergedBy: "merger");
+                    return new MockResponse(MergeJson("mergedsha", merged: true));
+                }
+                return new MockResponse(prJson);
+            })
+            .When("/issues/42/comments", "[]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.MergeCommand.ExecuteAsync(null);
+
+        Assert.Contains("\"sha\":\"abc123headsha\"", capturedBody);
+        Assert.True(vm.IsMerged.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Merge_When409_SetsRefreshPrompt()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", mergeable: true, mergeableState: "clean"))
+            .When("/pulls/42/merge", _ => new MockResponse(
+                "{\"message\":\"Head branch was modified. Review and try the merge again.\"}",
+                StatusCode: HttpStatusCode.Conflict,
+                AttachRequest: true))
+            .When("/issues/42/comments", "[]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.MergeCommand.ExecuteAsync(null);
+
+        Assert.Equal("The pull request branch has changed. Refresh and try again.", vm.ErrorMessage.Value);
+        Assert.False(vm.IsMerged.Value);
         vm.Dispose();
     }
 
