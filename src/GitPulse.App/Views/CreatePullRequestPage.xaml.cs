@@ -1,3 +1,4 @@
+using GitPulse.App.Events;
 using GitPulse.Core.Models;
 using GitPulse.ViewModels;
 using R3;
@@ -6,7 +7,8 @@ namespace GitPulse.App.Views;
 
 /// <summary>
 /// Same-repo Create PR page — receives owner/repo via Shell navigation
-/// query parameters. On successful create, navigates to PR detail.
+/// query parameters. On successful create, pops this page then opens
+/// PR detail so Back returns to the list.
 /// </summary>
 [QueryProperty("OwnerQuery", "owner")]
 [QueryProperty("RepoQuery", "repo")]
@@ -60,17 +62,30 @@ public partial class CreatePullRequestPage : ContentPage
 
         _navigatingToDetail = true;
         _viewModel.CreatedPullRequestNumber.Value = null;
+        ClearCreateForm();
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        RepoListStale.Send(RepoListKind.PullRequests, owner, repo);
         try
         {
-            await AppNavigation.GoToAsync(
-                $"PullRequestDetailPage?owner={Uri.EscapeDataString(Uri.UnescapeDataString(OwnerQuery))}"
-                + $"&repo={Uri.EscapeDataString(Uri.UnescapeDataString(RepoQuery))}"
+            await AppNavigation.PopThenGoToAsync(
+                $"PullRequestDetailPage?owner={Uri.EscapeDataString(owner)}"
+                + $"&repo={Uri.EscapeDataString(repo)}"
                 + $"&number={number}");
         }
         finally
         {
             _navigatingToDetail = false;
         }
+    }
+
+    private void ClearCreateForm()
+    {
+        TitleFieldError.IsVisible = false;
+        _viewModel.TitleInput.Value = string.Empty;
+        _viewModel.BodyInput.Value = string.Empty;
+        _viewModel.IsDraft.Value = false;
+        _viewModel.ErrorMessage.Value = string.Empty;
     }
 
     private void OnHeadPickerChanged(object? sender, EventArgs e)

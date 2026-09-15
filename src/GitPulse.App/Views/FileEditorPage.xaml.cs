@@ -1,3 +1,4 @@
+using GitPulse.App.Events;
 using GitPulse.App.Services;
 using GitPulse.ViewModels;
 using R3;
@@ -93,6 +94,7 @@ public partial class FileEditorPage : ContentPage
         _leavingAfterDelete = true;
         try
         {
+            NotifyFileListStale();
             await AppNavigation.GoToAsync("..");
         }
         finally
@@ -114,6 +116,7 @@ public partial class FileEditorPage : ContentPage
             return;
         _retryAction = RetryAction.Save;
         await _viewModel.SaveCommand.ExecuteAsync(null);
+        NotifyFileListStaleIfSaveSucceeded();
     }
 
     private async void OnDeleteClicked(object? sender, EventArgs e)
@@ -141,6 +144,7 @@ public partial class FileEditorPage : ContentPage
                 if (ShowCommitFieldErrorIfEmpty())
                     return;
                 await _viewModel.SaveCommand.ExecuteAsync(null);
+                NotifyFileListStaleIfSaveSucceeded();
                 break;
             case RetryAction.Delete:
                 await _viewModel.DeleteCommand.ExecuteAsync(null);
@@ -149,6 +153,22 @@ public partial class FileEditorPage : ContentPage
                 await _viewModel.LoadCommand.ExecuteAsync(null);
                 break;
         }
+    }
+
+    private void NotifyFileListStaleIfSaveSucceeded()
+    {
+        if (!string.IsNullOrEmpty(_viewModel.ErrorMessage.Value))
+            return;
+
+        NotifyFileListStale();
+    }
+
+    private void NotifyFileListStale()
+    {
+        RepoListStale.Send(
+            RepoListKind.Files,
+            Uri.UnescapeDataString(OwnerQuery),
+            Uri.UnescapeDataString(RepoQuery));
     }
 
     protected override void OnDisappearing()
