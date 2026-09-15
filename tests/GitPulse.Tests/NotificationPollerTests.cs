@@ -252,6 +252,102 @@ public class NotificationPollerTests
         time.Advance(TimeSpan.FromSeconds(15));
         await AsyncTestWait.UntilAsync(() => polls == 2);
     }
+
+    [Fact]
+    public async Task RefreshAsync_FollowsLinkNext_ConcatenatesPages()
+    {
+        var polls = 0;
+        var handler = new MockHttpHandler()
+            .When("/notifications", req =>
+            {
+                polls++;
+                var query = req.RequestUri?.Query ?? "";
+                if (query.Contains("page=2", StringComparison.Ordinal))
+                    return new MockResponse(NotificationsJson("2"));
+                return new MockResponse(
+                    NotificationsJson("1"),
+                    "<https://api.github.com/notifications?page=2>; rel=\"next\"");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        using var poller = new NotificationPoller(factory);
+
+        Notification[]? received = null;
+        int? unread = null;
+        poller.NotificationsUpdated += (n, u) =>
+        {
+            received = n;
+            unread = u;
+        };
+
+        await poller.RefreshAsync();
+
+        Assert.Equal(2, polls);
+        Assert.NotNull(received);
+        Assert.Equal(["1", "2"], received!.Select(n => n.Id).ToArray());
+        Assert.Equal(2, unread);
+        Assert.Equal(2, poller.UnreadCount);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_StopsAfterTenPages_WhenLinkRemains()
+    {
+        var polls = 0;
+        var handler = new MockHttpHandler()
+            .When("/notifications", req =>
+            {
+                polls++;
+                var id = polls.ToString();
+                return new MockResponse(
+                    NotificationsJson(id),
+                    $"<https://api.github.com/notifications?page={polls + 1}>; rel=\"next\"");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        using var poller = new NotificationPoller(factory);
+
+        Notification[]? received = null;
+        poller.NotificationsUpdated += (n, _) => received = n;
+
+        await poller.RefreshAsync();
+
+        Assert.Equal(10, polls);
+        Assert.NotNull(received);
+        Assert.Equal(10, received!.Length);
+        Assert.Equal("10", received[^1].Id);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_WhenLaterPageFails_DoesNotPublishPartialSnapshot()
+    {
+        var handler = new MockHttpHandler()
+            .When("/notifications", req =>
+            {
+                var query = req.RequestUri?.Query ?? "";
+                if (query.Contains("page=2", StringComparison.Ordinal))
+                {
+                    return new MockResponse(
+                        "{\"message\":\"Bad credentials\"}",
+                        StatusCode: HttpStatusCode.Unauthorized,
+                        AttachRequest: true);
+                }
+
+                return new MockResponse(
+                    NotificationsJson("1"),
+                    "<https://api.github.com/notifications?page=2>; rel=\"next\"");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        using var poller = new NotificationPoller(factory);
+
+        var fired = false;
+        string? lastError = null;
+        poller.NotificationsUpdated += (_, _) => fired = true;
+        poller.LastErrorChanged += e => lastError = e;
+
+        await poller.RefreshAsync();
+
+        Assert.False(fired);
+        Assert.Contains("401", lastError, StringComparison.Ordinal);
+        Assert.Equal(0, poller.UnreadCount);
+    }
 }
 
 public class NotificationModelTests
