@@ -21,6 +21,7 @@ MAUI UI 事件与 R3 响应式管道的集成约定；通知轮询的进程级�
 | 通知轮询 | `Observable.Interval` → REST → event | `NotificationPoller` |
 | 轮询 → UI | poller event → R3 绑定 | `NotificationsViewModel` |
 | 轮询 → Toast | poller event → id 差集 → `IToastNotifier`（仅主窗隐藏） | `NotificationToastHost` / `NotificationToastCoordinator` |
+| 列表过期 | CommunityToolkit `WeakReferenceMessenger` (`RepoListStaleMessage`) | Create issue/PR、File editor save/delete → Issues / PRs / File Browser `OnAppearing` 再加载 |
 
 ## 状态绑定
 
@@ -61,6 +62,10 @@ Search 的独立限额（普通搜索 30 次/分钟，代码搜索 10 次/分钟
 页面消失时释放 Events 管道，返回 Search Tab 时重新建立；ViewModel
 结果与所选类型继续保留。
 
+### 列表过期（Create / File write）
+
+Shell `GoToAsync("..")` 不会给下层页面带 query。Create issue/PR 成功 pop 后，以及 File editor save/delete pop 到 File Browser 时，App 发 `RepoListStaleMessage`（owner/repo + list kind）。Issues / PRs / File Browser 在 `OnAppearing` 匹配后重新加载，而不是依赖 `refresh=`。
+
 ### 通知轮询与 Tray Toast（M4 + M10）
 
 - `NotificationPoller`：`Observable.Interval` + `IGitHubReposApi.ListNotifications`
@@ -91,6 +96,7 @@ Search 的独立限额（普通搜索 30 次/分钟，代码搜索 10 次/分钟
 ## 参考
 
 - `src/GitPulse.App/Events/UiEventPipelines.cs`
+- `src/GitPulse.App/Events/RepoListStaleMessage.cs`
 - `src/GitPulse.App/Views/ReposPage.xaml.cs`
 - `src/GitPulse.App/Views/SearchPage.xaml.cs`
 - `src/GitPulse.App/Services/NotificationToastHost.cs`

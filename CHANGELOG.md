@@ -101,6 +101,24 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Fixed
 
+- **File editor:** Encoding that is not GitHub `base64`, files larger than
+  1 MB, and empty blobs stay read-only with a reason instead of a false
+  error (`#552`).
+- **File editor:** Retry after a failed save or delete replays that write,
+  not a silent reload (`#554`).
+- **Pull request Files:** File-level review comments send `subject_type=file`
+  and omit `line`, so GitHub no longer returns 422 (`#556`).
+- **Create issue / Create PR:** After create, the form pops then the new
+  detail opens. Back from the detail returns to the list, which reloads
+  (`#559`).
+- **Merge:** The merge request sends the current head SHA. HTTP 409 asks
+  the user to refresh (`#561`).
+- **Pull request writes:** A failed GET after a successful write keeps the
+  local change and shows an in-page prompt to refresh (`#563`).
+- **Request reviewers:** A failed refresh after add or remove keeps the
+  existing reviewer list (`#565`).
+- **Issue / PR labels:** Replace reads current labels first, then composes
+  the PUT so a concurrent server label is not dropped (`#567`).
 - **Notifications / Actions:** Mark as read (one thread or all) and workflow
   rerun treat GitHub's empty 205 / 201 bodies as success instead of a false
   deserialize error (`#545`).
