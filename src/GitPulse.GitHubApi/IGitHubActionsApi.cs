@@ -20,7 +20,7 @@ public interface IGitHubActionsApi
     Observable<ApiResponse<WorkflowJobsResult>> ListWorkflowJobs(string owner, string repo, long runId);
 
     [Post("/repos/{owner}/{repo}/actions/runs/{runId}/rerun")]
-    Observable<Unit> RerunWorkflow(string owner, string repo, long runId);
+    Observable<ApiResponse<Unit>> RerunWorkflow(string owner, string repo, long runId);
 
     /// <summary>List repository workflows (M40).</summary>
     [Get("/repos/{owner}/{repo}/actions/workflows")]

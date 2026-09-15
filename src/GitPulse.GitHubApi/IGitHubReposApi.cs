@@ -306,13 +306,13 @@ public interface IGitHubReposApi
     [Get("/notifications")]
     Observable<Notification[]> ListNotifications();
 
-    /// <summary>Mark a single notification thread as read (PATCH).</summary>
+    /// <summary>Mark a single notification thread as read (205 empty).</summary>
     [Patch("/notifications/threads/{threadId}")]
-    Observable<Unit> MarkThreadRead(string threadId);
+    Observable<ApiResponse<Unit>> MarkThreadRead(string threadId);
 
-    /// <summary>Mark all notifications as read (PUT).</summary>
+    /// <summary>Mark all notifications as read (205 empty).</summary>
     [Put("/notifications")]
-    Observable<Unit> MarkAllRead();
+    Observable<ApiResponse<Unit>> MarkAllRead();
 
     // ── Repository Contents (M5: File browsing & editing) ────────
     // The GitHub Contents API uses the same endpoint for directory listing
