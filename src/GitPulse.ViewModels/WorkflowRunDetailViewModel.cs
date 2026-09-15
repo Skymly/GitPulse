@@ -81,6 +81,7 @@ public sealed partial class WorkflowRunDetailViewModel : IDisposable
             StatusSummary.Value = FormatStatus(run.Status, run.Conclusion);
 
             var jobsResponse = await api.ListWorkflowJobs(_owner, _repo, _runId).FirstAsync(cts.Token);
+            ApiResponses.EnsureSuccess(jobsResponse);
             Jobs.Clear();
             foreach (var job in jobsResponse.Content?.Jobs ?? [])
                 Jobs.Add(job);

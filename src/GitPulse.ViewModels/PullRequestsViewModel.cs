@@ -111,7 +111,7 @@ public sealed partial class PullRequestsViewModel : IDisposable
                 {
                     var api = RestService.For<IGitHubReposApi>(client);
                     var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(ct);
-                    return new PagedListPage<PullRequest>(response.Content ?? [], response.Headers);
+                    return ApiResponses.PageOrThrow(response);
                 });
                 if (_reloadQueued)
                     continue;
@@ -153,7 +153,7 @@ public sealed partial class PullRequestsViewModel : IDisposable
             {
                 var api = RestService.For<IGitHubReposApi>(client);
                 var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(ct);
-                return new PagedListPage<PullRequest>(response.Content ?? [], response.Headers);
+                return ApiResponses.PageOrThrow(response);
             });
             if (!result.Completed)
                 return;

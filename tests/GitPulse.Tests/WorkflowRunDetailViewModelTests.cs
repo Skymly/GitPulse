@@ -80,6 +80,24 @@ public class WorkflowRunDetailViewModelTests
     }
 
     [Fact]
+    public async Task Load_JobsForbidden_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/actions/runs/101/jobs", HttpStatusCode.Forbidden, "{\"message\":\"Resource not accessible by integration\"}")
+            .When("/repos/owner/repo/actions/runs/101", RunJson);
+        using var vm = new WorkflowRunDetailViewModel(
+            new FakeGitHubClientFactory(handler),
+            new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 101);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Contains("Load failed", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.Contains("403", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.Empty(vm.Jobs);
+    }
+
+    [Fact]
     public async Task Rerun_WhenAllowed_ReloadsWithoutError()
     {
         var handler = new MockHttpHandler()
