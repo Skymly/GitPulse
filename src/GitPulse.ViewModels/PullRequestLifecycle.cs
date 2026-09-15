@@ -95,11 +95,23 @@ internal sealed class PullRequestLifecycle(
             using (cts)
             {
                 var newState = pullRequest.Value.State == "open" ? "closed" : "open";
-                var request = new IssueUpdateRequest { State = newState };
-                await api.UpdateIssue(io.Owner, io.Repo, io.Number, request).FirstAsync(cts.Token);
+                try
+                {
+                    var request = new IssueUpdateRequest { State = newState };
+                    await api.UpdateIssue(io.Owner, io.Repo, io.Number, request).FirstAsync(cts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    io.Timeout();
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    io.Error.Value = $"State change failed: {ex.Message}";
+                    return;
+                }
 
-                var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(cts.Token);
-                apply(pr);
+                await RefreshAfterWriteAsync(api, cts.Token, pr => Copy(pr, state: newState));
             }
         }
         catch (OperationCanceledException)
@@ -132,26 +144,49 @@ internal sealed class PullRequestLifecycle(
 
             using (cts)
             {
-                var headSha = pullRequest.Value.Head?.Sha;
-                var request = new MergeRequest
+                MergeResponse response;
+                try
                 {
-                    Method = MergeMethod.Value,
-                    CommitTitle = $"Merge #{pullRequest.Value.Number} {pullRequest.Value.Title}",
-                    Sha = string.IsNullOrEmpty(headSha) ? null : headSha,
-                };
+                    var headSha = pullRequest.Value.Head?.Sha;
+                    var request = new MergeRequest
+                    {
+                        Method = MergeMethod.Value,
+                        CommitTitle = $"Merge #{pullRequest.Value.Number} {pullRequest.Value.Title}",
+                        Sha = string.IsNullOrEmpty(headSha) ? null : headSha,
+                    };
 
-                var response = await api.MergePullRequest(io.Owner, io.Repo, io.Number, request)
-                    .FirstAsync(cts.Token);
-
-                if (response.Merged)
-                {
-                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(cts.Token);
-                    apply(pr);
+                    response = await api.MergePullRequest(io.Owner, io.Repo, io.Number, request)
+                        .FirstAsync(cts.Token);
                 }
-                else
+                catch (OperationCanceledException)
+                {
+                    io.Timeout();
+                    return;
+                }
+                catch (ApiException ex) when ((int)ex.StatusCode == 409)
+                {
+                    io.Error.Value = "The pull request branch has changed. Refresh and try again.";
+                    return;
+                }
+                catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
+                {
+                    io.Error.Value = "The pull request branch has changed. Refresh and try again.";
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    io.Error.Value = $"Merge failed: {ex.Message}";
+                    return;
+                }
+
+                if (!response.Merged)
                 {
                     io.Error.Value = response.Message;
+                    return;
                 }
+
+                await RefreshAfterWriteAsync(
+                    api, cts.Token, pr => Copy(pr, state: "closed", merged: true));
             }
         }
         catch (OperationCanceledException)
@@ -202,8 +237,7 @@ internal sealed class PullRequestLifecycle(
                 var code = (int)(response.StatusCode ?? 0);
                 if (code is >= 200 and < 300)
                 {
-                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(cts.Token);
-                    apply(pr);
+                    await RefreshAfterWriteAsync(api, cts.Token, fallback: null);
                     return;
                 }
 
@@ -250,8 +284,7 @@ internal sealed class PullRequestLifecycle(
                 var code = (int)(response.StatusCode ?? 0);
                 if (code is >= 200 and < 300)
                 {
-                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(cts.Token);
-                    apply(pr);
+                    await RefreshAfterWriteAsync(api, cts.Token, pr => Copy(pr, draft: false));
                     return;
                 }
 
@@ -298,8 +331,7 @@ internal sealed class PullRequestLifecycle(
                 var code = (int)(response.StatusCode ?? 0);
                 if (code is >= 200 and < 300)
                 {
-                    var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number).FirstAsync(cts.Token);
-                    apply(pr);
+                    await RefreshAfterWriteAsync(api, cts.Token, pr => Copy(pr, draft: true));
                     return;
                 }
 
@@ -323,6 +355,58 @@ internal sealed class PullRequestLifecycle(
         {
             IsConvertingToDraft.Value = false;
         }
+    }
+
+    private async Task RefreshAfterWriteAsync(
+        IGitHubReposApi api,
+        CancellationToken cancellationToken,
+        Func<PullRequest, PullRequest>? fallback)
+    {
+        try
+        {
+            var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number)
+                .FirstAsync(cancellationToken);
+            apply(pr);
+        }
+        catch (Exception)
+        {
+            if (fallback is not null && pullRequest.Value is { } current)
+                apply(fallback(current));
+            io.Error.Value = "The change was saved. Refresh to see the latest state.";
+        }
+    }
+
+    private static PullRequest Copy(
+        PullRequest pr,
+        string? state = null,
+        bool? draft = null,
+        bool? merged = null)
+    {
+        return new()
+        {
+            Number = pr.Number,
+            Title = pr.Title,
+            Body = pr.Body,
+            State = state ?? pr.State,
+            Draft = draft ?? pr.Draft,
+            Merged = merged ?? pr.Merged,
+            HtmlUrl = pr.HtmlUrl,
+            CreatedAt = pr.CreatedAt,
+            UpdatedAt = pr.UpdatedAt,
+            User = pr.User,
+            MergedBy = pr.MergedBy,
+            Assignees = pr.Assignees,
+            Labels = pr.Labels,
+            Head = pr.Head,
+            Base = pr.Base,
+            Mergeable = merged is true ? false : pr.Mergeable,
+            MergeableState = pr.MergeableState,
+            MergeCommitSha = pr.MergeCommitSha,
+            Commits = pr.Commits,
+            Additions = pr.Additions,
+            Deletions = pr.Deletions,
+            ChangedFiles = pr.ChangedFiles,
+        };
     }
 
     public void Dispose()
