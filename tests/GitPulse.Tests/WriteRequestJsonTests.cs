@@ -79,4 +79,20 @@ public class WriteRequestJsonTests
         Assert.Contains("\"line\":12", json, StringComparison.Ordinal);
         Assert.DoesNotContain("subject_type", json, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void ReviewCommentRequest_LineZero_OmitsLineMember()
+    {
+        var json = JsonSerializer.Serialize(
+            new ReviewCommentRequest
+            {
+                Body = "file comment",
+                CommitId = "abc",
+                Path = "src/Foo.cs",
+                Line = 0,
+            },
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        Assert.DoesNotContain("\"line\"", json, StringComparison.Ordinal);
+    }
 }

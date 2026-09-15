@@ -22,12 +22,16 @@ public sealed class ReviewCommentRequest
     public string Side { get; set; } = "RIGHT";
 
     /// <summary>
-    /// Line in the diff. Omit for file-level comments
-    /// (<see cref="SubjectType"/> = <c>file</c>).
+    /// Line in the diff (1-based). Zero or null is omitted so file-level
+    /// comments do not send <c>line: 0</c> (GitHub 422).
     /// </summary>
     [JsonPropertyName("line")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public int? Line { get; set; }
+    public int? Line
+    {
+        get;
+        set => field = value is > 0 ? value : null;
+    }
 
     /// <summary>
     /// <c>line</c> (default) or <c>file</c>. File comments must omit
