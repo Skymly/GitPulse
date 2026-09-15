@@ -87,6 +87,9 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
     public ObservableCollection<CommitStatus> CommitStatuses { get; } = [];
     public BindableReactiveProperty<string> GateRollup { get; } = new("No checks");
 
+    /// <summary>Gate load failure reason; empty when the rollup is not <c>Error</c>.</summary>
+    public BindableReactiveProperty<string> GateError { get; } = new(string.Empty);
+
     public PullRequestDetailViewModel(IGitHubClientFactory clientFactory, IBrowserLauncher browserLauncher)
     {
         _clientFactory = clientFactory;
@@ -294,6 +297,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         RepoName.Dispose();
         CommentInput.Dispose();
         GateRollup.Dispose();
+        GateError.Dispose();
     }
 
     private void ApplyPullRequest(PullRequest pr)
@@ -318,6 +322,7 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
         foreach (var status in state.Statuses)
             CommitStatuses.Add(status);
         GateRollup.Value = state.Summary;
+        GateError.Value = state.ErrorMessage ?? string.Empty;
     }
 }
 

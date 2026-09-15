@@ -40,6 +40,9 @@ public sealed partial class CommitDetailViewModel : IDisposable
     public ObservableCollection<CommitStatus> CommitStatuses { get; } = [];
     public BindableReactiveProperty<string> GateRollup { get; } = new("No checks");
 
+    /// <summary>Gate load failure reason; empty when the rollup is not <c>Error</c>.</summary>
+    public BindableReactiveProperty<string> GateError { get; } = new(string.Empty);
+
     public CommitDetailViewModel(
         IGitHubClientFactory clientFactory,
         IBrowserLauncher browserLauncher)
@@ -128,6 +131,7 @@ public sealed partial class CommitDetailViewModel : IDisposable
         ReplaceCheckRuns(state.Runs);
         ReplaceCommitStatuses(state.Statuses);
         GateRollup.Value = state.Summary;
+        GateError.Value = state.ErrorMessage ?? string.Empty;
     }
 
     private void ReplaceCheckRuns(IEnumerable<CheckRun> runs)
@@ -159,5 +163,6 @@ public sealed partial class CommitDetailViewModel : IDisposable
         IsLoading.Dispose();
         RepoFullName.Dispose();
         GateRollup.Dispose();
+        GateError.Dispose();
     }
 }
