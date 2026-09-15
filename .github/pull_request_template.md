@@ -39,7 +39,7 @@ Closes #
 ## Checklist
 
 - [ ] This PR touches **only one** solution module
-- [ ] Commit messages are in **English** (no AI/agent tooling mentions)
+- [ ] Commit messages are in **English**
 - [ ] PR description is **English** only
 
 ## Documentation checklist
