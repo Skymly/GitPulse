@@ -30,8 +30,7 @@ workflow and release conventions.
 - **Titles and descriptions**: English.
 - **Scope**: Prefer one layer per PR (App, Core, GitHubApi, Services, Tests, or
   Solution Items for root props / `build/` / `.github/`).
-- **Commits**: English; do not mention AI or agent tools in commit messages.
-- **Do not** create tags unless the task explicitly requests a release.
+- **Commits**: English.
 
 ## Build & CI (Nuke)
 
