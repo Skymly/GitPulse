@@ -30,4 +30,53 @@ public class WriteRequestJsonTests
         Assert.DoesNotContain("state", json, StringComparison.Ordinal);
         Assert.DoesNotContain("labels", json, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void ReviewCommentRequest_UnsetLine_OmitsLineMember()
+    {
+        var json = JsonSerializer.Serialize(
+            new ReviewCommentRequest
+            {
+                Body = "file comment",
+                CommitId = "abc",
+                Path = "src/Foo.cs",
+            },
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        Assert.DoesNotContain("\"line\"", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReviewCommentRequest_FileSubject_OmitsLineAndWritesSubjectType()
+    {
+        var json = JsonSerializer.Serialize(
+            new ReviewCommentRequest
+            {
+                Body = "file comment",
+                CommitId = "abc",
+                Path = "src/Foo.cs",
+                SubjectType = "file",
+            },
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        Assert.DoesNotContain("\"line\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"subject_type\":\"file\"", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReviewCommentRequest_WithLine_WritesLineAndOmitsSubjectType()
+    {
+        var json = JsonSerializer.Serialize(
+            new ReviewCommentRequest
+            {
+                Body = "line comment",
+                CommitId = "abc",
+                Path = "src/Foo.cs",
+                Line = 12,
+            },
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        Assert.Contains("\"line\":12", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("subject_type", json, StringComparison.Ordinal);
+    }
 }

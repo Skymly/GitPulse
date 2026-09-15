@@ -21,8 +21,21 @@ public sealed class ReviewCommentRequest
     /// <summary>"LEFT" (deletion) or "RIGHT" (addition/context).</summary>
     public string Side { get; set; } = "RIGHT";
 
-    /// <summary>Line number in the diff the comment applies to.</summary>
-    public int Line { get; set; }
+    /// <summary>
+    /// Line in the diff. Omit for file-level comments
+    /// (<see cref="SubjectType"/> = <c>file</c>).
+    /// </summary>
+    [JsonPropertyName("line")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Line { get; set; }
+
+    /// <summary>
+    /// <c>line</c> (default) or <c>file</c>. File comments must omit
+    /// <see cref="Line"/>.
+    /// </summary>
+    [JsonPropertyName("subject_type")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SubjectType { get; set; }
 
     /// <summary>
     /// ID of the review comment to reply to. When set, all other
