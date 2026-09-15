@@ -87,7 +87,7 @@ public class WorkflowRunDetailViewModelTests
             .When("/repos/owner/repo/actions/runs/101", RunJson)
             .When(
                 "/repos/owner/repo/actions/runs/101/rerun",
-                _ => new MockResponse("{}", StatusCode: HttpStatusCode.Created));
+                _ => MockResponse.Empty(HttpStatusCode.Created));
         using var vm = new WorkflowRunDetailViewModel(
             new FakeGitHubClientFactory(handler),
             new FakeBrowserLauncher());
@@ -98,6 +98,26 @@ public class WorkflowRunDetailViewModelTests
 
         Assert.Empty(vm.ErrorMessage.Value);
         Assert.NotNull(vm.Run.Value);
+    }
+
+    [Fact]
+    public async Task Rerun_Forbidden_SetsErrorWithoutTreatingAsSuccess()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/actions/runs/101/jobs", JobsJson)
+            .When("/repos/owner/repo/actions/runs/101", RunJson)
+            .When(
+                "/repos/owner/repo/actions/runs/101/rerun",
+                _ => MockResponse.Empty(HttpStatusCode.Forbidden));
+        using var vm = new WorkflowRunDetailViewModel(
+            new FakeGitHubClientFactory(handler),
+            new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 101);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.RerunCommand.ExecuteAsync(null);
+
+        Assert.Contains("forbidden", vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

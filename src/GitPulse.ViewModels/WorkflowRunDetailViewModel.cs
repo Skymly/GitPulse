@@ -119,7 +119,14 @@ public sealed partial class WorkflowRunDetailViewModel : IDisposable
 
             var api = RestService.For<IGitHubActionsApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            await api.RerunWorkflow(_owner, _repo, _runId).FirstAsync(cts.Token);
+            var response = await api.RerunWorkflow(_owner, _repo, _runId).FirstAsync(cts.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                ErrorMessage.Value = response.StatusCode == HttpStatusCode.Forbidden
+                    ? "Rerun forbidden. Ensure the PAT has Actions write permission."
+                    : $"Rerun failed: {(int)(response.StatusCode ?? 0)}.";
+                return;
+            }
 
             // Refresh so status/jobs reflect the new attempt.
             await LoadAsync();
