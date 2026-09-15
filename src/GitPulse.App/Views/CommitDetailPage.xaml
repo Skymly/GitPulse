@@ -111,6 +111,28 @@
                         FontSize="12"
                         IsVisible="{Binding HtmlUrl.Value, Converter={StaticResource StringToBoolConverter}}" />
             </Grid>
+            <Border IsVisible="{Binding GateError.Value, Converter={StaticResource StringToBoolConverter}}"
+                    BackgroundColor="{StaticResource Red100}"
+                    Stroke="Transparent"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12"
+                    AutomationId="CommitGateError">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <Label Text="{Binding GateError.Value}"
+                           TextColor="{StaticResource Red900}"
+                           FontSize="13"
+                           LineBreakMode="WordWrap"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="Retry"
+                            Command="{Binding LoadCommand}"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Red900}"
+                            Padding="8,10"
+                            FontSize="13"
+                            AutomationId="CommitGateErrorRetry" />
+                </Grid>
+            </Border>
             <VerticalStackLayout BindableLayout.ItemsSource="{Binding CheckRuns}"
                                  Spacing="0">
                 <BindableLayout.ItemTemplate>
