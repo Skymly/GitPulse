@@ -181,7 +181,8 @@ public class NotificationToastCoordinatorTests
         await Task.WhenAll(tasks);
 
         coordinator.ResetBaseline();
-        toast.SummaryNewCounts.Clear();
+        lock (toast.SummaryNewCounts)
+            toast.SummaryNewCounts.Clear();
         coordinator.HandleNotificationsUpdated([NotificationWithId("final")]);
         coordinator.HandleNotificationsUpdated(
         [
@@ -190,6 +191,38 @@ public class NotificationToastCoordinatorTests
         ]);
 
         Assert.Equal([1], toast.SummaryNewCounts);
+    }
+
+    [Fact]
+    public void EmptySnapshot_ResetsBaseline_NextNonEmptyIsBaselineOnly()
+    {
+        var presence = new FakeAppPresence { IsMainWindowVisible = false };
+        var toast = new FakeToastNotifier();
+        var coordinator = new NotificationToastCoordinator(presence, toast);
+
+        coordinator.HandleNotificationsUpdated([NotificationWithId("1")]);
+        coordinator.HandleNotificationsUpdated(
+        [
+            NotificationWithId("1"),
+            NotificationWithId("2"),
+        ]);
+        Assert.Equal([1], toast.SummaryNewCounts);
+
+        coordinator.HandleNotificationsUpdated([]);
+        coordinator.HandleNotificationsUpdated(
+        [
+            NotificationWithId("1"),
+            NotificationWithId("2"),
+        ]);
+        Assert.Equal([1], toast.SummaryNewCounts);
+
+        coordinator.HandleNotificationsUpdated(
+        [
+            NotificationWithId("1"),
+            NotificationWithId("2"),
+            NotificationWithId("3"),
+        ]);
+        Assert.Equal([1, 1], toast.SummaryNewCounts);
     }
 
     private static Notification NotificationWithId(string id) => new() { Id = id };

@@ -13,6 +13,8 @@ namespace GitPulse.Core.Notifications;
 /// </para>
 /// <list type="bullet">
 /// <item>The first snapshot establishes a baseline and never emits a Toast.</item>
+/// <item>An empty snapshot resets the baseline (logout / Stop / empty inbox)
+/// and does not become known ids.</item>
 /// <item>While the main window is visible, polls never emit Toasts (ids are still tracked).</item>
 /// <item>While hidden, a poll with one or more new ids emits exactly one summary Toast per cycle.</item>
 /// <item>“New” means an id absent from the previous snapshot (id-set diff).</item>
@@ -54,6 +56,13 @@ public sealed class NotificationToastCoordinator
         int? toastCount = null;
         lock (_lock)
         {
+            if (currentIds.Count == 0)
+            {
+                _knownIds = new HashSet<string>(StringComparer.Ordinal);
+                _hasBaseline = false;
+                return;
+            }
+
             if (!_hasBaseline)
             {
                 _knownIds = currentIds;

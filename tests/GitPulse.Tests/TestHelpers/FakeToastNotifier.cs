@@ -10,5 +10,9 @@ public sealed class FakeToastNotifier : IToastNotifier
 {
     public List<int> SummaryNewCounts { get; } = [];
 
-    public void ShowNewNotificationsSummary(int newCount) => SummaryNewCounts.Add(newCount);
+    public void ShowNewNotificationsSummary(int newCount)
+    {
+        lock (SummaryNewCounts)
+            SummaryNewCounts.Add(newCount);
+    }
 }
