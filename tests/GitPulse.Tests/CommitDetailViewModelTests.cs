@@ -232,12 +232,17 @@ public class CommitDetailViewModelTests
     }
 
     private static string CheckRunsJson(params (long Id, string Name, string Status, string? Conclusion)[] runs)
+        => CheckRunsJson(runs.Length, runs);
+
+    private static string CheckRunsJson(
+        int totalCount,
+        params (long Id, string Name, string Status, string? Conclusion)[] runs)
     {
         var items = string.Join(",", runs.Select(run =>
             "{\"id\":" + run.Id + ",\"name\":\"" + run.Name + "\",\"status\":\"" + run.Status + "\"," +
             "\"conclusion\":" + (run.Conclusion is null ? "null" : "\"" + run.Conclusion + "\"") + "," +
             "\"html_url\":\"https://example/runs/" + run.Id + "\",\"head_sha\":\"" + Sha + "\"}"));
-        return "{\"total_count\":" + runs.Length + ",\"check_runs\":[" + items + "]}";
+        return "{\"total_count\":" + totalCount + ",\"check_runs\":[" + items + "]}";
     }
 
     private static string CombinedStatusJson(string state) =>
@@ -259,6 +264,24 @@ public class CommitDetailViewModelTests
         Assert.Empty(vm.ErrorMessage.Value);
         Assert.Equal("Success", vm.GateRollup.Value);
         Assert.Equal("CI", Assert.Single(vm.CheckRuns).Name);
+    }
+
+    [Fact]
+    public async Task Load_WhenCheckRunsTruncated_IsPartialNotSuccess()
+    {
+        using var vm = new CommitDetailViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()
+                .When($"/repos/owner/repo/commits/{Sha}", CommitJson)
+                .When($"/commits/{Sha}/check-runs",
+                    CheckRunsJson(31, (1, "CI", "completed", "success")))
+                .When($"/commits/{Sha}/status", CombinedStatusJson("success"))),
+            new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", Sha);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("Partial", vm.GateRollup.Value);
     }
 
     [Fact]
