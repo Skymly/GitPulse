@@ -73,7 +73,7 @@ public class NotificationPollerTests
     }
 
     [Fact]
-    public void Stop_WhenNotPolling_IsNoOp()
+    public void Stop_WhenNotPolling_IsNoOpForTimer()
     {
         var factory = new FakeGitHubClientFactory(new MockHttpHandler());
         using var poller = new NotificationPoller(factory);
@@ -81,6 +81,61 @@ public class NotificationPollerTests
         poller.Stop();
 
         Assert.False(poller.IsPolling);
+    }
+
+    [Fact]
+    public async Task Stop_AfterUnreadPoll_PublishesEmptySnapshot()
+    {
+        var handler = new MockHttpHandler()
+            .When("/notifications", NotificationsJson());
+        var factory = new FakeGitHubClientFactory(handler);
+        using var poller = new NotificationPoller(factory);
+        poller.Start();
+        await AsyncTestWait.UntilAsync(() => poller.UnreadCount == 1);
+
+        Notification[]? received = null;
+        int? unread = null;
+        poller.NotificationsUpdated += (n, u) =>
+        {
+            received = n;
+            unread = u;
+        };
+
+        poller.Stop();
+
+        Assert.False(poller.IsPolling);
+        Assert.NotNull(received);
+        Assert.Empty(received!);
+        Assert.Equal(0, unread);
+        Assert.Equal(0, poller.UnreadCount);
+    }
+
+    [Fact]
+    public async Task Stop_WhenNotPolling_AfterUnreadRefresh_ClearsUnreadCount()
+    {
+        var handler = new MockHttpHandler()
+            .When("/notifications", NotificationsJson());
+        var factory = new FakeGitHubClientFactory(handler);
+        using var poller = new NotificationPoller(factory);
+
+        await poller.RefreshAsync();
+        Assert.False(poller.IsPolling);
+        Assert.Equal(1, poller.UnreadCount);
+
+        Notification[]? received = null;
+        int? unread = null;
+        poller.NotificationsUpdated += (n, u) =>
+        {
+            received = n;
+            unread = u;
+        };
+
+        poller.Stop();
+
+        Assert.NotNull(received);
+        Assert.Empty(received!);
+        Assert.Equal(0, unread);
+        Assert.Equal(0, poller.UnreadCount);
     }
 
     [Fact]
