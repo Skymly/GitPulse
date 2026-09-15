@@ -164,5 +164,33 @@ public class NotificationToastCoordinatorTests
         Assert.Equal([1, 1], toast.SummaryNewCounts);
     }
 
+    [Fact]
+    public async Task ConcurrentHandleAndReset_DoesNotThrow_AndLeavesCoherentBaseline()
+    {
+        var presence = new FakeAppPresence { IsMainWindowVisible = false };
+        var toast = new FakeToastNotifier();
+        var coordinator = new NotificationToastCoordinator(presence, toast);
+
+        var tasks = Enumerable.Range(0, 40).Select(i => Task.Run(() =>
+        {
+            if (i % 5 == 0)
+                coordinator.ResetBaseline();
+            else
+                coordinator.HandleNotificationsUpdated([NotificationWithId(i.ToString())]);
+        }));
+        await Task.WhenAll(tasks);
+
+        coordinator.ResetBaseline();
+        toast.SummaryNewCounts.Clear();
+        coordinator.HandleNotificationsUpdated([NotificationWithId("final")]);
+        coordinator.HandleNotificationsUpdated(
+        [
+            NotificationWithId("final"),
+            NotificationWithId("extra"),
+        ]);
+
+        Assert.Equal([1], toast.SummaryNewCounts);
+    }
+
     private static Notification NotificationWithId(string id) => new() { Id = id };
 }

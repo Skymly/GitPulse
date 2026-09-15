@@ -22,6 +22,7 @@ public sealed class NotificationToastCoordinator
 {
     private readonly IAppPresence _presence;
     private readonly IToastNotifier _toastNotifier;
+    private readonly object _lock = new();
     private HashSet<string> _knownIds = new(StringComparer.Ordinal);
     private bool _hasBaseline;
 
@@ -50,30 +51,35 @@ public sealed class NotificationToastCoordinator
             }
         }
 
-        if (!_hasBaseline)
+        int? toastCount = null;
+        lock (_lock)
         {
-            _knownIds = currentIds;
-            _hasBaseline = true;
-            return;
-        }
-
-        var newCount = 0;
-        foreach (var id in currentIds)
-        {
-            if (!_knownIds.Contains(id))
+            if (!_hasBaseline)
             {
-                newCount++;
+                _knownIds = currentIds;
+                _hasBaseline = true;
+                return;
             }
+
+            var newCount = 0;
+            foreach (var id in currentIds)
+            {
+                if (!_knownIds.Contains(id))
+                {
+                    newCount++;
+                }
+            }
+
+            _knownIds = currentIds;
+
+            if (newCount == 0 || _presence.IsMainWindowVisible)
+                return;
+
+            toastCount = newCount;
         }
 
-        _knownIds = currentIds;
-
-        if (newCount == 0 || _presence.IsMainWindowVisible)
-        {
-            return;
-        }
-
-        _toastNotifier.ShowNewNotificationsSummary(newCount);
+        if (toastCount is int count)
+            _toastNotifier.ShowNewNotificationsSummary(count);
     }
 
     /// <summary>
@@ -83,7 +89,10 @@ public sealed class NotificationToastCoordinator
     /// </summary>
     public void ResetBaseline()
     {
-        _knownIds = new HashSet<string>(StringComparer.Ordinal);
-        _hasBaseline = false;
+        lock (_lock)
+        {
+            _knownIds = new HashSet<string>(StringComparer.Ordinal);
+            _hasBaseline = false;
+        }
     }
 }
