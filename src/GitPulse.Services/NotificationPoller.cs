@@ -181,7 +181,11 @@ public sealed class NotificationPoller : INotificationPoller
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 cts.CancelAfter(TimeSpan.FromSeconds(30));
 
-                var notifications = await api.ListNotifications().FirstAsync(cts.Token);
+                var response = await api.ListNotifications().FirstAsync(cts.Token);
+                if (response.HasResponseError(out var apiError))
+                    throw apiError;
+
+                var notifications = response.Content ?? [];
                 snapshot = notifications;
                 unread = notifications.Count(n => n.Unread);
             }

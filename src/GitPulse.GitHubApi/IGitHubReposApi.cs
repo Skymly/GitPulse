@@ -300,11 +300,13 @@ public interface IGitHubReposApi
     // timer (R3 Observable.Interval) and streams results to the UI.
 
     /// <summary>
-    /// List all notifications for the authenticated user.
-    /// Query params (all, participating) injected by GitHubQueryHandler.
+    /// List notifications for the authenticated user.
+    /// Returns <see cref="ApiResponse{T}"/> so <c>Link: rel="next"</c> is
+    /// visible. Query params (<c>page</c> / <c>per_page</c>) are injected by
+    /// <c>GitHubQueryHandler</c> when the caller uses a paged session.
     /// </summary>
     [Get("/notifications")]
-    Observable<Notification[]> ListNotifications();
+    Observable<ApiResponse<Notification[]>> ListNotifications();
 
     /// <summary>Mark a single notification thread as read (205 empty).</summary>
     [Patch("/notifications/threads/{threadId}")]
