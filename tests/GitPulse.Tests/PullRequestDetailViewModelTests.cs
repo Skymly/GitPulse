@@ -1238,6 +1238,41 @@ public class PullRequestDetailViewModelTests
     }
 
     [Fact]
+    public async Task RequestReviewer_WhenRefreshFails_KeepsExistingReviewers()
+    {
+        var reviewerGets = 0;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/pulls/42/requested_reviewers", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    return new MockResponse(PrJson(42), StatusCode: HttpStatusCode.Created);
+
+                reviewerGets++;
+                if (reviewerGets == 1)
+                    return new MockResponse(RequestedReviewersJson("[{\"login\":\"carol\"}]"));
+                return new MockResponse(
+                    "{}",
+                    StatusCode: HttpStatusCode.InternalServerError,
+                    AttachRequest: true);
+            });
+        var vm = new PullRequestDetailViewModel(new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Equal("carol", Assert.Single(vm.RequestedReviewers).Login);
+
+        vm.ReviewerLogin.Value = "dave";
+        await vm.RequestReviewerCommand.ExecuteAsync(null);
+
+        Assert.Equal("carol", Assert.Single(vm.RequestedReviewers).Login);
+        Assert.Equal("The change was saved. Refresh to see the latest state.", vm.ErrorMessage.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task RequestReviewer_EmptyLogin_DoesNothing()
     {
         var posts = 0;
