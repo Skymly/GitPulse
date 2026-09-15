@@ -113,6 +113,7 @@ public class CheckRunDetailViewModelTests
         await vm.LoadCommand.ExecuteAsync(null);
 
         Assert.Contains("Load failed", vm.ErrorMessage.Value);
+        Assert.Contains("404", vm.ErrorMessage.Value, StringComparison.Ordinal);
         Assert.Null(vm.CheckRun.Value);
     }
 

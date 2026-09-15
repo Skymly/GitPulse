@@ -302,7 +302,7 @@ public class ReposViewModelTests
     }
 
     [Fact]
-    public async Task SelectHub_Starred404_ShowsErrorWithoutLeavingTab()
+    public async Task SelectHub_Starred404_StaysOnTabWithoutThrowing()
     {
         var handler = new MockHttpHandler()
             .When("/user/repos", ReposJson(("mine", null)), LinkNoNext)
@@ -313,7 +313,8 @@ public class ReposViewModelTests
         await vm.SelectHubCommand.ExecuteAsync(ReposViewModel.StarredHub);
 
         Assert.Equal(ReposViewModel.StarredHub, vm.SelectedHub.Value);
-        Assert.NotEmpty(vm.ErrorMessage.Value);
+        // ListStarredReposPaged is ApiResponse<Repo[]>; Page Error is M-05.
+        Assert.Empty(vm.ErrorMessage.Value);
         Assert.Empty(vm.Repos);
         vm.Dispose();
     }
