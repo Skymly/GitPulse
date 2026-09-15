@@ -47,6 +47,15 @@ public interface INotificationPoller : IDisposable
     /// <summary>Fired when <see cref="IsPolling"/> changes.</summary>
     event Action<bool>? IsPollingChanged;
 
+    /// <summary>
+    /// Last poll failure; <c>null</c> after a successful poll or an
+    /// unauthenticated stop.
+    /// </summary>
+    string? LastError { get; }
+
+    /// <summary>Fired when <see cref="LastError"/> changes.</summary>
+    event Action<string?>? LastErrorChanged;
+
     /// <summary>Polling interval (default 60 seconds).</summary>
     TimeSpan PollInterval { get; set; }
 

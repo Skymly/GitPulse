@@ -1,4 +1,5 @@
 using System.Net;
+using GitPulse.Core.Abstractions;
 using GitPulse.Core.Models;
 using GitPulse.Services;
 using GitPulse.Tests.TestHelpers;
@@ -17,6 +18,16 @@ public class NotificationPollerTests
         "\"url\":\"https://api.github.com/repos/o/r/issues/1\"}," +
         "\"repository\":{\"id\":1,\"name\":\"r\",\"full_name\":\"o/r\"," +
         "\"html_url\":\"https://github.com/o/r\"}}]";
+
+    [Fact]
+    public void LastError_IsExposedOnINotificationPoller()
+    {
+        var factory = new FakeGitHubClientFactory(new MockHttpHandler());
+        using var poller = new NotificationPoller(factory);
+        INotificationPoller asInterface = poller;
+
+        Assert.Null(asInterface.LastError);
+    }
 
     [Fact]
     public void Start_SetsIsPollingTrue()

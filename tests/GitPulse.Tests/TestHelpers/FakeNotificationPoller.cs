@@ -11,9 +11,11 @@ public sealed class FakeNotificationPoller : INotificationPoller
 {
     public event Action<Notification[], int>? NotificationsUpdated;
     public event Action<bool>? IsPollingChanged;
+    public event Action<string?>? LastErrorChanged;
 
     public int UnreadCount { get; private set; }
     public bool IsPolling { get; private set; }
+    public string? LastError { get; private set; }
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(60);
 
     public int StartCallCount { get; private set; }
@@ -45,6 +47,13 @@ public sealed class FakeNotificationPoller : INotificationPoller
     {
         UnreadCount = unreadCount;
         NotificationsUpdated?.Invoke(notifications, unreadCount);
+    }
+
+    /// <summary>Simulate a poll failure for ViewModel Page Error tests.</summary>
+    public void SimulateError(string? error)
+    {
+        LastError = error;
+        LastErrorChanged?.Invoke(error);
     }
 
     public void Dispose()
