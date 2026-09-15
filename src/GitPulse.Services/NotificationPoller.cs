@@ -36,6 +36,8 @@ namespace GitPulse.Services;
 /// HTTP failures set <see cref="LastError"/> and skip the next ticks until
 /// <c>Retry-After</c> or an exponential backoff elapses. A successful poll
 /// clears the error. <see cref="RefreshAsync"/> polls immediately.
+/// <see cref="Stop"/> always publishes an empty snapshot so the unread
+/// badge clears when polling ends or the PAT is removed.
 /// </para>
 /// </remarks>
 public sealed class NotificationPoller : INotificationPoller
@@ -130,18 +132,21 @@ public sealed class NotificationPoller : INotificationPoller
         var raised = false;
         lock (_lock)
         {
-            if (!_isPolling)
-                return;
-
-            _isPolling = false;
-            raised = true;
-            subscription = _pollSubscription;
-            _pollSubscription = null;
+            if (_isPolling)
+            {
+                _isPolling = false;
+                raised = true;
+                subscription = _pollSubscription;
+                _pollSubscription = null;
+            }
         }
 
         subscription?.Dispose();
         if (raised)
             IsPollingChanged?.Invoke(false);
+
+        UnreadCount = 0;
+        NotificationsUpdated?.Invoke([], 0);
     }
 
     public async Task RefreshAsync()
