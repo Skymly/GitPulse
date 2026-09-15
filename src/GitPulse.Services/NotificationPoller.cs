@@ -182,10 +182,7 @@ public sealed class NotificationPoller : INotificationPoller
             else
             {
                 var api = RestService.For<IGitHubReposApi>(client);
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                cts.CancelAfter(TimeSpan.FromSeconds(30));
-
-                var notifications = await ListAllNotificationsAsync(api, session, cts.Token);
+                var notifications = await ListAllNotificationsAsync(api, session, ct);
                 snapshot = notifications;
                 unread = notifications.Count(n => n.Unread);
             }
@@ -316,7 +313,9 @@ public sealed class NotificationPoller : INotificationPoller
                 break;
 
             session.PrepareRequest();
-            var response = await api.ListNotifications().FirstAsync(token);
+            using var pageCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            pageCts.CancelAfter(TimeSpan.FromSeconds(30));
+            var response = await api.ListNotifications().FirstAsync(pageCts.Token);
             ThrowIfFailed(response);
             items.AddRange(response.Content ?? []);
             session.ApplyLink(response.Headers);
