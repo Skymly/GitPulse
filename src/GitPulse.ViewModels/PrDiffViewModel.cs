@@ -25,9 +25,10 @@ public readonly record struct CommentTarget(string FilePath, int Line);
 /// comments inline below the diff block.
 /// </para>
 /// <para>
-/// <b>Comment creation:</b> New top-level comments require
-/// <c>commit_id</c>, <c>path</c>, <c>line</c>, and <c>side</c>. Replies
-/// only need <c>body</c> and <c>in_reply_to</c>.
+/// <b>Comment creation:</b> Line comments send
+/// <c>commit_id</c>, <c>path</c>, <c>line</c>, and <c>side</c>. File-level
+/// comments (UI line 0) send <c>subject_type: file</c> and omit <c>line</c>.
+/// Replies only need <c>body</c> and <c>in_reply_to</c>.
 /// </para>
 /// </remarks>
 public sealed partial class PrDiffViewModel : IDisposable
@@ -195,11 +196,13 @@ public sealed partial class PrDiffViewModel : IDisposable
             }
             else
             {
-                // Top-level comment: needs commit_id, path, line, side.
                 request.CommitId = _headSha;
                 request.Path = CommentFilePath.Value;
-                request.Line = CommentLine.Value;
                 request.Side = "RIGHT";
+                if (CommentLine.Value > 0)
+                    request.Line = CommentLine.Value;
+                else
+                    request.SubjectType = "file";
             }
 
             var comment = await api.CreateReviewComment(_owner, _repo, _prNumber, request)

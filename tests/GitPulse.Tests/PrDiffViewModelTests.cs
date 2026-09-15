@@ -227,6 +227,54 @@ public class PrDiffViewModelTests
     }
 
     [Fact]
+    public async Task PostComment_FileLevel_SendsSubjectTypeFileAndOmitsLine()
+    {
+        string? posted = null;
+        var handler = new MockHttpHandler()
+            .When(HttpMethod.Post, "/pulls/42/comments", req =>
+            {
+                posted = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                return new MockResponse(CreatedCommentJson);
+            });
+        var vm = new PrDiffViewModel(new FakeGitHubClientFactory(handler));
+
+        vm.Initialize(Owner, Repo, PrNumber, HeadSha);
+        vm.StartCommentCommand.Execute(new CommentTarget("src/Program.cs", 0));
+        vm.CommentInput.Value = "File comment";
+
+        await vm.PostCommentCommand.ExecuteAsync(null);
+
+        Assert.NotNull(posted);
+        Assert.Contains("\"subject_type\":\"file\"", posted, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"line\"", posted, StringComparison.Ordinal);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task PostComment_LineLevel_SendsLineAndOmitsSubjectType()
+    {
+        string? posted = null;
+        var handler = new MockHttpHandler()
+            .When(HttpMethod.Post, "/pulls/42/comments", req =>
+            {
+                posted = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                return new MockResponse(CreatedCommentJson);
+            });
+        var vm = new PrDiffViewModel(new FakeGitHubClientFactory(handler));
+
+        vm.Initialize(Owner, Repo, PrNumber, HeadSha);
+        vm.StartCommentCommand.Execute(new CommentTarget("src/Program.cs", 5));
+        vm.CommentInput.Value = "Line comment";
+
+        await vm.PostCommentCommand.ExecuteAsync(null);
+
+        Assert.NotNull(posted);
+        Assert.Contains("\"line\":5", posted, StringComparison.Ordinal);
+        Assert.DoesNotContain("subject_type", posted, StringComparison.Ordinal);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task PostComment_Reply_SetsInReplyTo()
     {
         // For a reply, the API returns the reply comment (path = same file).
