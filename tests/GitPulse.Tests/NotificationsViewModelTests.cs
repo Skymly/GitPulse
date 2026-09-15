@@ -45,6 +45,49 @@ public class NotificationsViewModelTests
     }
 
     [Fact]
+    public async Task LastErrorChanged_SetsPageError()
+    {
+        var poller = new FakeNotificationPoller();
+        var factory = new FakeGitHubClientFactory(new MockHttpHandler());
+        var vm = new NotificationsViewModel(factory, poller, new FakeBrowserLauncher());
+        await AsyncTestWait.UntilAsync(() => vm.IsAuthenticated.Value);
+
+        poller.SimulateError("GitHub returned 401 (Unauthorized).");
+
+        Assert.Contains("401", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task LastErrorCleared_ClearsPageErrorWhenAuthenticated()
+    {
+        var poller = new FakeNotificationPoller();
+        var factory = new FakeGitHubClientFactory(new MockHttpHandler());
+        var vm = new NotificationsViewModel(factory, poller, new FakeBrowserLauncher());
+        await AsyncTestWait.UntilAsync(() => vm.IsAuthenticated.Value);
+
+        poller.SimulateError("GitHub returned 401 (Unauthorized).");
+        poller.SimulateError(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Constructor_WithoutToken_SetsNoTokenPageError()
+    {
+        var poller = new FakeNotificationPoller();
+        var factory = new FakeGitHubClientFactory(new MockHttpHandler(), token: null);
+        var vm = new NotificationsViewModel(factory, poller, new FakeBrowserLauncher());
+
+        await AsyncTestWait.UntilAsync(() =>
+            vm.ErrorMessage.Value.Contains("No token", StringComparison.Ordinal));
+
+        Assert.False(vm.IsAuthenticated.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
     public void StartPolling_CallsPollerStart()
     {
         var poller = new FakeNotificationPoller();
