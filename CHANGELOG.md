@@ -119,6 +119,15 @@ Versions are derived automatically from Git tags by MinVer.
   existing reviewer list (`#565`).
 - **Issue / PR labels:** Replace reads current labels first, then composes
   the PUT so a concurrent server label is not dropped (`#567`).
+- **Notifications:** Unread badge and toast baseline use every page GitHub
+  returns (up to 10), not only the first page (`#571`).
+- **Notifications:** Poll failures show Page Error; 401 and a missing PAT
+  offer Settings (`#574`).
+- **Notifications:** Clearing the PAT or stopping the poller zeros the
+  unread badge. Mark as read then refreshes the poller so the badge matches
+  GitHub (`#577`).
+- **Notifications:** An empty snapshot (logout / no token) is not a toast
+  baseline; the next real list is a quiet first snapshot (`#584`).
 - **Notifications / Actions:** Mark as read (one thread or all) and workflow
   rerun treat GitHub's empty 205 / 201 bodies as success instead of a false
   deserialize error (`#545`).

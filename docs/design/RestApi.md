@@ -126,6 +126,8 @@ Issues / PRs / Commits / Starred / Workflow runs 列表在 `ApiResponse` 通道�
 
 Typed Search 与每个 Search Inbox 使用 `PagedGitHubSession`。
 
+`ListNotifications` 也是 `Observable<ApiResponse<Notification[]>>`，由 `NotificationPoller` 在 paged session 上跟随 `Link: rel="next"`，上限 10 页。后页失败不发布部分快照；未读角标与 Toast 基线在完整集合上计算。
+
 ### CRUD（M3+）
 
 - `CreateIssue`、`UpdateIssue`、`CreateIssueComment` 等使用 `[Body]` DTO（`Core/Models/IssueRequests.cs`）
