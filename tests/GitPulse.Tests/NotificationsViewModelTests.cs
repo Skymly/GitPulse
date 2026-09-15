@@ -1,3 +1,4 @@
+using System.Net;
 using GitPulse.Core.Models;
 using GitPulse.Tests.TestHelpers;
 using GitPulse.ViewModels;
@@ -134,7 +135,7 @@ public class NotificationsViewModelTests
     public async Task MarkAsRead_WithToken_RemovesNotificationAndDecrementsCount()
     {
         var handler = new MockHttpHandler()
-            .When("/notifications/threads/1", _ => new MockResponse("{}"));
+            .When("/notifications/threads/1", _ => MockResponse.Empty(HttpStatusCode.ResetContent));
         var factory = new FakeGitHubClientFactory(handler);
         var poller = new FakeNotificationPoller();
         var vm = new NotificationsViewModel(factory, poller, new FakeBrowserLauncher());
@@ -156,10 +157,35 @@ public class NotificationsViewModelTests
     }
 
     [Fact]
+    public async Task MarkAsRead_Unauthorized_KeepsNotificationAndSetsError()
+    {
+        var handler = new MockHttpHandler()
+            .When("/notifications/threads/1", _ => MockResponse.Empty(HttpStatusCode.Unauthorized));
+        var factory = new FakeGitHubClientFactory(handler);
+        var poller = new FakeNotificationPoller();
+        var vm = new NotificationsViewModel(factory, poller, new FakeBrowserLauncher());
+
+        var notification = new Notification
+        {
+            Id = "1",
+            Unread = true,
+            Subject = new NotificationSubject { Title = "Test", Type = "Issue" },
+        };
+        poller.SimulateNotifications([notification], 1);
+
+        await vm.MarkAsReadCommand.ExecuteAsync(notification);
+
+        Assert.Single(vm.Notifications);
+        Assert.Equal(1, vm.UnreadCount.Value);
+        Assert.Contains("401", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task MarkAsRead_DifferentInstanceSameId_RemovesRowAndRecomputesUnread()
     {
         var handler = new MockHttpHandler()
-            .When("/notifications/threads/1", _ => new MockResponse("{}"));
+            .When("/notifications/threads/1", _ => MockResponse.Empty(HttpStatusCode.ResetContent));
         var factory = new FakeGitHubClientFactory(handler);
         var poller = new FakeNotificationPoller();
         var vm = new NotificationsViewModel(factory, poller, new FakeBrowserLauncher());
@@ -223,7 +249,7 @@ public class NotificationsViewModelTests
     public async Task MarkAllAsRead_WithToken_ClearsUnreadNotifications()
     {
         var handler = new MockHttpHandler()
-            .When("/notifications", _ => new MockResponse("{}"));
+            .When("/notifications", _ => MockResponse.Empty(HttpStatusCode.ResetContent));
         var factory = new FakeGitHubClientFactory(handler);
         var poller = new FakeNotificationPoller();
         var vm = new NotificationsViewModel(factory, poller, new FakeBrowserLauncher());
@@ -242,6 +268,26 @@ public class NotificationsViewModelTests
         Assert.Single(vm.Notifications);
         Assert.Equal(0, vm.UnreadCount.Value);
         Assert.Empty(vm.ErrorMessage.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task MarkAllAsRead_Unauthorized_KeepsUnreadAndSetsError()
+    {
+        var handler = new MockHttpHandler()
+            .When("/notifications", _ => MockResponse.Empty(HttpStatusCode.Unauthorized));
+        var factory = new FakeGitHubClientFactory(handler);
+        var poller = new FakeNotificationPoller();
+        var vm = new NotificationsViewModel(factory, poller, new FakeBrowserLauncher());
+
+        poller.SimulateNotifications(
+            [new Notification { Id = "1", Unread = true }, new Notification { Id = "2", Unread = false }],
+            1);
+
+        await vm.MarkAllAsReadCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, vm.Notifications.Count);
+        Assert.Contains("401", vm.ErrorMessage.Value, StringComparison.Ordinal);
         vm.Dispose();
     }
 

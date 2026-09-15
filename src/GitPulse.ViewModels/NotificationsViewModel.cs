@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Net;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Models;
@@ -169,7 +170,12 @@ public sealed partial class NotificationsViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            await api.MarkThreadRead(notification.Id).FirstAsync(cts.Token);
+            var response = await api.MarkThreadRead(notification.Id).FirstAsync(cts.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                ErrorMessage.Value = $"Mark as read failed: {(int)(response.StatusCode ?? 0)}.";
+                return;
+            }
 
             OnUi(() =>
             {
@@ -212,7 +218,12 @@ public sealed partial class NotificationsViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            await api.MarkAllRead().FirstAsync(cts.Token);
+            var response = await api.MarkAllRead().FirstAsync(cts.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                ErrorMessage.Value = $"Mark all as read failed: {(int)(response.StatusCode ?? 0)}.";
+                return;
+            }
 
             OnUi(() =>
             {
