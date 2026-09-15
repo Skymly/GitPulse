@@ -35,7 +35,11 @@ namespace GitPulse.Services;
 /// <para>
 /// HTTP failures set <see cref="LastError"/> and skip the next ticks until
 /// <c>Retry-After</c> or an exponential backoff elapses. A successful poll
-/// clears the error. <see cref="RefreshAsync"/> polls immediately.
+/// clears the error. <see cref="RefreshAsync"/> polls immediately and
+/// shares the run cancellation token with <see cref="Stop"/> /
+/// <see cref="Dispose"/>. A refresh that arrives while a poll is in
+/// flight is queued for the next round. Completed polls do not publish
+/// after dispose or cancellation.
 /// <see cref="Stop"/> always publishes an empty snapshot so the unread
 /// badge clears when polling ends or the PAT is removed.
 /// </para>
@@ -50,9 +54,12 @@ public sealed class NotificationPoller : INotificationPoller
     private readonly object _lock = new();
 
     private IDisposable? _pollSubscription;
+    private CancellationTokenSource _cts = new();
+    private Task? _drain;
     private bool _isPolling;
     private bool _disposed;
     private int _busy;
+    private int _refreshQueued;
     private int _failures;
     private DateTimeOffset _notBefore;
     private string? _lastError;
@@ -97,6 +104,7 @@ public sealed class NotificationPoller : INotificationPoller
             if (_isPolling || _disposed)
                 return;
 
+            EnsureRunTokenLocked();
             _isPolling = true;
             raised = true;
         }
@@ -111,7 +119,8 @@ public sealed class NotificationPoller : INotificationPoller
             .Prepend(Unit.Default)
             .SubscribeAwait(async (_, ct) =>
             {
-                await PollAsync(ct, force: false);
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, GetRunToken());
+                await PollAsync(linked.Token, force: false);
             });
 
         lock (_lock)
@@ -145,16 +154,71 @@ public sealed class NotificationPoller : INotificationPoller
         if (raised)
             IsPollingChanged?.Invoke(false);
 
+        CancelRun();
         UnreadCount = 0;
         NotificationsUpdated?.Invoke([], 0);
     }
 
-    public async Task RefreshAsync()
+    public Task RefreshAsync()
     {
-        await PollAsync(CancellationToken.None, force: true);
+        lock (_lock)
+        {
+            if (_disposed)
+                return Task.CompletedTask;
+
+            _refreshQueued = 1;
+            if (_drain is { IsCompleted: false })
+                return _drain;
+
+            _drain = DrainRefreshAsync();
+            return _drain;
+        }
     }
 
-    private async Task PollAsync(CancellationToken ct, bool force)
+    private async Task DrainRefreshAsync()
+    {
+        await Task.Yield();
+        var token = EnsureRunToken();
+        while (!_disposed && !token.IsCancellationRequested)
+        {
+            lock (_lock)
+            {
+                if (_refreshQueued == 0)
+                {
+                    _drain = null;
+                    return;
+                }
+
+                _refreshQueued = 0;
+            }
+
+            while (Interlocked.Exchange(ref _busy, 1) != 0)
+            {
+                try
+                {
+                    await WaitUntilIdleAsync(token);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+
+                if (_disposed || token.IsCancellationRequested)
+                    return;
+            }
+
+            try
+            {
+                await PollAsync(token, force: true, holdBusy: true);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _busy, 0);
+            }
+        }
+    }
+
+    private async Task PollAsync(CancellationToken ct, bool force, bool holdBusy = false)
     {
         if (!force)
         {
@@ -165,7 +229,7 @@ public sealed class NotificationPoller : INotificationPoller
                 return;
         }
 
-        if (Interlocked.Exchange(ref _busy, 1) != 0)
+        if (!holdBusy && Interlocked.Exchange(ref _busy, 1) != 0)
             return;
 
         Notification[]? snapshot = null;
@@ -192,9 +256,9 @@ public sealed class NotificationPoller : INotificationPoller
                 unread = notifications.Count(n => n.Unread);
             }
         }
-        catch (OperationCanceledException) when (_disposed || (!force && !_isPolling))
+        catch (OperationCanceledException) when (_disposed || ct.IsCancellationRequested)
         {
-            // Stop / dispose cancelled the tick.
+            // Stop / dispose cancelled the run.
         }
         catch (OperationCanceledException)
         {
@@ -213,8 +277,15 @@ public sealed class NotificationPoller : INotificationPoller
         }
         finally
         {
-            Interlocked.Exchange(ref _busy, 0);
+            if (!holdBusy)
+                Interlocked.Exchange(ref _busy, 0);
         }
+
+        if (stop && !_disposed)
+            Stop();
+
+        if (_disposed || ct.IsCancellationRequested)
+            return;
 
         if (snapshot is not null)
         {
@@ -228,9 +299,47 @@ public sealed class NotificationPoller : INotificationPoller
             RecordFailure(wait ?? NextBackoff());
             SetLastError(error);
         }
+    }
 
-        if (stop)
-            Stop();
+    private CancellationToken EnsureRunToken()
+    {
+        lock (_lock)
+            return EnsureRunTokenLocked();
+    }
+
+    private CancellationToken EnsureRunTokenLocked()
+    {
+        if (_disposed)
+            return new CancellationToken(canceled: true);
+
+        if (_cts.IsCancellationRequested)
+        {
+            _cts.Dispose();
+            _cts = new CancellationTokenSource();
+        }
+
+        return _cts.Token;
+    }
+
+    private CancellationToken GetRunToken()
+    {
+        lock (_lock)
+            return _cts.Token;
+    }
+
+    private void CancelRun()
+    {
+        lock (_lock)
+        {
+            if (!_cts.IsCancellationRequested)
+                _cts.Cancel();
+        }
+    }
+
+    private async Task WaitUntilIdleAsync(CancellationToken token)
+    {
+        while (Volatile.Read(ref _busy) != 0)
+            await Task.Delay(10, token);
     }
 
     private void ClearFailures()
@@ -365,5 +474,6 @@ public sealed class NotificationPoller : INotificationPoller
         }
 
         Stop();
+        _cts.Dispose();
     }
 }
