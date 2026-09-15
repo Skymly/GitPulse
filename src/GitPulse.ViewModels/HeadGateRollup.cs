@@ -1,12 +1,17 @@
+using System.Net;
 using GitPulse.Core.Models;
 using GitPulse.GitHubApi;
+using Observables.RestAPI;
 using R3;
 
 namespace GitPulse.ViewModels;
 
 /// <summary>
 /// Latest Check Runs plus Commit Statuses on a SHA, summarized as
-/// pending / success / failure / no checks.
+/// pending / success / failure / no checks / error.
+/// HTTP 404 on a Gate endpoint is "no data from that source". Any other
+/// failure is <see cref="Error"/> with a reason for Inline Error; the
+/// pull request or commit still loads.
 /// </summary>
 internal static class HeadGateRollup
 {
@@ -14,6 +19,7 @@ internal static class HeadGateRollup
     public const string Pending = "Pending";
     public const string Success = "Success";
     public const string Failure = "Failure";
+    public const string Error = "Error";
 
     public static async Task<HeadGateRollupState> LoadAsync(
         IGitHubReposApi api,
@@ -25,34 +31,85 @@ internal static class HeadGateRollup
         if (string.IsNullOrEmpty(sha))
             return HeadGateRollupState.Empty;
 
-        CheckRun[] runs = [];
-        CombinedCommitStatus? combined = null;
+        var (runs, runError) = await LoadCheckRunsAsync(api, owner, repo, sha, cancellationToken);
+        var (combined, statusError) = await LoadCombinedStatusAsync(api, owner, repo, sha, cancellationToken);
+        var statuses = combined?.Statuses ?? [];
+        var error = runError ?? statusError;
+        if (error is not null)
+            return new HeadGateRollupState(Error, runs, statuses, error);
 
+        return new HeadGateRollupState(Compute(runs, combined), runs, statuses);
+    }
+
+    private static async Task<(CheckRun[] Runs, string? Error)> LoadCheckRunsAsync(
+        IGitHubReposApi api,
+        string owner,
+        string repo,
+        string sha,
+        CancellationToken cancellationToken)
+    {
         try
         {
             var result = await api.ListCheckRunsForRef(owner, repo, sha, "latest")
                 .FirstAsync(cancellationToken);
-            runs = result.CheckRuns ?? [];
+            return (result.CheckRuns ?? [], null);
         }
-        catch
+        catch (OperationCanceledException)
         {
-            runs = [];
+            throw;
         }
+        catch (Exception ex) when (IsNotFound(ex))
+        {
+            return ([], null);
+        }
+        catch (Exception ex)
+        {
+            return ([], FormatGateError(ex));
+        }
+    }
 
+    private static async Task<(CombinedCommitStatus? Combined, string? Error)> LoadCombinedStatusAsync(
+        IGitHubReposApi api,
+        string owner,
+        string repo,
+        string sha,
+        CancellationToken cancellationToken)
+    {
         try
         {
-            combined = await api.GetCombinedStatusForRef(owner, repo, sha)
-                .FirstAsync(cancellationToken);
+            return (await api.GetCombinedStatusForRef(owner, repo, sha)
+                .FirstAsync(cancellationToken), null);
         }
-        catch
+        catch (OperationCanceledException)
         {
-            combined = null;
+            throw;
+        }
+        catch (Exception ex) when (IsNotFound(ex))
+        {
+            return (null, null);
+        }
+        catch (Exception ex)
+        {
+            return (null, FormatGateError(ex));
+        }
+    }
+
+    private static bool IsNotFound(Exception ex) =>
+        ex is ApiException { StatusCode: HttpStatusCode.NotFound }
+        || ex is HttpRequestException { StatusCode: HttpStatusCode.NotFound };
+
+    private static string FormatGateError(Exception ex)
+    {
+        if (ex is ApiException api)
+        {
+            var code = (int)api.StatusCode;
+            var reason = api.ReasonPhrase?.Trim();
+            return string.IsNullOrEmpty(reason)
+                ? $"GitHub returned {code}."
+                : $"GitHub returned {code} ({reason}).";
         }
 
-        return new HeadGateRollupState(
-            Compute(runs, combined),
-            runs,
-            combined?.Statuses ?? []);
+        return ex.Message;
     }
 
     public static string Compute(
@@ -94,7 +151,8 @@ internal static class HeadGateRollup
 internal readonly record struct HeadGateRollupState(
     string Summary,
     CheckRun[] Runs,
-    CommitStatus[] Statuses)
+    CommitStatus[] Statuses,
+    string? ErrorMessage = null)
 {
     public static HeadGateRollupState Empty { get; } = new(HeadGateRollup.NoChecks, [], []);
 }

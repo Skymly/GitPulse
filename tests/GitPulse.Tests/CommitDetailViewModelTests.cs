@@ -275,6 +275,26 @@ public class CommitDetailViewModelTests
         Assert.Empty(vm.ErrorMessage.Value);
         Assert.NotNull(vm.Commit.Value);
         Assert.Equal("No checks", vm.GateRollup.Value);
+        Assert.Empty(vm.GateError.Value);
         Assert.Empty(vm.CheckRuns);
+    }
+
+    [Fact]
+    public async Task Load_WhenGateEndpoints403_SetsErrorKeepsCommit()
+    {
+        using var vm = new CommitDetailViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()
+                .When($"/repos/owner/repo/commits/{Sha}", CommitJson)
+                .When($"/commits/{Sha}/check-runs", HttpStatusCode.Forbidden)
+                .When($"/commits/{Sha}/status", HttpStatusCode.Forbidden)),
+            new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", Sha);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.NotNull(vm.Commit.Value);
+        Assert.Equal("Error", vm.GateRollup.Value);
+        Assert.Contains("403", vm.GateError.Value);
     }
 }

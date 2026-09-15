@@ -1129,6 +1129,69 @@ public class PullRequestDetailViewModelTests
         Assert.Empty(vm.ErrorMessage.Value);
         Assert.NotNull(vm.PullRequest.Value);
         Assert.Equal("No checks", vm.GateRollup.Value);
+        Assert.Empty(vm.GateError.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenGateEndpoints403_SetsErrorKeepsPullRequest()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs", HttpStatusCode.Forbidden)
+            .When("/commits/abc123/status", HttpStatusCode.Forbidden);
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.NotNull(vm.PullRequest.Value);
+        Assert.Equal("Error", vm.GateRollup.Value);
+        Assert.Contains("403", vm.GateError.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenCheckRunsForbiddenAndStatusEmpty_SetsErrorNotNoChecks()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs", HttpStatusCode.Forbidden)
+            .When("/commits/abc123/status", CombinedStatusJson("pending"));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("Error", vm.GateRollup.Value);
+        Assert.Contains("403", vm.GateError.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenGateEndpointsUnreachable_SetsErrorKeepsPullRequest()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs", _ => throw new HttpRequestException("Unable to connect"))
+            .When("/commits/abc123/status", _ => throw new HttpRequestException("Unable to connect"));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.NotNull(vm.PullRequest.Value);
+        Assert.Equal("Error", vm.GateRollup.Value);
+        Assert.Contains("Unable to connect", vm.GateError.Value);
         vm.Dispose();
     }
 
