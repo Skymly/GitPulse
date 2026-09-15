@@ -414,6 +414,96 @@ public class NotificationPollerTests
         Assert.Contains("401", lastError, StringComparison.Ordinal);
         Assert.Equal(0, poller.UnreadCount);
     }
+
+    [Fact]
+    public async Task RefreshAsync_WhenBusy_QueuesAnotherPoll()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var polls = 0;
+        var handler = new MockHttpHandler()
+            .When("/notifications", _ =>
+            {
+                polls++;
+                return new MockResponse(NotificationsJson(polls.ToString()), Gate: gate.Task);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        using var poller = new NotificationPoller(factory);
+
+        var first = poller.RefreshAsync();
+        await AsyncTestWait.UntilAsync(() => polls == 1);
+
+        var second = poller.RefreshAsync();
+        gate.SetResult();
+        await Task.WhenAll(first, second);
+
+        Assert.Equal(2, polls);
+        Assert.Equal(1, poller.UnreadCount);
+    }
+
+    [Fact]
+    public async Task Stop_DuringInFlightRefresh_DoesNotRepublishUnread()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var polls = 0;
+        var handler = new MockHttpHandler()
+            .When("/notifications", _ =>
+            {
+                polls++;
+                return new MockResponse(NotificationsJson(), Gate: gate.Task);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        using var poller = new NotificationPoller(factory);
+
+        Notification[]? last = null;
+        var unreadEvents = new List<int>();
+        poller.NotificationsUpdated += (n, u) =>
+        {
+            last = n;
+            unreadEvents.Add(u);
+        };
+
+        var refresh = poller.RefreshAsync();
+        await AsyncTestWait.UntilAsync(() => polls == 1);
+
+        poller.Stop();
+        gate.SetResult();
+        await refresh;
+
+        Assert.NotNull(last);
+        Assert.Empty(last!);
+        Assert.Equal(0, poller.UnreadCount);
+        Assert.DoesNotContain(1, unreadEvents);
+        Assert.Null(poller.LastError);
+    }
+
+    [Fact]
+    public async Task Dispose_DuringInFlightRefresh_DoesNotPublishUnread()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var polls = 0;
+        var handler = new MockHttpHandler()
+            .When("/notifications", _ =>
+            {
+                polls++;
+                return new MockResponse(NotificationsJson(), Gate: gate.Task);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var poller = new NotificationPoller(factory);
+
+        Notification[]? last = null;
+        poller.NotificationsUpdated += (n, _) => last = n;
+
+        var refresh = poller.RefreshAsync();
+        await AsyncTestWait.UntilAsync(() => polls == 1);
+
+        poller.Dispose();
+        gate.SetResult();
+        await refresh;
+
+        Assert.NotNull(last);
+        Assert.Empty(last!);
+        Assert.Equal(0, poller.UnreadCount);
+    }
 }
 
 public class NotificationModelTests
