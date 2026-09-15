@@ -12,11 +12,27 @@ public class FileEditorViewModelTests
         Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(text));
 
     private static string FileJson(string name, string path, string sha, string contentBase64) =>
-        $"{{\"name\":\"{name}\",\"path\":\"{path}\",\"sha\":\"{sha}\"," +
-        $"\"size\":{contentBase64.Length},\"content\":\"{contentBase64}\"," +
-        $"\"encoding\":\"base64\"," +
-        $"\"html_url\":\"https://github.com/o/r/blob/HEAD/{path}\"," +
-        $"\"download_url\":\"https://raw.githubusercontent.com/o/r/HEAD/{path}\"}}";
+        FileContentsJson(name, path, sha, contentBase64.Length, "base64", contentBase64);
+
+    /// <summary>
+    /// GitHub Contents file JSON. Pass <paramref name="content"/> as the raw
+    /// payload string, or <c>null</c> for JSON null.
+    /// </summary>
+    private static string FileContentsJson(
+        string name,
+        string path,
+        string sha,
+        long size,
+        string encoding,
+        string? content)
+    {
+        var contentJson = content is null ? "null" : $"\"{content}\"";
+        return $"{{\"name\":\"{name}\",\"path\":\"{path}\",\"sha\":\"{sha}\"," +
+            $"\"size\":{size},\"content\":{contentJson}," +
+            $"\"encoding\":\"{encoding}\"," +
+            $"\"html_url\":\"https://github.com/o/r/blob/HEAD/{path}\"," +
+            $"\"download_url\":\"https://raw.githubusercontent.com/o/r/HEAD/{path}\"}}";
+    }
 
     private static string CommitJson(string sha) =>
         $"{{\"content\":{{\"name\":\"file.txt\",\"path\":\"file.txt\"," +
@@ -315,6 +331,90 @@ public class FileEditorViewModelTests
 
         Assert.Empty(vm.ErrorMessage.Value);
         Assert.False(vm.IsEditing.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenEncodingNone_SetsReadOnlyAndDoesNotSave()
+    {
+        var puts = 0;
+        var handler = new MockHttpHandler()
+            .When(HttpMethod.Get, "/contents/big.bin", FileContentsJson(
+                "big.bin", "big.bin", "blob-sha", size: 100, encoding: "none", content: ""))
+            .When(HttpMethod.Put, "/contents/big.bin", _ =>
+            {
+                puts++;
+                return new MockResponse(CommitJson("should-not-write"));
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "big.bin", "blob-sha");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.True(vm.IsReadOnly.Value);
+        Assert.False(vm.IsEditing.Value);
+        Assert.Contains("GitHub", vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+
+        vm.FileContent.Value = "should not persist";
+        vm.CommitMessage.Value = "truncate";
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, puts);
+        Assert.True(vm.IsReadOnly.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenSizeOverOneMegabyte_SetsReadOnlyAndDoesNotSave()
+    {
+        var puts = 0;
+        var handler = new MockHttpHandler()
+            .When(HttpMethod.Get, "/contents/large.bin", FileContentsJson(
+                "large.bin", "large.bin", "blob-sha", size: 2_000_000, encoding: "base64", content: ""))
+            .When(HttpMethod.Put, "/contents/large.bin", _ =>
+            {
+                puts++;
+                return new MockResponse(CommitJson("should-not-write"));
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "large.bin", "blob-sha");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        vm.FileContent.Value = "should not persist";
+        vm.CommitMessage.Value = "truncate";
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.True(vm.IsReadOnly.Value);
+        Assert.Equal(0, puts);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenContentNull_SetsReadOnlyWithoutThrowing()
+    {
+        var puts = 0;
+        var handler = new MockHttpHandler()
+            .When(HttpMethod.Get, "/contents/empty.bin", FileContentsJson(
+                "empty.bin", "empty.bin", "blob-sha", size: 50, encoding: "base64", content: null))
+            .When(HttpMethod.Put, "/contents/empty.bin", _ =>
+            {
+                puts++;
+                return new MockResponse(CommitJson("should-not-write"));
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "empty.bin", "blob-sha");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        vm.CommitMessage.Value = "truncate";
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.DoesNotContain("Load failed", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.True(vm.IsReadOnly.Value);
+        Assert.False(vm.IsEditing.Value);
+        Assert.Equal(0, puts);
         vm.Dispose();
     }
 
