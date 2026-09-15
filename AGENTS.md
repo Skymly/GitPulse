@@ -6,7 +6,7 @@ GitPulse 是 [Observables](https://github.com/Skymly/Observables)（声明式 Re
 
 ## 架构与边界
 
-- 分层单向：App → ViewModels → Services / GitHubApi → Core。ViewModels 不引用 MAUI；PAT 凭据经 `ICredentialStore`，平台实现只在 App `Platforms/`（[ADR-004](docs/adr/ADR-004-pat-auth-platform-credential-store.md)）。项目职责、不变量与模块路径见 [docs/design/Architecture.md](docs/design/Architecture.md)。
+- 分层单向：App → ViewModels → GitHubApi → Core；App → Services → GitHubApi → Core。ViewModels 不引用 MAUI 也不引用 Services；PAT 凭据经 `ICredentialStore`，平台实现只在 App `Platforms/`（[ADR-004](docs/adr/ADR-004-pat-auth-platform-credential-store.md)）。项目职责、不变量与模块路径见 [docs/design/Architecture.md](docs/design/Architecture.md)。
 - **每个 PR 只改一个模块**：App / ViewModels / Core / GitHubApi / Services / Tests / Docs-Repo（`docs/`、根目录 md、`build/`、`.github/`）。
 - 技术栈：R3 `BindableReactiveProperty<T>` + Observables.RestAPI.R3 / Events.R3 + CommunityToolkit.Mvvm `[RelayCommand]`；版本以 `Directory.Packages.props` 为准。Design Doc：[RestApi.md](docs/design/RestApi.md)、[Events.md](docs/design/Events.md)。
 - 已知上游限制：分页走 `GitHubQueryHandler`（[ADR-006](docs/adr/ADR-006-github-query-handler-pagination.md)）；SearchBar `.Events()` 走公开事件适配器（[ADR-015](docs/adr/ADR-015-searchbar-public-event-adapter.md)）。
