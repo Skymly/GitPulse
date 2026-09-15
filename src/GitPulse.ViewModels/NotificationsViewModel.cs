@@ -198,6 +198,7 @@ public sealed partial class NotificationsViewModel : IDisposable
                 RemoveById(notification.Id);
                 UnreadCount.Value = Notifications.Count(n => n.Unread);
             });
+            await _poller.RefreshAsync();
         }
         catch (OperationCanceledException)
         {
@@ -251,6 +252,7 @@ public sealed partial class NotificationsViewModel : IDisposable
 
                 UnreadCount.Value = Notifications.Count(n => n.Unread);
             });
+            await _poller.RefreshAsync();
         }
         catch (OperationCanceledException)
         {
