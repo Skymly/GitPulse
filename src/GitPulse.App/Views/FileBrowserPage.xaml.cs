@@ -1,3 +1,5 @@
+using CommunityToolkit.Mvvm.Messaging;
+using GitPulse.App.Events;
 using GitPulse.Core.Models;
 using GitPulse.ViewModels;
 
@@ -16,12 +18,18 @@ public partial class FileBrowserPage : ContentPage
 {
     private readonly FileBrowserViewModel _viewModel;
     private string? _appliedQuery;
+    private bool _reloadOnAppear;
 
     public FileBrowserPage(FileBrowserViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
+        WeakReferenceMessenger.Default.Register<RepoListStaleMessage>(this, (_, message) =>
+        {
+            if (RepoListStale.Matches(message, RepoListKind.Files, OwnerQuery, RepoQuery))
+                _reloadOnAppear = true;
+        });
     }
 
     public string OwnerQuery { get; set; } = string.Empty;
@@ -37,9 +45,18 @@ public partial class FileBrowserPage : ContentPage
         var path = Uri.UnescapeDataString(PathQuery);
         var query = $"{owner}/{repo}/{path}";
         if (_appliedQuery == query)
+        {
+            if (_reloadOnAppear)
+            {
+                _reloadOnAppear = false;
+                _ = _viewModel.LoadCommand.ExecuteAsync(null);
+            }
+
             return;
+        }
 
         _appliedQuery = query;
+        _reloadOnAppear = false;
         if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
         {
             _viewModel.Initialize(owner, repo, path);

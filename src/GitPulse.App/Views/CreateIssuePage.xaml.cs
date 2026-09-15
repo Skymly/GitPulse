@@ -1,3 +1,4 @@
+using GitPulse.App.Events;
 using GitPulse.ViewModels;
 using R3;
 
@@ -5,8 +6,8 @@ namespace GitPulse.App.Views;
 
 /// <summary>
 /// New issue creation page — receives owner/repo via Shell navigation
-/// query parameters. On successful issue creation, navigates to the
-/// issue detail page for the newly created issue.
+/// query parameters. On successful issue creation, pops this page then
+/// opens the new issue detail so Back returns to the list.
 /// </summary>
 [QueryProperty("OwnerQuery", "owner")]
 [QueryProperty("RepoQuery", "repo")]
@@ -57,17 +58,30 @@ public partial class CreateIssuePage : ContentPage
 
         _navigatingToDetail = true;
         _viewModel.CreatedIssueNumber.Value = null;
+        ClearCreateForm();
+        var owner = Uri.UnescapeDataString(OwnerQuery);
+        var repo = Uri.UnescapeDataString(RepoQuery);
+        RepoListStale.Send(RepoListKind.Issues, owner, repo);
         try
         {
-            await AppNavigation.GoToAsync(
-                $"IssueDetailPage?owner={Uri.EscapeDataString(Uri.UnescapeDataString(OwnerQuery))}"
-                + $"&repo={Uri.EscapeDataString(Uri.UnescapeDataString(RepoQuery))}"
+            await AppNavigation.PopThenGoToAsync(
+                $"IssueDetailPage?owner={Uri.EscapeDataString(owner)}"
+                + $"&repo={Uri.EscapeDataString(repo)}"
                 + $"&number={number}");
         }
         finally
         {
             _navigatingToDetail = false;
         }
+    }
+
+    private void ClearCreateForm()
+    {
+        TitleFieldError.IsVisible = false;
+        _viewModel.TitleInput.Value = string.Empty;
+        _viewModel.BodyInput.Value = string.Empty;
+        _viewModel.LabelsInput.Value = string.Empty;
+        _viewModel.ErrorMessage.Value = string.Empty;
     }
 
     private void OnBackClicked(object? sender, EventArgs e)

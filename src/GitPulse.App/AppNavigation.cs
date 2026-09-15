@@ -22,6 +22,16 @@ public static class AppNavigation
         return GoToWithoutShellAsync(route);
     }
 
+    /// <summary>
+    /// Pop the current page, then push <paramref name="route"/>. Used after
+    /// Create Issue / Create PR so Back from the new detail returns to the list.
+    /// </summary>
+    public static async Task PopThenGoToAsync(string route)
+    {
+        await GoToAsync("..");
+        await GoToAsync(route);
+    }
+
     static async Task GoToWithoutShellAsync(string route)
     {
         if (_services is null)

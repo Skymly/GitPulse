@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.Messaging;
 using GitPulse.App.Events;
 using GitPulse.Core.Models;
 using GitPulse.ViewModels;
@@ -16,12 +17,18 @@ public partial class PullRequestsPage : ContentPage
     private readonly PullRequestsViewModel _viewModel;
     private readonly CompositeDisposable _events = [];
     private string? _appliedQuery;
+    private bool _reloadOnAppear;
 
     public PullRequestsPage(PullRequestsViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
+        WeakReferenceMessenger.Default.Register<RepoListStaleMessage>(this, (_, message) =>
+        {
+            if (RepoListStale.Matches(message, RepoListKind.PullRequests, OwnerQuery, RepoQuery))
+                _reloadOnAppear = true;
+        });
 
         _events.Add(UiEventPipelines.BindLoadMore(
             PullRequestsList,
@@ -42,9 +49,18 @@ public partial class PullRequestsPage : ContentPage
         var repo = Uri.UnescapeDataString(RepoQuery);
         var query = $"{owner}/{repo}";
         if (_appliedQuery == query)
+        {
+            if (_reloadOnAppear)
+            {
+                _reloadOnAppear = false;
+                _ = _viewModel.LoadCommand.ExecuteAsync(null);
+            }
+
             return;
+        }
 
         _appliedQuery = query;
+        _reloadOnAppear = false;
         if (!string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo))
         {
             _viewModel.Initialize(owner, repo);
