@@ -196,6 +196,7 @@ public class NotificationsViewModelTests
         Assert.Empty(vm.Notifications);
         Assert.Equal(0, vm.UnreadCount.Value);
         Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(1, poller.RefreshCallCount);
         vm.Dispose();
     }
 
@@ -221,6 +222,7 @@ public class NotificationsViewModelTests
         Assert.Single(vm.Notifications);
         Assert.Equal(1, vm.UnreadCount.Value);
         Assert.Contains("401", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.Equal(0, poller.RefreshCallCount);
         vm.Dispose();
     }
 
@@ -242,6 +244,7 @@ public class NotificationsViewModelTests
         Assert.Single(vm.Notifications);
         Assert.Equal("2", vm.Notifications[0].Id);
         Assert.Equal(1, vm.UnreadCount.Value);
+        Assert.Equal(1, poller.RefreshCallCount);
         vm.Dispose();
     }
 
@@ -285,6 +288,7 @@ public class NotificationsViewModelTests
 
         Assert.NotEmpty(vm.ErrorMessage.Value);
         Assert.Single(vm.Notifications); // Not removed
+        Assert.Equal(0, poller.RefreshCallCount);
         vm.Dispose();
     }
 
@@ -311,6 +315,7 @@ public class NotificationsViewModelTests
         Assert.Single(vm.Notifications);
         Assert.Equal(0, vm.UnreadCount.Value);
         Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(1, poller.RefreshCallCount);
         vm.Dispose();
     }
 
@@ -331,6 +336,7 @@ public class NotificationsViewModelTests
 
         Assert.Equal(2, vm.Notifications.Count);
         Assert.Contains("401", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.Equal(0, poller.RefreshCallCount);
         vm.Dispose();
     }
 
@@ -349,6 +355,7 @@ public class NotificationsViewModelTests
 
         Assert.NotEmpty(vm.ErrorMessage.Value);
         Assert.Single(vm.Notifications); // Not cleared
+        Assert.Equal(0, poller.RefreshCallCount);
         vm.Dispose();
     }
 
