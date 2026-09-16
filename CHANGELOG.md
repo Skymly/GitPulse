@@ -9,6 +9,9 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Changed
 
+- GitHub write paths open an `OpenAsync` client scope and dispose it. Paged
+  lists use `CreatePagedSessionAsync` only; `CreatePagedClientAsync` is gone
+  (`#607`).
 - App display version (Android `versionName` / Windows package version) follows
   MinVer `major.minor.patch` instead of staying at 0.1.0.
 
@@ -101,6 +104,17 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Fixed
 
+- **Issues / PRs lists:** Changing the state filter during Load more reloads
+  page 1 for the new filter instead of dropping the change (`#612`).
+- **Shell navigation:** Query parameters are decoded once. Paths and refs
+  that contain `%` no longer round-trip wrong (`#610`).
+- **Actions:** Workflow dispatch uses the repository default branch, reloads
+  runs on success, and shows Inline Success (`#614`).
+- **Files:** Creating a file asks for a name instead of always using
+  `new-file.txt` (`#617`).
+- **Merge / Create:** A write timeout GETs to confirm. If GitHub already
+  accepted the write, the page follows that success. Otherwise the error is
+  "Request may have been submitted. Refresh to confirm." (`#619`).
 - **PR / Commit Gate:** A 404 on check endpoints is No checks. Other load
   failures show Inline Error in the Gate area with Retry (`#588`).
 - **PR Files / branches:** Files, review comments, and branches follow
