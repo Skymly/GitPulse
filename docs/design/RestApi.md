@@ -27,7 +27,7 @@ ViewModel 写路径优先 `OpenAsync` 作用域（用完释放 `HttpClient`，�
 
 | 类别 | 返回类型 | 示例 |
 |------|----------|------|
-| 分页列表 | `Observable<ApiResponse<T[]>>` | `ListIssuesPaged`, `ListMyReposPaged` |
+| 分页列表 | `Observable<ApiResponse<T[]>>` | `ListIssuesPaged`, `ListMyReposSortedPaged` |
 | 单资源 GET | `Observable<T>` | `GetRepo`, `GetIssue` |
 | 写操作 | `Observable<T>` + `[Body]` | `CreateIssue`, `CreatePullRequest`, `MergePullRequest` |
 | 无 body 写 | `Observable<ApiResponse<Unit>>` | `MarkThreadRead` (205), `MarkAllRead` (205), `RerunWorkflow` (201), `StarRepo` (204) |
@@ -235,7 +235,7 @@ Read-only. Lives on `IGitHubReposApi` and reuses `Repo` — no new interface or 
 |------|------|------|
 | `ListStarredReposPaged` | `GET /user/starred` | `Observable<ApiResponse<Repo[]>>`; page / `Link` via Paged GitHub Session. |
 
-Repos tab switches My repos (`ListMyReposPaged`) vs Starred. Each hub owns its own session. Local `SearchText` filters the active list. No star/unstar writes.
+Repos tab switches My repos (`ListMyReposSortedPaged`) vs Starred. Each hub owns its own session. Local `SearchText` filters the active list. No star/unstar writes.
 
 ### Repo commit detail (M19)
 
@@ -311,7 +311,7 @@ Check failure does not fail repo detail. 403 stays on the page. Ignore / release
 
 ### Recently pushed repos (M25)
 
-My repos hub uses `ListMyReposSortedPaged("pushed")` → `GET /user/repos?sort=pushed`. Starred hub unchanged. Existing `ListMyReposPaged` remains for compatibility.
+My repos hub uses `ListMyReposSortedPaged("pushed")` → `GET /user/repos?sort=pushed`. Starred hub unchanged.
 
 ### Commit Gate Rollup (M26)
 
