@@ -128,15 +128,15 @@ internal static class HeadGateRollup
         if (runs.Count == 0 && statuses.Length == 0)
             return NoChecks;
 
-        if (runs.Any(IsIncompleteCheckRun) ||
-            statuses.Any(status => status.State.Equals("pending", StringComparison.OrdinalIgnoreCase)))
-            return Pending;
-
         if (runs.Any(IsFailedCheckRun) ||
             statuses.Any(status =>
                 status.State.Equals("failure", StringComparison.OrdinalIgnoreCase) ||
                 status.State.Equals("error", StringComparison.OrdinalIgnoreCase)))
             return Failure;
+
+        if (runs.Any(IsIncompleteCheckRun) ||
+            statuses.Any(status => status.State.Equals("pending", StringComparison.OrdinalIgnoreCase)))
+            return Pending;
 
         return Success;
     }
@@ -150,7 +150,6 @@ internal static class HeadGateRollup
         return conclusion is not null &&
                (conclusion.Equals("failure", StringComparison.OrdinalIgnoreCase) ||
                 conclusion.Equals("timed_out", StringComparison.OrdinalIgnoreCase) ||
-                conclusion.Equals("cancelled", StringComparison.OrdinalIgnoreCase) ||
                 conclusion.Equals("startup_failure", StringComparison.OrdinalIgnoreCase) ||
                 conclusion.Equals("action_required", StringComparison.OrdinalIgnoreCase));
     }

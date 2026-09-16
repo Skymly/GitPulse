@@ -1099,6 +1099,46 @@ public class PullRequestDetailViewModelTests
     }
 
     [Fact]
+    public async Task Load_FailedAndInProgress_IsFailureNotPending()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs",
+                CheckRunsJson(
+                    (1, "CI", "completed", "failure"),
+                    (2, "lint", "in_progress", null)))
+            .When("/commits/abc123/status", CombinedStatusJson("pending"));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("Failure", vm.GateRollup.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_CancelledConclusion_IsSuccess()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs",
+                CheckRunsJson((1, "CI", "completed", "cancelled")))
+            .When("/commits/abc123/status", CombinedStatusJson("success"));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("Success", vm.GateRollup.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task Load_SkippedAndNeutral_IsSuccess()
     {
         var handler = new MockHttpHandler()
@@ -1107,7 +1147,10 @@ public class PullRequestDetailViewModelTests
             .When("/user", UserJson("alice"))
             .When("/pulls/42/reviews", "[]")
             .When("/commits/abc123/check-runs",
-                CheckRunsJson((1, "lint", "completed", "skipped"), (2, "review", "completed", "neutral")))
+                CheckRunsJson(
+                    (1, "lint", "completed", "skipped"),
+                    (2, "review", "completed", "neutral"),
+                    (3, "old", "completed", "stale")))
             .When("/commits/abc123/status", CombinedStatusJson("success"));
         var vm = LoadWithGate(handler);
 
