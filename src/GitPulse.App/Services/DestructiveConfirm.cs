@@ -9,8 +9,10 @@ namespace GitPulse.App.Services;
 /// MAUI <c>DisplayAlertAsync</c> cannot set the WinUI <c>DefaultButton</c>.
 /// Its Primary button takes initial focus, so Enter would activate the
 /// destructive action. Windows therefore uses a <c>ContentDialog</c> with
-/// <c>DefaultButton = Secondary</c> (Cancel). Android uses the stock alert:
-/// Back already maps to not-accepted once the buttons are in the standard
+/// <c>DefaultButton = Secondary</c> (Cancel). If the dialog host is not
+/// ready, the confirm returns <see langword="false"/> instead of falling
+/// back to <c>DisplayAlertAsync</c>. Android uses the stock alert: Back
+/// already maps to not-accepted once the buttons are in the standard
 /// order.
 /// </remarks>
 internal static class DestructiveConfirm
@@ -39,7 +41,7 @@ internal static class DestructiveConfirm
         if (native?.Content is not Microsoft.UI.Xaml.FrameworkElement content
             || content.XamlRoot is null)
         {
-            return await page.DisplayAlertAsync(title, message, destructive, "Cancel");
+            return false;
         }
 
         var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
