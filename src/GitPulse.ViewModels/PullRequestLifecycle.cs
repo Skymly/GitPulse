@@ -88,10 +88,11 @@ internal sealed class PullRequestLifecycle(
 
         try
         {
-            var (api, cts) = await io.OpenAsync(requireToken: false);
-            if (api is null || cts is null)
+            var (scope, api, cts) = await io.OpenAsync(requireToken: false);
+            if (scope is null || api is null || cts is null)
                 return;
 
+            using (scope)
             using (cts)
             {
                 var newState = pullRequest.Value.State == "open" ? "closed" : "open";
@@ -138,10 +139,11 @@ internal sealed class PullRequestLifecycle(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            var (scope, api, cts) = await io.OpenAsync();
+            if (scope is null || api is null || cts is null)
                 return;
 
+            using (scope)
             using (cts)
             {
                 MergeResponse response;
@@ -221,10 +223,11 @@ internal sealed class PullRequestLifecycle(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            var (scope, api, cts) = await io.OpenAsync();
+            if (scope is null || api is null || cts is null)
                 return;
 
+            using (scope)
             using (cts)
             {
                 var headSha = pullRequest.Value.Head?.Sha;
@@ -273,10 +276,11 @@ internal sealed class PullRequestLifecycle(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            var (scope, api, cts) = await io.OpenAsync();
+            if (scope is null || api is null || cts is null)
                 return;
 
+            using (scope)
             using (cts)
             {
                 var response = await api.MarkPullRequestReadyForReview(io.Owner, io.Repo, io.Number)
@@ -320,10 +324,11 @@ internal sealed class PullRequestLifecycle(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            var (scope, api, cts) = await io.OpenAsync();
+            if (scope is null || api is null || cts is null)
                 return;
 
+            using (scope)
             using (cts)
             {
                 var response = await api.ConvertPullRequestToDraft(io.Owner, io.Repo, io.Number)

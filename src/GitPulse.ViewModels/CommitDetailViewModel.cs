@@ -79,7 +79,8 @@ public sealed partial class CommitDetailViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var scope = await _clientFactory.OpenAsync();
+            var client = scope.Client;
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";

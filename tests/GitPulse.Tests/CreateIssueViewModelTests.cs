@@ -55,6 +55,7 @@ public class CreateIssueViewModelTests
 
         Assert.Empty(vm.ErrorMessage.Value);
         Assert.Equal(99, vm.CreatedIssueNumber.Value);
+        Assert.Equal(0, factory.LiveClients);
         vm.Dispose();
     }
 
@@ -71,6 +72,7 @@ public class CreateIssueViewModelTests
 
         Assert.NotEmpty(vm.ErrorMessage.Value);
         Assert.Null(vm.CreatedIssueNumber.Value);
+        Assert.Equal(0, factory.LiveClients);
         vm.Dispose();
     }
 

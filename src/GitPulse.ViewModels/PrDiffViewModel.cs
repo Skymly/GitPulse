@@ -195,7 +195,8 @@ public sealed partial class PrDiffViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var scope = await _clientFactory.OpenAsync();
+            var client = scope.Client;
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 

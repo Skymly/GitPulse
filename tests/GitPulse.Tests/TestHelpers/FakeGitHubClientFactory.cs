@@ -16,6 +16,8 @@ public sealed class FakeGitHubClientFactory : IGitHubClientFactory
     private readonly MockHttpHandler _handler;
     private readonly string? _token;
 
+    public int LiveClients { get; private set; }
+
     public FakeGitHubClientFactory(MockHttpHandler handler, string? token = "ghp_fake_test_token")
     {
         _handler = handler;
@@ -44,7 +46,8 @@ public sealed class FakeGitHubClientFactory : IGitHubClientFactory
 
     private HttpClient BuildClient(HttpMessageHandler handler)
     {
-        var client = new HttpClient(handler, disposeHandler: false)
+        LiveClients++;
+        var client = new CountedHttpClient(handler, () => LiveClients--)
         {
             BaseAddress = new Uri("https://api.github.com/"),
         };
@@ -61,5 +64,22 @@ public sealed class FakeGitHubClientFactory : IGitHubClientFactory
         client.DefaultRequestHeaders.UserAgent.ParseAdd("GitPulse");
 
         return client;
+    }
+
+    private sealed class CountedHttpClient(HttpMessageHandler handler, Action onDispose)
+        : HttpClient(handler, disposeHandler: false)
+    {
+        private bool _disposed;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && !_disposed)
+            {
+                _disposed = true;
+                onDispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }
