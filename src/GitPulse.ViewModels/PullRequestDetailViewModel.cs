@@ -130,7 +130,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var scope = await _clientFactory.OpenAsync();
+            var client = scope.Client;
             if (client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured.";
@@ -177,7 +178,8 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
+            using var scope = await _clientFactory.OpenAsync();
+            var client = scope.Client;
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
@@ -220,10 +222,11 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
         try
         {
-            var (api, cts) = await _io.OpenAsync();
-            if (api is null || cts is null)
+            var (scope, api, cts) = await _io.OpenAsync();
+            if (scope is null || api is null || cts is null)
                 return;
 
+            using (scope)
             using (cts)
             {
                 var request = new IssueUpdateRequest

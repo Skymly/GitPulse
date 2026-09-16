@@ -154,7 +154,8 @@ public sealed partial class SettingsViewModel : IDisposable
     private async Task<string?> ProbeLoginAsync(string token)
     {
         var factory = _clientFactory ?? throw new InvalidOperationException("Client factory required.");
-        using var client = await factory.CreateClientAsync();
+        using var scope = await factory.OpenAsync();
+        var client = scope.Client;
         try
         {
             client.DefaultRequestHeaders.Authorization =

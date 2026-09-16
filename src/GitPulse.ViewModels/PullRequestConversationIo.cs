@@ -20,17 +20,18 @@ internal sealed class PullRequestConversationIo(
 
     public int Number { get; set; }
 
-    public async Task<(IGitHubReposApi? Api, CancellationTokenSource? Cts)> OpenAsync(
+    public async Task<(GitHubClientScope? Scope, IGitHubReposApi? Api, CancellationTokenSource? Cts)> OpenAsync(
         bool requireToken = true)
     {
-        var client = await factory.CreateClientAsync();
-        if (requireToken && client.DefaultRequestHeaders.Authorization is null)
+        var scope = await factory.OpenAsync();
+        if (requireToken && scope.Client.DefaultRequestHeaders.Authorization is null)
         {
+            scope.Dispose();
             Error.Value = "No token configured.";
-            return (null, null);
+            return (null, null, null);
         }
 
-        return (RestService.For<IGitHubReposApi>(client), new CancellationTokenSource(TimeSpan.FromSeconds(30)));
+        return (scope, RestService.For<IGitHubReposApi>(scope.Client), new CancellationTokenSource(TimeSpan.FromSeconds(30)));
     }
 
     public void Timeout() => Error.Value = "Request timed out.";

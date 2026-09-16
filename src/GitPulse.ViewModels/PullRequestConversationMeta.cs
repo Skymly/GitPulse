@@ -72,10 +72,11 @@ internal sealed class PullRequestConversationMeta(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            var (scope, api, cts) = await io.OpenAsync();
+            if (scope is null || api is null || cts is null)
                 return;
 
+            using (scope)
             using (cts)
             {
                 var request = new ReviewersRequest { Reviewers = [login] };
@@ -113,10 +114,11 @@ internal sealed class PullRequestConversationMeta(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            var (scope, api, cts) = await io.OpenAsync();
+            if (scope is null || api is null || cts is null)
                 return;
 
+            using (scope)
             using (cts)
             {
                 var request = new ReviewersRequest { Reviewers = [login] };
@@ -180,10 +182,11 @@ internal sealed class PullRequestConversationMeta(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            var (scope, api, cts) = await io.OpenAsync();
+            if (scope is null || api is null || cts is null)
                 return;
 
+            using (scope)
             using (cts)
             {
                 var desired = LabelInput.Value
@@ -230,10 +233,11 @@ internal sealed class PullRequestConversationMeta(
 
         try
         {
-            var (api, cts) = await io.OpenAsync();
-            if (api is null || cts is null)
+            var (scope, api, cts) = await io.OpenAsync();
+            if (scope is null || api is null || cts is null)
                 return;
 
+            using (scope)
             using (cts)
             {
                 var response = await call(api).FirstAsync(cts.Token);
