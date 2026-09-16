@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Net;
+using System.Net.Http.Headers;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Http;
 using GitPulse.Core.Models;
@@ -82,7 +83,7 @@ internal sealed class SearchInbox : IDisposable
             return ResultIfCurrent(
                 version,
                 isCurrent,
-                "GitHub Search rate limit exceeded. Wait before trying again.");
+                SearchForbidden.Message(ex.Headers));
         }
         catch (SearchInboxRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -96,7 +97,7 @@ internal sealed class SearchInbox : IDisposable
             return ResultIfCurrent(
                 version,
                 isCurrent,
-                "GitHub Search rate limit exceeded. Wait before trying again.");
+                SearchForbidden.PermissionMessage);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -138,7 +139,7 @@ internal sealed class SearchInbox : IDisposable
             return ResultIfCurrent(
                 version,
                 isCurrent,
-                "GitHub Search rate limit exceeded. Wait before trying again.");
+                SearchForbidden.Message(ex.Headers));
         }
         catch (SearchInboxRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -152,7 +153,7 @@ internal sealed class SearchInbox : IDisposable
             return ResultIfCurrent(
                 version,
                 isCurrent,
-                "GitHub Search rate limit exceeded. Wait before trying again.");
+                SearchForbidden.PermissionMessage);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -197,7 +198,8 @@ internal sealed class SearchInbox : IDisposable
         if (!response.IsSuccessStatusCode)
         {
             throw new SearchInboxRequestException(
-                response.StatusCode ?? HttpStatusCode.ServiceUnavailable);
+                response.StatusCode ?? HttpStatusCode.ServiceUnavailable,
+                response.Headers);
         }
 
         if (replace)
@@ -259,9 +261,12 @@ internal sealed class SearchInbox : IDisposable
         }
     }
 
-    private sealed class SearchInboxRequestException(HttpStatusCode statusCode) : Exception
+    private sealed class SearchInboxRequestException(
+        HttpStatusCode statusCode,
+        HttpResponseHeaders? headers) : Exception
     {
         public HttpStatusCode StatusCode { get; } = statusCode;
+        public HttpResponseHeaders? Headers { get; } = headers;
     }
 }
 

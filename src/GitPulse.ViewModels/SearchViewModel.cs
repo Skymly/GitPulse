@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Net;
+using System.Net.Http.Headers;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Http;
@@ -165,7 +166,7 @@ public sealed partial class SearchViewModel : IDisposable
         catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {
             if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
+                ErrorMessage.Value = SearchForbidden.Message(ex.Headers);
         }
         catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -175,7 +176,7 @@ public sealed partial class SearchViewModel : IDisposable
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {
             if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
+                ErrorMessage.Value = SearchForbidden.PermissionMessage;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -250,7 +251,7 @@ public sealed partial class SearchViewModel : IDisposable
         catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {
             if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
+                ErrorMessage.Value = SearchForbidden.Message(ex.Headers);
         }
         catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -260,7 +261,7 @@ public sealed partial class SearchViewModel : IDisposable
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {
             if (IsCurrent(version))
-                ErrorMessage.Value = "GitHub Search rate limit exceeded. Wait before trying again.";
+                ErrorMessage.Value = SearchForbidden.PermissionMessage;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -551,7 +552,8 @@ public sealed partial class SearchViewModel : IDisposable
     {
         if (!response.IsSuccessStatusCode)
             throw new SearchRequestException(
-                response.StatusCode ?? HttpStatusCode.ServiceUnavailable);
+                response.StatusCode ?? HttpStatusCode.ServiceUnavailable,
+                response.Headers);
     }
 
 
@@ -662,8 +664,11 @@ public sealed partial class SearchViewModel : IDisposable
         }
     }
 
-    private sealed class SearchRequestException(HttpStatusCode statusCode) : Exception
+    private sealed class SearchRequestException(
+        HttpStatusCode statusCode,
+        HttpResponseHeaders? headers) : Exception
     {
         public HttpStatusCode StatusCode { get; } = statusCode;
+        public HttpResponseHeaders? Headers { get; } = headers;
     }
 }
