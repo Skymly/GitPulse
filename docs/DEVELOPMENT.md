@@ -51,8 +51,9 @@ dotnet test tests/GitPulse.UITests/GitPulse.UITests.csproj -c Release
 | `GITPULSE_UI_TEST_PAT` | 与 Windows UITests 相同（User 环境变量；勿提交） |
 | UI Test Host | Appium 经 `optionalIntentArguments --es GITPULSE_UI_TEST_HOST 1` 启用（Android 进程读不到宿主机环境变量；见 App `MainActivity`） |
 | 被测包 | 日常可用 debug/Release APK；**cut / 挂 APK 前**须对 **签名 APK**（`PublishAndroid` → `artifacts/GitPulse-android.apk`）再跑；可用 `GITPULSE_ANDROID_APK` 覆盖路径 |
+| `GITPULSE_ANDROID_UDID` | 可选。指向已启动设备/模拟器的 UDID；未设时 Appium 用默认 AVD |
 
-创建默认 AVD（一次性）：**
+创建默认 AVD（一次性）：
 
 ```powershell
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"   # 或本机 SDK 路径
@@ -139,7 +140,9 @@ src/
   GitPulse.Core/        — 领域模型、抽象、Http 辅助
   GitPulse.GitHubApi/   — Observables.RestAPI 声明式接口
   GitPulse.Services/   — GitHubClientFactory、通知轮询
-tests/GitPulse.Tests/   — 单元测试 + TestHelpers
+tests/GitPulse.Tests/          — 单元测试 + TestHelpers
+tests/GitPulse.UITests/        — Windows FlaUI 冒烟（不进 CiLib）
+tests/GitPulse.AndroidUITests/ — Android Appium 冒烟（不进 CiLib）
 build/                  — Nuke 脚本
 docs/                   — ADR、设计文档与路线图（见 DOCUMENTATION.md）
 ```
