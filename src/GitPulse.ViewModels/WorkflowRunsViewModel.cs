@@ -30,7 +30,8 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
     public BindableReactiveProperty<string> Owner { get; } = new(string.Empty);
     public BindableReactiveProperty<string> RepoName { get; } = new(string.Empty);
     public BindableReactiveProperty<Workflow?> SelectedWorkflow { get; } = new(null);
-    public BindableReactiveProperty<string> DispatchRef { get; } = new("main");
+    public BindableReactiveProperty<string> DispatchRef { get; } = new(string.Empty);
+    public BindableReactiveProperty<string> SuccessMessage { get; } = new(string.Empty);
     public BindableReactiveProperty<bool> IsDispatching { get; } = new(false);
 
     public WorkflowRunsViewModel(IGitHubClientFactory clientFactory)
@@ -91,6 +92,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
                 var api = RestService.For<IGitHubActionsApi>(client);
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 await LoadWorkflowsAsync(api, cts.Token);
+                await ApplyDefaultDispatchRefAsync(client, cts.Token);
             }
         }
         catch (OperationCanceledException)
@@ -157,6 +159,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
 
         IsDispatching.Value = true;
         ErrorMessage.Value = string.Empty;
+        SuccessMessage.Value = string.Empty;
 
         try
         {
@@ -175,7 +178,11 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
                 .FirstAsync(cts.Token);
             var code = (int)(response.StatusCode ?? 0);
             if (code is >= 200 and < 300)
+            {
+                SuccessMessage.Value = "Workflow dispatched.";
+                await LoadAsync();
                 return;
+            }
 
             ErrorMessage.Value = code switch
             {
@@ -219,12 +226,36 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
         }
     }
 
+    private async Task ApplyDefaultDispatchRefAsync(HttpClient client, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrEmpty(DispatchRef.Value))
+            return;
+
+        try
+        {
+            var api = RestService.For<IGitHubReposApi>(client);
+            var repo = await api.GetRepo(_owner, _repo).FirstAsync(cancellationToken);
+            if (!string.IsNullOrEmpty(DispatchRef.Value))
+                return;
+
+            DispatchRef.Value = string.IsNullOrEmpty(repo.DefaultBranch)
+                ? "main"
+                : repo.DefaultBranch;
+        }
+        catch
+        {
+            if (string.IsNullOrEmpty(DispatchRef.Value))
+                DispatchRef.Value = "main";
+        }
+    }
+
     public void Dispose()
     {
         _cycle.Dispose();
         IsLoading.Dispose();
         CanLoadMore.Dispose();
         ErrorMessage.Dispose();
+        SuccessMessage.Dispose();
         RepoFullName.Dispose();
         Owner.Dispose();
         RepoName.Dispose();
