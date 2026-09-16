@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace GitPulse.Core.Http;
 
 /// <summary>
@@ -53,10 +55,10 @@ public sealed class GitHubQueryHandler : DelegatingHandler
 
             // Parse existing query into a dictionary to avoid duplicates.
             var existing = ParseQuery(builder.Query);
-            if (Page > 1)
-                existing["page"] = Page.ToString();
-            if (PerPage != 30)
-                existing["per_page"] = PerPage.ToString();
+            if (Page > 1 || existing.ContainsKey("page"))
+                existing["page"] = Page.ToString(CultureInfo.InvariantCulture);
+            if (PerPage != 30 || existing.ContainsKey("per_page"))
+                existing["per_page"] = PerPage.ToString(CultureInfo.InvariantCulture);
             if (!string.IsNullOrEmpty(State))
                 existing["state"] = State;
 
@@ -76,9 +78,24 @@ public sealed class GitHubQueryHandler : DelegatingHandler
 
         foreach (var pair in trimmed.Split('&'))
         {
+            if (pair.Length == 0)
+                continue;
+
             var eq = pair.IndexOf('=');
-            if (eq > 0)
-                result[pair[..eq]] = pair[(eq + 1)..];
+            if (eq < 0)
+            {
+                result[Uri.UnescapeDataString(pair)] = string.Empty;
+                continue;
+            }
+
+            if (eq == 0)
+                continue;
+
+            var key = Uri.UnescapeDataString(pair[..eq]);
+            if (key.Length == 0)
+                continue;
+
+            result[key] = Uri.UnescapeDataString(pair[(eq + 1)..]);
         }
 
         return result;
@@ -89,7 +106,8 @@ public sealed class GitHubQueryHandler : DelegatingHandler
         if (parameters.Count == 0)
             return string.Empty;
 
-        var pairs = parameters.Select(p => $"{p.Key}={p.Value}");
+        var pairs = parameters.Select(p =>
+            $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value)}");
         return string.Join('&', pairs);
     }
 }
