@@ -645,13 +645,6 @@ public class SearchViewModelTests
             return Task.FromResult(BuildClient(handler));
         }
 
-        public Task<(HttpClient Client, GitHubQueryHandler QueryHandler)>
-            CreatePagedClientAsync(CancellationToken ct = default)
-        {
-            var queryHandler = new GitHubQueryHandler(handler);
-            return Task.FromResult((BuildClient(queryHandler), queryHandler));
-        }
-
         public Task<PagedGitHubSession> CreatePagedSessionAsync(CancellationToken ct = default)
         {
             var queryHandler = new GitHubQueryHandler(handler);

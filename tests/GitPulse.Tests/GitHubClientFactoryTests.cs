@@ -78,33 +78,6 @@ public class GitHubClientFactoryTests
     }
 
     [Fact]
-    public async Task CreatePagedClientAsync_WithToken_ReturnsClientAndQueryHandler()
-    {
-        var store = new FakeCredentialStore("ghp_test123");
-        var factory = new GitHubClientFactory(store);
-
-        var (client, queryHandler) = await factory.CreatePagedClientAsync(TestContext.Current.CancellationToken);
-
-        Assert.NotNull(client);
-        Assert.NotNull(client.DefaultRequestHeaders.Authorization);
-        Assert.NotNull(queryHandler);
-        Assert.Equal(1, queryHandler.Page);
-        Assert.Equal(30, queryHandler.PerPage);
-    }
-
-    [Fact]
-    public async Task CreatePagedClientAsync_WithoutToken_ReturnsClientWithNoAuth()
-    {
-        var store = new FakeCredentialStore(null);
-        var factory = new GitHubClientFactory(store);
-
-        var (client, queryHandler) = await factory.CreatePagedClientAsync(TestContext.Current.CancellationToken);
-
-        Assert.Null(client.DefaultRequestHeaders.Authorization);
-        Assert.NotNull(queryHandler);
-    }
-
-    [Fact]
     public async Task CreatePagedSessionAsync_WithToken_ReturnsAuthenticatedSession()
     {
         var store = new FakeCredentialStore("ghp_test123");

@@ -34,18 +34,11 @@ public sealed class GitHubClientFactory : IGitHubClientFactory, IDisposable
         return BuildClient(token, ShareHandler());
     }
 
-    public async Task<(HttpClient Client, GitHubQueryHandler QueryHandler)> CreatePagedClientAsync(
-        CancellationToken ct = default)
+    public async Task<PagedGitHubSession> CreatePagedSessionAsync(CancellationToken ct = default)
     {
         var token = await _credentialStore.GetTokenAsync(ct);
         var queryHandler = new GitHubQueryHandler(ShareHandler());
         var client = BuildClient(token, queryHandler);
-        return (client, queryHandler);
-    }
-
-    public async Task<PagedGitHubSession> CreatePagedSessionAsync(CancellationToken ct = default)
-    {
-        var (client, queryHandler) = await CreatePagedClientAsync(ct);
         return new PagedGitHubSession(client, queryHandler);
     }
 

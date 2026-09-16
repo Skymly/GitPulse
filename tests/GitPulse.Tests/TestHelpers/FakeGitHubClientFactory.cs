@@ -29,14 +29,6 @@ public sealed class FakeGitHubClientFactory : IGitHubClientFactory
         return Task.FromResult(BuildClient(_handler));
     }
 
-    public Task<(HttpClient Client, GitHubQueryHandler QueryHandler)> CreatePagedClientAsync(
-        CancellationToken ct = default)
-    {
-        var queryHandler = new GitHubQueryHandler(_handler);
-        var client = BuildClient(queryHandler);
-        return Task.FromResult<(HttpClient, GitHubQueryHandler)>((client, queryHandler));
-    }
-
     public Task<PagedGitHubSession> CreatePagedSessionAsync(CancellationToken ct = default)
     {
         var queryHandler = new GitHubQueryHandler(_handler);
