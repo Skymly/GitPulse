@@ -88,7 +88,7 @@ internal sealed class PullRequestLifecycle(
 
         try
         {
-            var (scope, api, cts) = await io.OpenAsync(requireToken: false);
+            var (scope, api, cts) = await io.OpenAsync();
             if (scope is null || api is null || cts is null)
                 return;
 

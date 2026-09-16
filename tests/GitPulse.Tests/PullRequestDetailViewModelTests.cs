@@ -154,6 +154,21 @@ public class PullRequestDetailViewModelTests
     }
 
     [Fact]
+    public async Task ToggleState_WithoutToken_SetsErrorMessage()
+    {
+        var factory = new FakeGitHubClientFactory(new MockHttpHandler(), token: null);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        vm.PullRequest.Value = new PullRequest { Number = 42, State = "open", Title = "PR 42" };
+
+        await vm.ToggleStateCommand.ExecuteAsync(null);
+
+        Assert.Equal("No token configured.", vm.ErrorMessage.Value);
+        Assert.Equal("open", vm.PullRequest.Value!.State);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task ToggleState_ChangesClosedToOpen()
     {
         var prJson = PrJson(42, "closed");
