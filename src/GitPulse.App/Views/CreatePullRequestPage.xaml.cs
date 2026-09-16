@@ -15,7 +15,7 @@ namespace GitPulse.App.Views;
 public partial class CreatePullRequestPage : ContentPage
 {
     private readonly CreatePullRequestViewModel _viewModel;
-    private readonly IDisposable _createdSubscription;
+    private IDisposable? _createdSubscription;
     private string? _appliedQuery;
     private bool _navigatingToDetail;
 
@@ -24,13 +24,6 @@ public partial class CreatePullRequestPage : ContentPage
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
-
-        // Subscribe so success navigates; OnAppearing does not re-fire
-        // after create on the same page.
-        _createdSubscription = _viewModel.CreatedPullRequestNumber
-            .Where(n => n is not null)
-            .ObserveOnCurrentSynchronizationContext()
-            .Subscribe(n => _ = NavigateToCreatedPrAsync(n!.Value));
     }
 
     public string OwnerQuery { get; set; } = string.Empty;
@@ -39,6 +32,10 @@ public partial class CreatePullRequestPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _createdSubscription ??= _viewModel.CreatedPullRequestNumber
+            .Where(n => n is not null)
+            .ObserveOnCurrentSynchronizationContext()
+            .Subscribe(n => _ = NavigateToCreatedPrAsync(n!.Value));
 
         var owner = OwnerQuery;
         var repo = RepoQuery;
@@ -116,7 +113,8 @@ public partial class CreatePullRequestPage : ContentPage
 
     protected override void OnDisappearing()
     {
+        _createdSubscription?.Dispose();
+        _createdSubscription = null;
         base.OnDisappearing();
-        // Keep ViewModel alive: pages stay on the navigation stack and are reused on pop.
     }
 }

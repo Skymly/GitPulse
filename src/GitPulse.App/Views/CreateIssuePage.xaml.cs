@@ -14,7 +14,7 @@ namespace GitPulse.App.Views;
 public partial class CreateIssuePage : ContentPage
 {
     private readonly CreateIssueViewModel _viewModel;
-    private readonly IDisposable _createdSubscription;
+    private IDisposable? _createdSubscription;
     private string? _appliedQuery;
     private bool _navigatingToDetail;
 
@@ -23,11 +23,6 @@ public partial class CreateIssuePage : ContentPage
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
-
-        _createdSubscription = _viewModel.CreatedIssueNumber
-            .Where(n => n is not null)
-            .ObserveOnCurrentSynchronizationContext()
-            .Subscribe(n => _ = NavigateToCreatedIssueAsync(n!.Value));
     }
 
     public string OwnerQuery { get; set; } = string.Empty;
@@ -36,6 +31,10 @@ public partial class CreateIssuePage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        _createdSubscription ??= _viewModel.CreatedIssueNumber
+            .Where(n => n is not null)
+            .ObserveOnCurrentSynchronizationContext()
+            .Subscribe(n => _ = NavigateToCreatedIssueAsync(n!.Value));
 
         var owner = OwnerQuery;
         var repo = RepoQuery;
@@ -100,7 +99,8 @@ public partial class CreateIssuePage : ContentPage
 
     protected override void OnDisappearing()
     {
+        _createdSubscription?.Dispose();
+        _createdSubscription = null;
         base.OnDisappearing();
-        // Keep ViewModel alive: pages stay on the navigation stack and are reused on pop.
     }
 }
