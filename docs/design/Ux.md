@@ -377,7 +377,7 @@ Unchanged from [ADR-011](../adr/ADR-011-android-m11-daily-usable-phone.md): comp
 
 ## Known limits
 
-- This document is a spec, not an implementation. The app still ships the MAUI template look until a later map implements, Windows-first if needed ([ADR-005](../adr/ADR-005-windows-first-platform-strategy.md)). Today's `Green700` / `Purple700` / `Orange900` usage contradicts several Domain Color roles ([GitHub domain visual semantics we must not contradict](https://github.com/Skymly/GitPulse/issues/448)).
+- Windows chrome (Mica Base, custom TitleBar, top NavigationView, GitPulse Mark, `ChromeTabs`) has replaced the MAUI template look ([ADR-005](../adr/ADR-005-windows-first-platform-strategy.md)). Remaining Domain Color gaps: today's `Green700` / `Purple700` / `Orange900` usage still contradicts several Domain Color roles ([GitHub domain visual semantics we must not contradict](https://github.com/Skymly/GitPulse/issues/448)).
 - MAUI 10 on the Windows TFM is WinUI 3 underneath; MAUI XAML is not Fluent XAML. Theming today is `AppThemeBinding` plus Styles, not WinUI `{ThemeResource}` / type ramp ([What Fluent can mean on MAUI 10](https://github.com/Skymly/GitPulse/issues/447)).
 - Throwaway prototypes on `prototype/ux-chrome` and `prototype/ux-surfaces` are illustrations. They are not merged; HTML mocks are not the app.
 - Mark SVG paths belong to the chrome prototype, not this spec.
