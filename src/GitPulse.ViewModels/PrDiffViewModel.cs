@@ -59,6 +59,9 @@ public sealed partial class PrDiffViewModel : IDisposable
     /// <summary>Error message; empty when no error.</summary>
     public BindableReactiveProperty<string> ErrorMessage { get; } = new(string.Empty);
 
+    /// <summary>Inline Success after a posted review comment; empty otherwise.</summary>
+    public BindableReactiveProperty<string> SuccessMessage { get; } = new(string.Empty);
+
     /// <summary>
     /// Comment input text for the currently selected file/line.
     /// Two-way bound to the editor.
@@ -96,6 +99,7 @@ public sealed partial class PrDiffViewModel : IDisposable
 
         IsLoading.Value = true;
         ErrorMessage.Value = string.Empty;
+        SuccessMessage.Value = string.Empty;
 
         try
         {
@@ -161,6 +165,7 @@ public sealed partial class PrDiffViewModel : IDisposable
         CommentLine.Value = location.Line;
         ReplyToId.Value = 0;
         CommentInput.Value = string.Empty;
+        SuccessMessage.Value = string.Empty;
     }
 
     /// <summary>
@@ -171,6 +176,7 @@ public sealed partial class PrDiffViewModel : IDisposable
     {
         ReplyToId.Value = commentId;
         CommentInput.Value = string.Empty;
+        SuccessMessage.Value = string.Empty;
     }
 
     /// <summary>
@@ -185,6 +191,7 @@ public sealed partial class PrDiffViewModel : IDisposable
 
         IsSaving.Value = true;
         ErrorMessage.Value = string.Empty;
+        SuccessMessage.Value = string.Empty;
 
         try
         {
@@ -226,6 +233,7 @@ public sealed partial class PrDiffViewModel : IDisposable
 
             CommentInput.Value = string.Empty;
             ReplyToId.Value = 0;
+            SuccessMessage.Value = "Comment posted.";
         }
         catch (OperationCanceledException)
         {
@@ -241,17 +249,12 @@ public sealed partial class PrDiffViewModel : IDisposable
         }
     }
 
-    /// <summary>Get comments for a specific file path (empty list if none).</summary>
-    public List<ReviewComment> GetCommentsForFile(string path)
-    {
-        return FileComments.TryGetValue(path, out var list) ? list : [];
-    }
-
     public void Dispose()
     {
         IsLoading.Dispose();
         IsSaving.Dispose();
         ErrorMessage.Dispose();
+        SuccessMessage.Dispose();
         CommentInput.Dispose();
         CommentFilePath.Dispose();
         CommentLine.Dispose();
