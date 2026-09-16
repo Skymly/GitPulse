@@ -235,4 +235,45 @@ public class PullRequestsViewModelTests
         Assert.Empty(vm.PullRequests);
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task StateFilter_ChangeWhileLoadMore_ReloadsFromPage1()
+    {
+        var more = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var queries = new List<string>();
+        var n = 0;
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/pulls", req =>
+            {
+                var i = Interlocked.Increment(ref n);
+                queries.Add(req.RequestUri?.Query ?? "");
+                if (i == 1)
+                    return new MockResponse(PrsJson(("open", false, false)), LinkHasNext);
+                if (i == 2)
+                    return new MockResponse(PrsJson(("open", false, false)), LinkNoNext, Gate: more.Task);
+                return new MockResponse(
+                    $"[{GitHubJson.PullRequest(999, state: "closed")}]",
+                    LinkNoNext);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestsViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.True(vm.CanLoadMore.Value);
+
+        var loadMore = vm.LoadMoreCommand.ExecuteAsync(null);
+        await AsyncTestWait.UntilAsync(() => vm.IsLoading.Value && n >= 2);
+
+        vm.StateFilter.Value = "closed";
+        more.SetResult();
+        await loadMore;
+        await AsyncTestWait.UntilAsync(() => queries.Exists(q => q.Contains("state=closed")));
+
+        Assert.Contains(queries, q => q.Contains("state=closed"));
+        Assert.Single(vm.PullRequests);
+        Assert.Equal(999, vm.PullRequests[0].Number);
+        Assert.False(vm.IsLoading.Value);
+        vm.Dispose();
+    }
 }
