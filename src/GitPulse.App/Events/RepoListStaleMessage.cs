@@ -40,9 +40,7 @@ internal static class RepoListStale
         if (message.Kind != kind)
             return false;
 
-        var owner = Uri.UnescapeDataString(ownerQuery);
-        var repo = Uri.UnescapeDataString(repoQuery);
-        return string.Equals(message.Owner, owner, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(message.Repo, repo, StringComparison.OrdinalIgnoreCase);
+        return string.Equals(message.Owner, ownerQuery, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(message.Repo, repoQuery, StringComparison.OrdinalIgnoreCase);
     }
 }

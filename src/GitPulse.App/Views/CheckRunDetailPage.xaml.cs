@@ -26,9 +26,9 @@ public partial class CheckRunDetailPage : ContentPage
     {
         base.OnAppearing();
 
-        var owner = Uri.UnescapeDataString(OwnerQuery);
-        var repo = Uri.UnescapeDataString(RepoQuery);
-        var checkRunId = Uri.UnescapeDataString(CheckRunIdQuery);
+        var owner = OwnerQuery;
+        var repo = RepoQuery;
+        var checkRunId = CheckRunIdQuery;
         var query = $"{owner}/{repo}/{checkRunId}";
         if (_appliedQuery == query)
             return;
@@ -62,8 +62,8 @@ public partial class CheckRunDetailPage : ContentPage
         if (string.IsNullOrEmpty(headSha))
             return;
 
-        var owner = Uri.UnescapeDataString(OwnerQuery);
-        var repo = Uri.UnescapeDataString(RepoQuery);
+        var owner = OwnerQuery;
+        var repo = RepoQuery;
         await AppNavigation.GoToAsync(
             $"FileEditorPage?owner={Uri.EscapeDataString(owner)}"
             + $"&repo={Uri.EscapeDataString(repo)}"

@@ -97,7 +97,7 @@ public static class AppNavigation
 
             PropertyInfo? prop = page.GetType().GetProperty(attr.Name);
             if (prop?.CanWrite == true && prop.PropertyType == typeof(string))
-                prop.SetValue(page, raw);
+                prop.SetValue(page, Uri.UnescapeDataString(raw));
         }
     }
 

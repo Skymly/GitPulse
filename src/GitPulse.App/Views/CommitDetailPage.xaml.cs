@@ -56,9 +56,9 @@ public partial class CommitDetailPage : ContentPage
     {
         base.OnAppearing();
 
-        var owner = Uri.UnescapeDataString(OwnerQuery);
-        var repo = Uri.UnescapeDataString(RepoQuery);
-        var sha = Uri.UnescapeDataString(ShaQuery);
+        var owner = OwnerQuery;
+        var repo = RepoQuery;
+        var sha = ShaQuery;
         var query = $"{owner}/{repo}/{sha}";
         if (_appliedQuery == query)
             return;
