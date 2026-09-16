@@ -204,7 +204,7 @@ v0.1.0 经 **GitHub Release** 分发且 **仅 Windows zip**（[ADR-013](adr/ADR-
 | Windows **Release Artifact** | self-contained publish **目录 zip**（`artifacts/GitPulse-{RID}.zip`）。未 Authenticode。入口为 `GitPulse.App.exe`。 |
 | Android **Release Artifact** | CI **签名 APK**（`artifacts/GitPulse-android.apk`）。**v0.1.0 未挂**；**v0.1.1+** 在 Android Emulator UI Smoke（cut 清单）通过后挂。不做 AAB。 |
 | 版本 | MinVer + `v` tag 前缀；最近公开 tag **`v0.32.0`**。 |
-| Release 说明 | `CHANGELOG.md` 对应版本节为权威；`generate_release_notes` 仅可作补充。 |
+| Release 说明 | GitHub Release 正文是 workflow 的 `generate_release_notes`（自动 PR 列表；v0.32.0 实测如此）。`CHANGELOG.md` 对应版本节仍是仓库内权威记录，不会自动成为 Release 正文。 |
 
 交付仍拆两刀：**先合能力**（自动化 / 流水线），再单独 **cut**（冒烟 + CHANGELOG 收口 + 打 tag）。
 
@@ -256,7 +256,7 @@ v0.1.0 经 **GitHub Release** 分发且 **仅 Windows zip**（[ADR-013](adr/ADR-
 
 - [ ] **Windows**：同 v0.1.0（FlaUI 短冒烟可选复跑）。
 - [ ] **Android Emulator UI Smoke**：默认 API 34+ 竖屏模拟器；Appium 短冒烟对齐 Windows 场景；**cut 前对签名 APK** 再跑一遍。
-- [ ] `CHANGELOG.md` 已收口；GitHub Release 挂 **Win zip + 签名 APK**。
+- [ ] `CHANGELOG.md` 已收口（仓库内版本记录）。GitHub Release 正文为 `generate_release_notes` 的 PR 列表；挂 **Win zip + 签名 APK**。
 - [ ] **不要求** 真机侧载必过；UI 冒烟默认 **不**进 `CiLib` / `release` 硬门禁。
 
 非目标（勿混入 cut）：商店上架、Win Authenticode、AAB、OAuth、Android 出应用通知、产品新功能 / UX 精修。
