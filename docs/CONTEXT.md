@@ -69,7 +69,7 @@ A classic status on a commit (`context` + `state` + optional `target_url`). Comb
 _Avoid_: check run, combined status (the wrapper), CI
 
 **Gate Rollup**:
-A client-side summary of the latest Check Runs plus Commit Statuses on the pull request head SHA: pending, success, failure, or no checks. Not GitHub GraphQL `statusCheckRollup`. Empty combined statuses do not force pending when Check Runs exist or when both lists are empty.
+A client-side summary of the latest Check Runs plus Commit Statuses on the pull request head SHA: pending, success, failure, error, partial, or no checks. Not GitHub GraphQL `statusCheckRollup`. Combined `state` is ignored; the client computes from individual runs and statuses. Empty combined statuses do not force pending when Check Runs exist or when both lists are empty. Failure outranks pending (a red check plus an in-progress check is Failure, not Pending). Check conclusions `cancelled` / `skipped` / `neutral` / `stale` are muted in Ux.md and do not make the rollup Failure. HTTP 404 on a Gate endpoint is no data from that source; other load failures are Error. When check-runs `total_count` exceeds the first page, Success / No checks become Partial.
 _Avoid_: mergeable_state (opaque GitHub merge-box hint), required checks, status check rollup (GraphQL)
 
 **Starred Repo List**:
