@@ -19,7 +19,7 @@ namespace GitPulse.App.Views;
 public partial class FileEditorPage : ContentPage
 {
     private readonly FileEditorViewModel _viewModel;
-    private readonly IDisposable _deletedSubscription;
+    private IDisposable? _deletedSubscription;
     private string? _appliedQuery;
     private bool _leavingAfterDelete;
     private RetryAction _retryAction = RetryAction.Load;
@@ -36,11 +36,6 @@ public partial class FileEditorPage : ContentPage
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
-
-        _deletedSubscription = _viewModel.FileDeleted
-            .Where(deleted => deleted)
-            .ObserveOnCurrentSynchronizationContext()
-            .Subscribe(deleted => _ = LeaveAfterDeleteAsync());
     }
 
     public string OwnerQuery { get; set; } = string.Empty;
@@ -52,6 +47,10 @@ public partial class FileEditorPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        _deletedSubscription ??= _viewModel.FileDeleted
+            .Where(deleted => deleted)
+            .ObserveOnCurrentSynchronizationContext()
+            .Subscribe(deleted => _ = LeaveAfterDeleteAsync());
 
         var owner = OwnerQuery;
         var repo = RepoQuery;
@@ -173,7 +172,8 @@ public partial class FileEditorPage : ContentPage
 
     protected override void OnDisappearing()
     {
+        _deletedSubscription?.Dispose();
+        _deletedSubscription = null;
         base.OnDisappearing();
-        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
     }
 }
