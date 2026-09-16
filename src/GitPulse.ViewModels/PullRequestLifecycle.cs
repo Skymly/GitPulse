@@ -215,9 +215,10 @@ internal sealed class PullRequestLifecycle(
 
     public async Task UpdateBranchAsync()
     {
-        if (pullRequest.Value is null || IsUpdatingBranch.Value || !CanUpdateBranch.Value)
+        if (pullRequest.Value is null || isSaving.Value || IsUpdatingBranch.Value || !CanUpdateBranch.Value)
             return;
 
+        isSaving.Value = true;
         IsUpdatingBranch.Value = true;
         io.Error.Value = string.Empty;
 
@@ -263,14 +264,16 @@ internal sealed class PullRequestLifecycle(
         finally
         {
             IsUpdatingBranch.Value = false;
+            isSaving.Value = false;
         }
     }
 
     public async Task MarkReadyForReviewAsync()
     {
-        if (pullRequest.Value is null || IsMarkingReadyForReview.Value || !CanMarkReadyForReview.Value)
+        if (pullRequest.Value is null || isSaving.Value || IsMarkingReadyForReview.Value || !CanMarkReadyForReview.Value)
             return;
 
+        isSaving.Value = true;
         IsMarkingReadyForReview.Value = true;
         io.Error.Value = string.Empty;
 
@@ -311,14 +314,16 @@ internal sealed class PullRequestLifecycle(
         finally
         {
             IsMarkingReadyForReview.Value = false;
+            isSaving.Value = false;
         }
     }
 
     public async Task ConvertToDraftAsync()
     {
-        if (pullRequest.Value is null || IsConvertingToDraft.Value || !CanConvertToDraft.Value)
+        if (pullRequest.Value is null || isSaving.Value || IsConvertingToDraft.Value || !CanConvertToDraft.Value)
             return;
 
+        isSaving.Value = true;
         IsConvertingToDraft.Value = true;
         io.Error.Value = string.Empty;
 
@@ -359,6 +364,7 @@ internal sealed class PullRequestLifecycle(
         finally
         {
             IsConvertingToDraft.Value = false;
+            isSaving.Value = false;
         }
     }
 

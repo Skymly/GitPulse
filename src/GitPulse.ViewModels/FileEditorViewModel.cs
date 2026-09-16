@@ -125,6 +125,9 @@ public sealed partial class FileEditorViewModel : IDisposable
         if (string.IsNullOrEmpty(_owner) || string.IsNullOrEmpty(_repo) || string.IsNullOrEmpty(_path))
             return;
 
+        if (IsBusy.Value)
+            return;
+
         // Don't load if this is a new file (no existing content).
         if (IsNewFile.Value)
         {
