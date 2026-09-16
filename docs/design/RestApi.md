@@ -360,7 +360,7 @@ Write + read. No new GitHubApi method. `PullRequest.Assignees` comes from GET pu
 
 ### Mentions inbox (M37)
 
-Read-only. Reuses `IGitHubSearchApi.SearchIssues`. Canned query: `is:open mentions:@me archived:false`. Does **not** append `is:issue`. Does **not** apply the typed-Search 3-character minimum. Own `PagedGitHubSession`. Search tab uses a 2x2 hub: Search / Review requested / Assigned / Mentions. Tap opens Issue or PR detail from `pull_request`. Empty is quiet.
+Read-only. Reuses `IGitHubSearchApi.SearchIssues`. Canned query: `is:open mentions:@me archived:false`. Does **not** append `is:issue`. Does **not** apply the typed-Search 3-character minimum. Own `PagedGitHubSession`. Search tab uses a one-row hub: Search / Review / Assigned / Mentions (not a 2×2 grid). Tap opens Issue or PR detail from `pull_request`. Empty is quiet.
 
 ### PR labels (M38)
 
