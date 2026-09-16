@@ -964,12 +964,17 @@ public class PullRequestDetailViewModelTests
     }
 
     private static string CheckRunsJson(params (long Id, string Name, string Status, string? Conclusion)[] runs)
+        => CheckRunsJson(runs.Length, runs);
+
+    private static string CheckRunsJson(
+        int totalCount,
+        params (long Id, string Name, string Status, string? Conclusion)[] runs)
     {
         var items = string.Join(",", runs.Select(run =>
             $"{{\"id\":{run.Id},\"name\":\"{run.Name}\",\"status\":\"{run.Status}\"," +
             $"\"conclusion\":{(run.Conclusion is null ? "null" : $"\"{run.Conclusion}\"")}," +
             $"\"html_url\":\"https://example/runs/{run.Id}\",\"head_sha\":\"abc123\"}}"));
-        return $"{{\"total_count\":{runs.Length},\"check_runs\":[{items}]}}";
+        return $"{{\"total_count\":{totalCount},\"check_runs\":[{items}]}}";
     }
 
     private static string CombinedStatusJson(
@@ -1109,6 +1114,45 @@ public class PullRequestDetailViewModelTests
         await vm.LoadCommand.ExecuteAsync(null);
 
         Assert.Equal("Success", vm.GateRollup.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenCheckRunsTruncated_IsPartialNotSuccess()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs",
+                CheckRunsJson(31, (1, "CI", "completed", "success")))
+            .When("/commits/abc123/status", CombinedStatusJson("success"));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("Partial", vm.GateRollup.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_WhenCheckRunsTruncatedAndFailed_IsFailure()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", headSha: "abc123"))
+            .When("/issues/42/comments", "[]")
+            .When("/user", UserJson("alice"))
+            .When("/pulls/42/reviews", "[]")
+            .When("/commits/abc123/check-runs",
+                CheckRunsJson(31, (1, "CI", "completed", "failure")))
+            .When("/commits/abc123/status", CombinedStatusJson("success"));
+        var vm = LoadWithGate(handler);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("Failure", vm.GateRollup.Value);
         vm.Dispose();
     }
 

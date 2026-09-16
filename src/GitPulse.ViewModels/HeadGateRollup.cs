@@ -8,10 +8,12 @@ namespace GitPulse.ViewModels;
 
 /// <summary>
 /// Latest Check Runs plus Commit Statuses on a SHA, summarized as
-/// pending / success / failure / no checks / error.
+/// pending / success / failure / no checks / error / partial.
 /// HTTP 404 on a Gate endpoint is "no data from that source". Any other
 /// failure is <see cref="Error"/> with a reason for Inline Error; the
-/// pull request or commit still loads.
+/// pull request or commit still loads. When <c>total_count</c> exceeds the
+/// first page, Success / No checks become <see cref="Partial"/> so a hidden
+/// later-page failure cannot look green.
 /// </summary>
 internal static class HeadGateRollup
 {
@@ -20,6 +22,7 @@ internal static class HeadGateRollup
     public const string Success = "Success";
     public const string Failure = "Failure";
     public const string Error = "Error";
+    public const string Partial = "Partial";
 
     public static async Task<HeadGateRollupState> LoadAsync(
         IGitHubReposApi api,
@@ -31,17 +34,21 @@ internal static class HeadGateRollup
         if (string.IsNullOrEmpty(sha))
             return HeadGateRollupState.Empty;
 
-        var (runs, runError) = await LoadCheckRunsAsync(api, owner, repo, sha, cancellationToken);
+        var (runs, truncated, runError) = await LoadCheckRunsAsync(api, owner, repo, sha, cancellationToken);
         var (combined, statusError) = await LoadCombinedStatusAsync(api, owner, repo, sha, cancellationToken);
         var statuses = combined?.Statuses ?? [];
         var error = runError ?? statusError;
         if (error is not null)
             return new HeadGateRollupState(Error, runs, statuses, error);
 
-        return new HeadGateRollupState(Compute(runs, combined), runs, statuses);
+        var summary = Compute(runs, combined);
+        if (truncated && (summary == Success || summary == NoChecks))
+            summary = Partial;
+
+        return new HeadGateRollupState(summary, runs, statuses);
     }
 
-    private static async Task<(CheckRun[] Runs, string? Error)> LoadCheckRunsAsync(
+    private static async Task<(CheckRun[] Runs, bool Truncated, string? Error)> LoadCheckRunsAsync(
         IGitHubReposApi api,
         string owner,
         string repo,
@@ -52,7 +59,8 @@ internal static class HeadGateRollup
         {
             var result = await api.ListCheckRunsForRef(owner, repo, sha, "latest")
                 .FirstAsync(cancellationToken);
-            return (result.CheckRuns ?? [], null);
+            var runs = result.CheckRuns ?? [];
+            return (runs, result.TotalCount > runs.Length, null);
         }
         catch (OperationCanceledException)
         {
@@ -60,11 +68,11 @@ internal static class HeadGateRollup
         }
         catch (Exception ex) when (IsNotFound(ex))
         {
-            return ([], null);
+            return ([], false, null);
         }
         catch (Exception ex)
         {
-            return ([], FormatGateError(ex));
+            return ([], false, FormatGateError(ex));
         }
     }
 
