@@ -121,6 +121,27 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task SaveToken_ServerErrorMessageContaining401_DoesNotTreatAsRejected()
+    {
+        var store = new FakeCredentialStore(null);
+        var factory = new FakeGitHubClientFactory(
+            new MockHttpHandler().When("/user", _ =>
+                new MockResponse(
+                    "{\"message\":\"token 401-demo failed\"}",
+                    StatusCode: HttpStatusCode.InternalServerError,
+                    AttachRequest: true)));
+        var vm = new SettingsViewModel(store, factory);
+        vm.TokenInput.Value = "ghp_bad";
+
+        await vm.SaveTokenCommand.ExecuteAsync(null);
+
+        Assert.False(store.SetTokenCalled);
+        Assert.DoesNotContain("rejected", vm.StatusMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Save failed", vm.StatusMessage.Value, StringComparison.OrdinalIgnoreCase);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task ClearToken_RemovesTokenAndUpdatesHasToken()
     {
         var store = new FakeCredentialStore("ghp_existing");

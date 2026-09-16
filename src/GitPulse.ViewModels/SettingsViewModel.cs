@@ -190,14 +190,13 @@ public sealed partial class SettingsViewModel : IDisposable
     {
         for (var current = ex; current is not null; current = current.InnerException)
         {
-            if (current is HttpRequestException http
-                && http.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            if (current is ApiException { StatusCode: HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden })
                 return true;
 
-            if (current.Message.Contains("401", StringComparison.Ordinal)
-                || current.Message.Contains("403", StringComparison.Ordinal)
-                || current.Message.Contains("Unauthorized", StringComparison.OrdinalIgnoreCase)
-                || current.Message.Contains("Forbidden", StringComparison.OrdinalIgnoreCase))
+            if (current is HttpRequestException
+                {
+                    StatusCode: HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden,
+                })
                 return true;
         }
 
