@@ -8,6 +8,9 @@ namespace GitPulse.Tests;
 
 public class PrDiffViewModelTests
 {
+    private static IReadOnlyList<ReviewComment> CommentsOn(PrDiffViewModel vm, string path) =>
+        vm.FileComments.TryGetValue(path, out var list) ? list : [];
+
     private const string Owner = "owner";
     private const string Repo = "repo";
     private const int PrNumber = 42;
@@ -106,13 +109,13 @@ public class PrDiffViewModelTests
         Assert.Equal(2, vm.Files[0].Deletions);
         Assert.False(string.IsNullOrEmpty(vm.Files[0].Patch));
 
-        var comments = vm.GetCommentsForFile("src/Program.cs");
+        var comments = CommentsOn(vm, "src/Program.cs");
         Assert.Single(comments);
         Assert.Equal("Looks good!", comments[0].Body);
         Assert.Equal("reviewer", comments[0].User?.Login);
 
         // README.md has no comments.
-        Assert.Empty(vm.GetCommentsForFile("README.md"));
+        Assert.Empty(CommentsOn(vm, "README.md"));
         vm.Dispose();
     }
 
@@ -253,12 +256,14 @@ public class PrDiffViewModelTests
 
         await vm.PostCommentCommand.ExecuteAsync(null);
 
-        var comments = vm.GetCommentsForFile("src/Program.cs");
+        var comments = CommentsOn(vm, "src/Program.cs");
         Assert.Single(comments);
         Assert.Equal("New comment", comments[0].Body);
         Assert.Equal("owner", comments[0].User?.Login);
         Assert.Equal(string.Empty, vm.CommentInput.Value);
         Assert.Equal(0, vm.ReplyToId.Value);
+        Assert.Equal("Comment posted.", vm.SuccessMessage.Value);
+        Assert.Equal(string.Empty, vm.ErrorMessage.Value);
         vm.Dispose();
     }
 
@@ -337,10 +342,11 @@ public class PrDiffViewModelTests
 
         await vm.PostCommentCommand.ExecuteAsync(null);
 
-        var comments = vm.GetCommentsForFile("src/Program.cs");
+        var comments = CommentsOn(vm, "src/Program.cs");
         Assert.Single(comments);
         Assert.Equal("Reply text", comments[0].Body);
         Assert.Equal(100, comments[0].InReplyToId);
+        Assert.Equal("Comment posted.", vm.SuccessMessage.Value);
         vm.Dispose();
     }
 
@@ -357,7 +363,8 @@ public class PrDiffViewModelTests
         await vm.PostCommentCommand.ExecuteAsync(null);
 
         // No API call should have been made; no comments added.
-        Assert.Empty(vm.GetCommentsForFile("src/Program.cs"));
+        Assert.Empty(CommentsOn(vm, "src/Program.cs"));
+        Assert.Equal(string.Empty, vm.SuccessMessage.Value);
         vm.Dispose();
     }
 
@@ -374,18 +381,30 @@ public class PrDiffViewModelTests
         await vm.PostCommentCommand.ExecuteAsync(null);
 
         Assert.NotEmpty(vm.ErrorMessage.Value);
+        Assert.Equal(string.Empty, vm.SuccessMessage.Value);
         vm.Dispose();
     }
 
     [Fact]
-    public void GetCommentsForFile_WithNoComments_ReturnsEmptyList()
+    public void FileComments_WithNoComments_HasNoEntry()
     {
         var vm = new PrDiffViewModel(
             new FakeGitHubClientFactory(new MockHttpHandler()));
 
-        var comments = vm.GetCommentsForFile("nonexistent.cs");
+        Assert.Empty(CommentsOn(vm, "nonexistent.cs"));
+        vm.Dispose();
+    }
 
-        Assert.Empty(comments);
+    [Fact]
+    public void StartComment_ClearsSuccessMessage()
+    {
+        var vm = new PrDiffViewModel(
+            new FakeGitHubClientFactory(new MockHttpHandler()));
+        vm.SuccessMessage.Value = "Comment posted.";
+
+        vm.StartCommentCommand.Execute(new CommentTarget("src/Foo.cs", 1));
+
+        Assert.Equal(string.Empty, vm.SuccessMessage.Value);
         vm.Dispose();
     }
 }
