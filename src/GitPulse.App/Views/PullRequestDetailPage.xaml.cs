@@ -1,6 +1,7 @@
 using GitPulse.App.Services;
 using GitPulse.Core.Models;
 using GitPulse.ViewModels;
+using R3;
 
 namespace GitPulse.App.Views;
 
@@ -23,8 +24,11 @@ public partial class PullRequestDetailPage : ContentPage
     private const double WideBreakpoint = 840;
     private readonly PullRequestDetailViewModel _viewModel;
     private readonly PrDiffViewModel _diffViewModel;
+    private readonly CompositeDisposable _events = [];
     private string? _appliedQuery;
     private bool _diffLoaded;
+    private string? _diffHeadSha;
+    private bool _reloadingForHead;
     private bool _filesStacked;
     private bool _showingStackedDiff;
     private bool _filesLayoutReady;
@@ -52,6 +56,7 @@ public partial class PullRequestDetailPage : ContentPage
         _viewModel = viewModel;
         _diffViewModel = diffViewModel;
         BindingContext = _viewModel;
+        _events.Add(_viewModel.PullRequest.Subscribe(OnPullRequestChanged));
     }
 
     public string OwnerQuery { get; set; } = string.Empty;
@@ -80,6 +85,8 @@ public partial class PullRequestDetailPage : ContentPage
             return;
 
         _appliedQuery = query;
+        _diffLoaded = false;
+        _diffHeadSha = null;
         if (int.TryParse(NumberQuery, out var number))
         {
             _viewModel.Initialize(owner, repo, number);
@@ -134,20 +141,7 @@ public partial class PullRequestDetailPage : ContentPage
     private void OnFilesTabClicked(object? sender, EventArgs e)
     {
         ShowTab("files");
-
-        // Lazy-load diff data on first Files tab activation.
-        if (!_diffLoaded && _viewModel.PullRequest.Value is not null)
-        {
-            _diffLoaded = true;
-            var pr = _viewModel.PullRequest.Value;
-            var headSha = pr.Head?.Sha ?? string.Empty;
-            _diffViewModel.Initialize(
-                _viewModel.Owner.Value,
-                _viewModel.RepoName.Value,
-                pr.Number,
-                headSha);
-            _ = _diffViewModel.LoadCommand.ExecuteAsync(null);
-        }
+        LoadDiffIfNeeded();
     }
 
     private void ShowTab(string tab)
@@ -282,6 +276,57 @@ public partial class PullRequestDetailPage : ContentPage
         if (sender is Button btn && btn.CommandParameter is long commentId)
         {
             _diffViewModel.StartReplyCommand.Execute(commentId);
+        }
+    }
+
+    private void OnPullRequestChanged(PullRequest? pr)
+    {
+        var sha = pr?.Head?.Sha ?? string.Empty;
+        if (sha == _diffHeadSha)
+            return;
+
+        var hadSha = !string.IsNullOrEmpty(_diffHeadSha);
+        _diffHeadSha = sha;
+        if (!hadSha)
+            return;
+
+        _diffLoaded = false;
+        LoadDiffIfNeeded();
+        ReloadGateAfterHeadChange();
+    }
+
+    private void LoadDiffIfNeeded()
+    {
+        if (_diffLoaded || !FilesSection.IsVisible || _viewModel.PullRequest.Value is not { } pr)
+            return;
+
+        _diffLoaded = true;
+        _diffViewModel.Initialize(
+            _viewModel.Owner.Value,
+            _viewModel.RepoName.Value,
+            pr.Number,
+            pr.Head?.Sha ?? string.Empty);
+        _ = _diffViewModel.LoadCommand.ExecuteAsync(null);
+    }
+
+    private void ReloadGateAfterHeadChange()
+    {
+        if (_reloadingForHead || _viewModel.IsLoading.Value)
+            return;
+
+        _reloadingForHead = true;
+        _ = ReloadGateAsync();
+    }
+
+    private async Task ReloadGateAsync()
+    {
+        try
+        {
+            await _viewModel.LoadCommand.ExecuteAsync(null);
+        }
+        finally
+        {
+            _reloadingForHead = false;
         }
     }
 
