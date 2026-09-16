@@ -137,14 +137,15 @@ Typed Search 与每个 Search Inbox 使用 `PagedGitHubSession`。
 ### Create PR（M14）
 
 - `CreatePullRequest`：`POST /repos/{owner}/{repo}/pulls`，path + `[Body]` `PullRequestCreateRequest`（`title` / `head` / `base` / 可选 `body` / 可选 create-time `draft`）
-- 同仓 head/base；分支来源复用已有 `ListBranches`；不包含跨 fork、draft ↔ ready 生命周期或 GraphQL
+- 同仓 head/base；分支来源复用已有 `ListBranches`（`Observable<ApiResponse<Branch[]>>`，paged session 跟随 `Link`，上限 10 页）；不包含跨 fork、draft ↔ ready 生命周期或 GraphQL
 - PR detail 编辑 title/body 复用 `UpdateIssue`（issues PATCH；与 open/close 同一 number 空间），不新增 pulls PATCH
 
 ### M8 Diff
 
-- `ListPullRequestFiles`、`ListReviewComments`、`CreateReviewComment`
+- `ListPullRequestFiles` / `ListReviewComments` are `Observable<ApiResponse<T[]>>`. ViewModels follow `Link` via a paged session (cap 10). `CreateReviewComment` is unchanged.
 - `PrDiffViewModel` 并行加载 files + comments，按 `path` 分组
 - File-level `CreateReviewComment` sets `subject_type=file` and omits `line` (GitHub 422 if `line` is sent, including `0`)
+- After a successful post, `PrDiffViewModel` sets Inline Success (`Comment posted.`); the Files tab does not bind the comment list.
 
 #### Windows 手工验收清单（带 PAT）
 
@@ -221,10 +222,10 @@ Read-only. Methods live on `IGitHubReposApi` — no `IGitHubChecksApi` / ADR-015
 
 | 方法 | 端点 | 说明 |
 |------|------|------|
-| `ListCheckRunsForRef` | `GET /repos/{owner}/{repo}/commits/{ref}/check-runs` | `[Query] filter` (`latest` from PR detail). First page `Observable<CheckRunsResult>`. |
+| `ListCheckRunsForRef` | `GET /repos/{owner}/{repo}/commits/{ref}/check-runs` | `[Query] filter` (`latest` from PR detail). First page `Observable<CheckRunsResult>`. When `TotalCount` exceeds that page, Gate Success / No checks become Partial (check-runs are not paged). |
 | `GetCombinedStatusForRef` | `GET /repos/{owner}/{repo}/commits/{ref}/status` | Combined Commit Statuses only. Empty `statuses` is GitHub `pending`; Gate Rollup does not treat that as pending by itself. |
 
-`CheckRun` / `CheckRunsResult` / `CommitStatus` / `CombinedCommitStatus` are Core models. ViewModel computes Gate Rollup (pending / success / failure / no checks). Missing `Head.Sha` skips both calls. Either endpoint failing leaves the PR page intact.
+`CheckRun` / `CheckRunsResult` / `CommitStatus` / `CombinedCommitStatus` are Core models. ViewModel computes Gate Rollup (pending / success / failure / error / partial / no checks). HTTP 404 is no data from that source; other load failures are Error with Inline Error + Retry in the Gate area. Failure outranks pending. `cancelled` / `skipped` / `neutral` / `stale` are muted, not Failure. Combined `state` is ignored. Missing `Head.Sha` skips both calls. Error still leaves the rest of the PR page intact. When `Head.Sha` changes after the first load, Files and Gate reload.
 
 ### Starred repos (M17)
 
@@ -314,7 +315,7 @@ My repos hub uses `ListMyReposSortedPaged("pushed")` → `GET /user/repos?sort=p
 
 ### Commit Gate Rollup (M26)
 
-Read-only. Reuses `ListCheckRunsForRef` (`filter=latest`) and `GetCombinedStatusForRef` on the commit SHA. Same client Gate Rollup as PR detail. Either call failing leaves the commit page intact. Open navigates to the M22 Check Run page.
+Read-only. Reuses `ListCheckRunsForRef` (`filter=latest`) and `GetCombinedStatusForRef` on the commit SHA. Same client Gate Rollup as PR detail (including Error / Partial). Gate load failures other than 404 are Inline Error on the commit page; the rest of the page stays intact. Open navigates to the M22 Check Run page.
 
 ### Check Run annotations (M27)
 
@@ -404,7 +405,7 @@ Pull-request writes that succeed then fail the follow-up GET keep the local writ
 
 ### Update Branch (M43)
 
-Write on `IGitHubReposApi`. `UpdatePullRequestBranch` is `PUT .../pulls/{number}/update-branch` with optional `expected_head_sha` (`ApiResponse<UpdatePullRequestBranchResponse>`, 202). Conversation offers it for open unmerged pull requests, including drafts. 403/422 stay on the page. Compare / behind_by and ready-for-review are out of scope.
+Write on `IGitHubReposApi`. `UpdatePullRequestBranch` is `PUT .../pulls/{number}/update-branch` with optional `expected_head_sha` (`ApiResponse<UpdatePullRequestBranchResponse>`, 202). Conversation offers it for open unmerged pull requests, including drafts. 403/422 stay on the page. After a successful refresh, a changed `Head.Sha` resets Files lazy-load and reloads Gate. Compare / behind_by and ready-for-review are out of scope.
 
 
 ### Ready for Review (M44)
