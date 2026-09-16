@@ -46,6 +46,44 @@ public class LinkHeaderParserTests
     }
 
     [Fact]
+    public void GetNextUrl_NextOnSecondLinkHeader_ReturnsUrl()
+    {
+        var response = new HttpResponseMessage();
+        response.Headers.Add("Link",
+            "<https://api.github.com/repos/owner/repo/issues?page=5>; rel=\"last\"");
+        response.Headers.Add("Link",
+            "<https://api.github.com/repos/owner/repo/issues?page=2>; rel=\"next\"");
+
+        var next = LinkHeaderParser.GetNextUrl(response.Headers);
+
+        Assert.Equal("https://api.github.com/repos/owner/repo/issues?page=2", next);
+    }
+
+    [Fact]
+    public void GetNextUrl_RelAfterOtherLinkParam_ReturnsUrl()
+    {
+        var response = new HttpResponseMessage();
+        response.Headers.Add("Link",
+            "<https://api.github.com/repos/owner/repo/issues?page=2>; title=\"next page\"; rel=\"next\"");
+
+        var next = LinkHeaderParser.GetNextUrl(response.Headers);
+
+        Assert.Equal("https://api.github.com/repos/owner/repo/issues?page=2", next);
+    }
+
+    [Fact]
+    public void GetNextUrl_UnquotedRel_ReturnsUrl()
+    {
+        var response = new HttpResponseMessage();
+        response.Headers.Add("Link",
+            "<https://api.github.com/repos/owner/repo/issues?page=2>; rel=next");
+
+        var next = LinkHeaderParser.GetNextUrl(response.Headers);
+
+        Assert.Equal("https://api.github.com/repos/owner/repo/issues?page=2", next);
+    }
+
+    [Fact]
     public void LinkHeaderParser_DoesNotExposeGetNextPageNumber()
     {
         Assert.Null(typeof(LinkHeaderParser).GetMethod(
