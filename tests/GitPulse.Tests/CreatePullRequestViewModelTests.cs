@@ -25,7 +25,7 @@ public class CreatePullRequestViewModelTests
     }
 
     [Fact]
-    public async Task Create_WithEmptyTitle_DoesNothing()
+    public async Task Create_WithEmptyTitle_SetsPageError()
     {
         var handler = new MockHttpHandler()
             .When("/repos/owner/repo/pulls", "[]");
@@ -39,12 +39,12 @@ public class CreatePullRequestViewModelTests
         await vm.CreateCommand.ExecuteAsync(null);
 
         Assert.Null(vm.CreatedPullRequestNumber.Value);
-        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("Title, head branch, and base branch are required.", vm.ErrorMessage.Value);
         vm.Dispose();
     }
 
     [Fact]
-    public async Task Create_WithMissingHead_DoesNothing()
+    public async Task Create_WithMissingHead_SetsPageError()
     {
         var handler = new MockHttpHandler()
             .When("/repos/owner/repo/pulls", "[]");
@@ -58,12 +58,12 @@ public class CreatePullRequestViewModelTests
         await vm.CreateCommand.ExecuteAsync(null);
 
         Assert.Null(vm.CreatedPullRequestNumber.Value);
-        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("Title, head branch, and base branch are required.", vm.ErrorMessage.Value);
         vm.Dispose();
     }
 
     [Fact]
-    public async Task Create_WithMissingBase_DoesNothing()
+    public async Task Create_WithMissingBase_SetsPageError()
     {
         var handler = new MockHttpHandler()
             .When("/repos/owner/repo/pulls", "[]");
@@ -77,12 +77,12 @@ public class CreatePullRequestViewModelTests
         await vm.CreateCommand.ExecuteAsync(null);
 
         Assert.Null(vm.CreatedPullRequestNumber.Value);
-        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("Title, head branch, and base branch are required.", vm.ErrorMessage.Value);
         vm.Dispose();
     }
 
     [Fact]
-    public async Task Create_WithSameHeadAndBase_DoesNothing()
+    public async Task Create_WithSameHeadAndBase_SetsPageError()
     {
         var handler = new MockHttpHandler()
             .When("/repos/owner/repo/pulls", "[]");
@@ -96,7 +96,7 @@ public class CreatePullRequestViewModelTests
         await vm.CreateCommand.ExecuteAsync(null);
 
         Assert.Null(vm.CreatedPullRequestNumber.Value);
-        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("Head and base must be different branches.", vm.ErrorMessage.Value);
         vm.Dispose();
     }
 
