@@ -565,6 +565,66 @@ public class PullRequestDetailViewModelTests
     }
 
     [Fact]
+    public async Task Merge_WhenTimeoutAndPrMerged_AppliesMergedState()
+    {
+        var merged = false;
+        var openJson = PrJson(42, "open", mergeable: true, mergeableState: "clean");
+        var mergedJson = GitHubJson.PullRequest(
+            42, "closed", merged: true, mergeable: false,
+            headRef: "feature", baseRef: "main",
+            mergeCommitSha: "timeoutsha", mergedBy: "merger");
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", _ => new MockResponse(merged ? mergedJson : openJson))
+            .When("/pulls/42/merge", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                {
+                    merged = true;
+                    throw new OperationCanceledException();
+                }
+
+                return new MockResponse(openJson);
+            })
+            .When("/issues/42/comments", "[]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.True(vm.CanMerge.Value);
+
+        await vm.MergeCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.True(vm.IsMerged.Value);
+        Assert.True(vm.PullRequest.Value!.Merged);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Merge_WhenTimeoutAndPrStillOpen_SetsMaybeSubmitted()
+    {
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", PrJson(42, "open", mergeable: true, mergeableState: "clean"))
+            .When("/pulls/42/merge", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                    throw new OperationCanceledException();
+                return new MockResponse(PrJson(42, "open", mergeable: true, mergeableState: "clean"));
+            })
+            .When("/issues/42/comments", "[]");
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new PullRequestDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        await vm.MergeCommand.ExecuteAsync(null);
+
+        Assert.Contains("may have been submitted", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.False(vm.IsMerged.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
     public void MergeMethod_DefaultIsMerge()
     {
         var vm = new PullRequestDetailViewModel(

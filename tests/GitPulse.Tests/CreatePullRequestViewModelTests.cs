@@ -344,4 +344,49 @@ public class CreatePullRequestViewModelTests
         Assert.Empty(vm.Branches);
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task Create_WhenTimeoutAndPrExists_SetsCreatedPullRequestNumber()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/pulls", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    throw new OperationCanceledException();
+                return new MockResponse(
+                    $"[{GitHubJson.PullRequest(88, title: "My new PR", headRef: "feature")}]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreatePullRequestViewModel(factory);
+        vm.Initialize("owner", "repo");
+        SetValidInputs(vm);
+
+        await vm.CreateCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(88, vm.CreatedPullRequestNumber.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Create_WhenTimeoutAndNoMatch_SetsMaybeSubmitted()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/pulls", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    throw new OperationCanceledException();
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreatePullRequestViewModel(factory);
+        vm.Initialize("owner", "repo");
+        SetValidInputs(vm);
+
+        await vm.CreateCommand.ExecuteAsync(null);
+
+        Assert.Contains("may have been submitted", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.Null(vm.CreatedPullRequestNumber.Value);
+        vm.Dispose();
+    }
 }

@@ -138,4 +138,48 @@ public class CreateIssueViewModelTests
         Assert.Null(vm.CreatedIssueNumber.Value);
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task Create_WhenTimeoutAndIssueExists_SetsCreatedIssueNumber()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    throw new OperationCanceledException();
+                return new MockResponse($"[{IssueJson(99, "My new issue")}]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreateIssueViewModel(factory);
+        vm.Initialize("owner", "repo");
+        vm.TitleInput.Value = "My new issue";
+
+        await vm.CreateCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(99, vm.CreatedIssueNumber.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Create_WhenTimeoutAndNoMatch_SetsMaybeSubmitted()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/issues", req =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    throw new OperationCanceledException();
+                return new MockResponse("[]");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreateIssueViewModel(factory);
+        vm.Initialize("owner", "repo");
+        vm.TitleInput.Value = "My new issue";
+
+        await vm.CreateCommand.ExecuteAsync(null);
+
+        Assert.Contains("may have been submitted", vm.ErrorMessage.Value, StringComparison.Ordinal);
+        Assert.Null(vm.CreatedIssueNumber.Value);
+        vm.Dispose();
+    }
 }

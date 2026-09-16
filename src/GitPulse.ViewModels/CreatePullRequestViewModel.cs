@@ -156,9 +156,9 @@ public sealed partial class CreatePullRequestViewModel : IDisposable
             var pr = await api.CreatePullRequest(_owner, _repo, request).FirstAsync(cts.Token);
             CreatedPullRequestNumber.Value = pr.Number;
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (WriteTimeout.IsCanceled(ex))
         {
-            ErrorMessage.Value = "Request timed out.";
+            await ConfirmCreatedPullRequestAsync(title, head);
         }
         catch (Exception ex)
         {
@@ -168,6 +168,38 @@ public sealed partial class CreatePullRequestViewModel : IDisposable
         {
             IsSaving.Value = false;
         }
+    }
+
+    private async Task ConfirmCreatedPullRequestAsync(string title, string head)
+    {
+        try
+        {
+            using var scope = await _clientFactory.OpenAsync();
+            var client = scope.Client;
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = WriteTimeout.MaybeSubmitted;
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(cts.Token);
+            var match = (response.Content ?? []).FirstOrDefault(pr =>
+                string.Equals(pr.Title, title, StringComparison.Ordinal)
+                && string.Equals(pr.HeadRef, head, StringComparison.Ordinal));
+            if (match is not null)
+            {
+                CreatedPullRequestNumber.Value = match.Number;
+                return;
+            }
+        }
+        catch (Exception)
+        {
+            // Still unknown whether GitHub created the pull request.
+        }
+
+        ErrorMessage.Value = WriteTimeout.MaybeSubmitted;
     }
 
     public void Dispose()
