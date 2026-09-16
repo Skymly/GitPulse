@@ -17,7 +17,7 @@ iterates on until genuinely useful.
 
 ### Prerequisites
 
-- .NET 10 SDK
+- .NET 10 SDK (`global.json` pins `10.0.302`, `rollForward: latestPatch`)
 - .NET MAUI workload (`dotnet workload install maui`)
 - Windows (primary) or Android (secondary target)
 
