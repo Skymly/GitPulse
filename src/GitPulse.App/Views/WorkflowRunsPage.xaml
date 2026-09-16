@@ -89,6 +89,18 @@
                         FontSize="13"
                         AutomationId="WorkflowDispatchButton" />
             </Grid>
+            <Border IsVisible="{Binding SuccessMessage.Value, Converter={StaticResource StringToBoolConverter}}"
+                    BackgroundColor="{StaticResource Green100}"
+                    Stroke="Transparent"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12">
+                <Label Text="{Binding SuccessMessage.Value}"
+                       TextColor="{StaticResource Green900}"
+                       FontSize="13"
+                       LineBreakMode="WordWrap"
+                       VerticalOptions="Center"
+                       AutomationId="WorkflowDispatchSuccess" />
+            </Border>
         </VerticalStackLayout>
 
         <CollectionView x:Name="RunsList"
