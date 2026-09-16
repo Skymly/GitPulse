@@ -179,7 +179,7 @@ dotnet test tests/GitPulse.Tests/GitPulse.Tests.csproj -c Release --filter Categ
 Remove-Item Env:GITPULSE_TEST_PAT
 ```
 
-也可在 CI 中配置同名 Secret，经 `workflow_dispatch` 或独立 job 注入后运行上述 filter。实网测试覆盖 API 级 M9 门禁；Windows UI 导航（结果进详情页等）仍需手工验收，见 [design/RestApi.md](design/RestApi.md)。
+默认 CI 不注入 `GITPULSE_TEST_PAT`，这 10 个用例恒 Skip，**不是** `CiLib` / `ci-windows` 门禁。本机设 PAT 后可跑上述 filter，覆盖 Search API 行为；Windows UI 导航（结果进详情页等）仍需手工验收，见 [design/RestApi.md](design/RestApi.md)。
 
 ## 提交与分支
 
