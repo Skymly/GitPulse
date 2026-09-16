@@ -80,7 +80,7 @@ using var d = api.GetRepo("Skymly", "Observables")
 - R3 + R3Extensions.Maui (reactive core)
 - Observables.RestAPI.R3 + Observables.Events.R3 (source-generated reactive bridges)
 - CommunityToolkit.Mvvm
-- MVVM architecture, multi-project solution (App / Core / GitHubApi / Services)
+- MVVM architecture, multi-project solution (App / ViewModels / Core / GitHubApi / Services)
 - Nuke build orchestration
 - MinVer (Git-tag-based versioning)
 
@@ -90,7 +90,7 @@ using var d = api.GetRepo("Skymly", "Observables")
 src/
   GitPulse.App/         — MAUI UI, DI, platform entry points
   GitPulse.ViewModels/  — ViewModels (R3, no MAUI)
-  GitPulse.Core/        — Domain models, abstractions (no UI/IO)
+  GitPulse.Core/        — Domain models and abstractions (no MAUI)
   GitPulse.GitHubApi/   — Observables.RestAPI declarative interfaces + DTOs
   GitPulse.Services/    — Auth, polling, GitHub client factory
 tests/
