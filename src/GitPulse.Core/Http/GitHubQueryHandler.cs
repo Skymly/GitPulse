@@ -6,10 +6,14 @@ namespace GitPulse.Core.Http;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Why this exists:</b> Observables.RestAPI 0.1.4 <c>ValidatePathTemplate</c>
-/// (OBS3004) rejects methods that combine path placeholders with <c>[Query]</c>
-/// parameters. This handler injects query parameters at the HTTP layer instead,
-/// keeping the declarative interface clean (path-only parameters).
+/// <b>Why this exists:</b> paged list methods still inject <c>page</c> /
+/// <c>per_page</c> / <c>state</c> here so those signatures stay path-only
+/// (ADR-006). Observables.RestAPI 0.1.4 <c>ValidatePathTemplate</c> (OBS3004)
+/// used to reject path placeholders combined with <c>[Query]</c>; 0.1.5 lifted
+/// that for business query parameters. Search <c>q</c>, check-run <c>filter</c>,
+/// contents <c>ref</c>, and <c>ListMyReposSortedPaged</c> <c>sort</c> use
+/// <c>[Query]</c> on the declarative interfaces. This handler is not a
+/// workaround for that generator limit anymore.
 /// See <see href="https://github.com/Skymly/Observables/issues/111"/>.
 /// </para>
 /// <para>
