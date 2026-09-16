@@ -111,9 +111,9 @@ public interface IGitHubReposApi
     [Get("/repos/{owner}/{repo}/readme")]
     Observable<FileContent> GetReadme(string owner, string repo);
 
-    /// <summary>List branches for a repository.</summary>
+    /// <summary>List branches for a repository. <c>Link</c> is on the wrapper for paging.</summary>
     [Get("/repos/{owner}/{repo}/branches")]
-    Observable<Branch[]> ListBranches(string owner, string repo);
+    Observable<ApiResponse<Branch[]>> ListBranches(string owner, string repo);
 
     /// <summary>List releases for a repository. <see cref="Release.Body"/> contains release notes as Markdown.</summary>
     [Get("/repos/{owner}/{repo}/releases")]
@@ -206,13 +206,13 @@ public interface IGitHubReposApi
 
     // ── PR Diff (M8: diff viewer) ─────────────────────────────────
 
-    /// <summary>List files changed in a pull request.</summary>
+    /// <summary>List files changed in a pull request. <c>Link</c> is on the wrapper for paging.</summary>
     [Get("/repos/{owner}/{repo}/pulls/{number}/files")]
-    Observable<DiffEntry[]> ListPullRequestFiles(string owner, string repo, int number);
+    Observable<ApiResponse<DiffEntry[]>> ListPullRequestFiles(string owner, string repo, int number);
 
-    /// <summary>List review comments on a pull request diff.</summary>
+    /// <summary>List review comments on a pull request diff. <c>Link</c> is on the wrapper for paging.</summary>
     [Get("/repos/{owner}/{repo}/pulls/{number}/comments")]
-    Observable<ReviewComment[]> ListReviewComments(string owner, string repo, int number);
+    Observable<ApiResponse<ReviewComment[]>> ListReviewComments(string owner, string repo, int number);
 
     /// <summary>Create a review comment on a specific line of the diff.</summary>
     [Post("/repos/{owner}/{repo}/pulls/{number}/comments")]
