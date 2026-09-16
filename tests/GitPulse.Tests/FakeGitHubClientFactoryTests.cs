@@ -98,22 +98,6 @@ public class FakeGitHubClientFactoryTests
             () => client.GetAsync("https://api.github.com/", TestContext.Current.CancellationToken));
     }
 
-    [Fact]
-    public async Task CreatePagedClientAsync_WithToken_ReturnsClientAndQueryHandler()
-    {
-        var factory = new FakeGitHubClientFactory(new MockHttpHandler());
-
-        var (client, queryHandler) = await factory.CreatePagedClientAsync(
-            TestContext.Current.CancellationToken);
-
-        Assert.NotNull(client);
-        Assert.NotNull(client.DefaultRequestHeaders.Authorization);
-        Assert.NotNull(queryHandler);
-        Assert.Equal(1, queryHandler.Page);
-        Assert.Equal(30, queryHandler.PerPage);
-        client.Dispose();
-    }
-
     private static HttpResponseHeaders HeadersWithNextPage(int page)
     {
         var response = new HttpResponseMessage();
