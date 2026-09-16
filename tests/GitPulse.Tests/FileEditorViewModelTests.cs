@@ -565,6 +565,76 @@ public class FileEditorViewModelTests
             Assert.Single(launcher.OpenedUrls));
         vm.Dispose();
     }
+
+    [Fact]
+    public async Task Save_DuringLoad_DoesNotPut()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var puts = 0;
+        var handler = new MockHttpHandler()
+            .When("/contents/file.txt", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                {
+                    puts++;
+                    return new MockResponse(CommitJson("saved"));
+                }
+
+                return new MockResponse(
+                    FileJson("file.txt", "file.txt", "blob-1", B64("old")),
+                    Gate: gate.Task);
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "file.txt", "blob-1");
+
+        var load = vm.LoadCommand.ExecuteAsync(null);
+        await AsyncTestWait.UntilAsync(() => vm.IsBusy.Value);
+        vm.FileContent.Value = "edited";
+        vm.CommitMessage.Value = "save during load";
+        vm.IsEditing.Value = true;
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, puts);
+
+        gate.SetResult();
+        await load;
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Load_DuringSave_DoesNotGetAgain()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var gets = 0;
+        var handler = new MockHttpHandler()
+            .When("/contents/file.txt", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                    return new MockResponse(CommitJson("saved"), Gate: gate.Task);
+
+                gets++;
+                return new MockResponse(FileJson("file.txt", "file.txt", "blob-1", B64("old")));
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new FileEditorViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", "file.txt", "blob-1");
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Equal(1, gets);
+
+        vm.FileContent.Value = "edited";
+        vm.CommitMessage.Value = "save";
+        vm.IsEditing.Value = true;
+        var save = vm.SaveCommand.ExecuteAsync(null);
+        await AsyncTestWait.UntilAsync(() => vm.IsBusy.Value);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Equal(1, gets);
+
+        gate.SetResult();
+        await save;
+        vm.Dispose();
+    }
 }
 
 public class ContentModelTests

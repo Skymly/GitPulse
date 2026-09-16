@@ -2366,6 +2366,47 @@ public class PullRequestDetailViewModelTests
         vm.Dispose();
     }
 
+    [Fact]
+    public async Task UpdateBranch_DuringMerge_DoesNotCallApi()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        HttpRequestMessage? update = null;
+        var handler = new MockHttpHandler()
+            .When("/pulls/42", _ => new MockResponse(
+                PrJson(42, "open", mergeable: true, mergeableState: "clean", headSha: "abc123")))
+            .When("/issues/42/comments", "[]")
+            .When("/pulls/42/merge", req =>
+            {
+                if (req.Method == HttpMethod.Put)
+                    return new MockResponse(MergeJson("mergedsha"), Gate: gate.Task);
+                return new MockResponse(
+                    PrJson(42, "open", mergeable: true, mergeableState: "clean", headSha: "abc123"));
+            })
+            .When("/pulls/42/update-branch", req =>
+            {
+                update = req;
+                return new MockResponse(
+                    "{\"message\":\"Updating pull request branch.\"}",
+                    StatusCode: HttpStatusCode.Accepted);
+            });
+        var vm = new PullRequestDetailViewModel(
+            new FakeGitHubClientFactory(handler), new FakeBrowserLauncher());
+        vm.Initialize("owner", "repo", 42);
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.True(vm.CanUpdateBranch.Value);
+        Assert.True(vm.CanMerge.Value);
+
+        var merge = vm.MergeCommand.ExecuteAsync(null);
+        await AsyncTestWait.UntilAsync(() => vm.IsSaving.Value);
+        await vm.UpdateBranchCommand.ExecuteAsync(null);
+
+        Assert.Null(update);
+
+        gate.SetResult();
+        await merge;
+        vm.Dispose();
+    }
+
 }
 
 public class PullRequestModelTests
@@ -2449,7 +2490,4 @@ public class PullRequestModelTests
         Assert.True(resp.Merged);
         Assert.Equal("Successfully merged", resp.Message);
     }
-
-
-
 }
