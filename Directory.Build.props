@@ -16,6 +16,9 @@
          versions as 0.1.*; public tags are already past v0.1.0. -->
     <MinVerTagPrefix>v</MinVerTagPrefix>
     <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
+    <!-- This repo does not publish nupkgs. Set once here so library projects
+         are not packable by default (tests and _build already set the same). -->
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <!-- MinVer build-time package. Excluded from the Nuke _build project
