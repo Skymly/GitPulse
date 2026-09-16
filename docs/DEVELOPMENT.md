@@ -9,6 +9,7 @@
 | [.NET SDK](https://dotnet.microsoft.com/download) | 10.0.302+（LTS；根目录 `global.json`，`rollForward: latestPatch`） |
 | .NET MAUI workload | `dotnet workload install maui` |
 | Git | 2.x |
+| PowerShell | Windows PowerShell 5.1 可跑 `./build.ps1`（由主机解释，忽略 shebang）。Git Bash / Linux 直接执行需要 `pwsh`（`build.ps1` 首行 `#!/usr/bin/env pwsh`）。 |
 | IDE | Visual Studio 2022、Rider 或 VS Code + C# Dev Kit |
 
 主目标框架：`net10.0-windows10.0.19041.0`（Windows）、`net10.0-android`（次要）。
