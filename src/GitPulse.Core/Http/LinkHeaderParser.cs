@@ -18,14 +18,21 @@ public static partial class LinkHeaderParser
         if (headers is null || !headers.TryGetValues("Link", out var values))
             return null;
 
-        var linkHeader = values.FirstOrDefault();
-        if (string.IsNullOrEmpty(linkHeader))
-            return null;
+        foreach (var linkHeader in values)
+        {
+            if (string.IsNullOrEmpty(linkHeader))
+                continue;
 
-        var match = NextRelRegex().Match(linkHeader);
-        return match.Success ? match.Groups[1].Value : null;
+            var match = NextRelRegex().Match(linkHeader);
+            if (match.Success)
+                return match.Groups[1].Value;
+        }
+
+        return null;
     }
 
-    [GeneratedRegex(@"<([^>]+)>;\s*rel=""next""", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(
+        @"<([^>]+)>(?:\s*;\s*[^,<>]+)*?\s*;\s*rel\s*=\s*(?:""next""|'next'|next)(?=\s|;|,|$)",
+        RegexOptions.IgnoreCase)]
     private static partial Regex NextRelRegex();
 }
