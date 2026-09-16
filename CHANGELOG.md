@@ -104,6 +104,21 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Fixed
 
+- **Create PR:** Empty title, missing head/base, or the same head and base
+  stay on the form with a Page Error instead of doing nothing (`#696`).
+- **Search:** HTTP 403 is a rate-limit wait only when
+  `X-RateLimit-Remaining` is 0. Other 403s say the search is not allowed
+  (`#692`).
+- **Android PAT store:** Keystore / SecureStorage failures no longer crash
+  the app; saving or clearing the token reports that it could not complete
+  (`#688`).
+- **Windows Merge / Delete confirm:** If the dialog host is not ready, the
+  action is cancelled instead of a prompt that Enter would accept (`#694`).
+- **Detail / editor Page Error:** Issue, PR, file, commit, check, workflow,
+  and stacked list failures offer Settings, matching Repos and Notifications
+  (`#680`).
+- **Pull request Close / Reopen:** Requires a PAT before the request
+  (`#678`).
 - **Issues / PRs lists:** Changing the state filter during Load more reloads
   page 1 for the new filter instead of dropping the change (`#612`).
 - **Shell navigation:** Query parameters are decoded once. Paths and refs
