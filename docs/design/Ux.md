@@ -80,7 +80,7 @@ Two surfaces only:
 - **Page Error** — in-page failure for a GitHub request that did not succeed (load, write, timeout, 401/403/404/422/5xx).
 - **Field Error** — client-side validation next to the control that must change.
 
-Success is quiet: the page state updates. Never put success in the error banner. Exception: a successful Files review comment shows Inline Success next to the composer, because the page does not bind the comment list. **Toast** remains the Windows out-of-app surface for New Notification while the window is hidden; it is not an error surface. No app-wide error modal queue.
+Success is quiet: the page state updates. Never put success in the error banner. Exceptions: a successful Files review comment shows Inline Success next to the composer, because the page does not bind the comment list; a successful workflow dispatch shows Inline Success next to the Dispatch control, because the new run may not be in the next list yet. **Toast** remains the Windows out-of-app surface for New Notification while the window is hidden; it is not an error surface. No app-wide error modal queue.
 
 ### Stay-on-page
 
@@ -95,6 +95,7 @@ One slot per page. A new failure replaces the previous Page Error. Must include 
 - 401 / missing PAT → Settings.
 - 404 on a detail → Retry and Back (Back is user-initiated leave).
 - Search 403/422 → stay on the query with the dedicated copy.
+- Merge / Create timeout: GET to confirm. If the write landed, follow the success path. If it did not, Page Error copy is "Request may have been submitted. Refresh to confirm." Other timeouts stay "Request timed out."
 
 Load more failure uses the same page-top Page Error; existing rows stay; the Load more control stays visible. Successful regions on a compound page stay visible. Page Error is not dismiss-only without an action.
 

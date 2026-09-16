@@ -5,7 +5,7 @@
 
 ## 概述
 
-ViewModel 通过 `IGitHubClientFactory` 获取带认证的 `HttpClient`，再按资源域创建 `IGitHubReposApi`、`IGitHubSearchApi` 或 `IGitHubActionsApi` 代理。
+ViewModel 写路径优先 `OpenAsync` 作用域（用完释放 `HttpClient`，不释放工厂持有的 handler）。列表分页经 `CreatePagedSessionAsync`。再按资源域创建 `IGitHubReposApi`、`IGitHubSearchApi` 或 `IGitHubActionsApi` 代理。
 
 ## 范围
 
@@ -417,7 +417,7 @@ Write on `IGitHubReposApi`. `MarkPullRequestReadyForReview` is `POST .../pulls/{
 Write on `IGitHubReposApi`. `ConvertPullRequestToDraft` is `POST .../pulls/{number}/convert_to_draft` with no body (`ApiResponse<PullRequest>`, 201). Conversation offers it for open non-draft unmerged pull requests. 403/422 stay on the page. Ready for review stays the draft-only inverse.
 
 ## 设计权衡- **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续由 Handler 注入，并由 Paged GitHub Session 统一 cursor / Link / dispose。
-- **Paged GitHub Session vs 元组工厂**：列表与 Search ViewModel 面向 session；`CreatePagedClientAsync` 仍留在工厂上，删除为 follow-up。
+- **Paged GitHub Session vs 元组工厂**：列表与 Search ViewModel 面向 session；`CreatePagedSessionAsync` 构造 session。写路径用 `OpenAsync`。
 - **404 处理**：README 等可选资源在 ViewModel 层吞掉 NotFound，不失败整页加载。
 
 ## 已知局限
