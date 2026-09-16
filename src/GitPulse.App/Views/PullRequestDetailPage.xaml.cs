@@ -11,7 +11,7 @@ namespace GitPulse.App.Views;
 /// <list type="bullet">
 /// <item><b>Conversation</b>: PR description, merge controls, and issue comments.</item>
 /// <item><b>Files</b>: Changed files with diff rendering (WebView) and inline
-/// review comments. Supports posting new comments and replies.</item>
+/// review comments. Supports posting new comments.</item>
 /// </list>
 /// Below 840px, Files is a list that pushes a stacked diff (GitHub Mobile);
 /// at or above 840px it is a list|diff split.
@@ -268,14 +268,6 @@ public partial class PullRequestDetailPage : ContentPage
         {
             // Start a new comment on this file (line 0 = file-level comment).
             _diffViewModel.StartCommentCommand.Execute(new CommentTarget(filePath, 0));
-        }
-    }
-
-    private void OnReplyClicked(object? sender, EventArgs e)
-    {
-        if (sender is Button btn && btn.CommandParameter is long commentId)
-        {
-            _diffViewModel.StartReplyCommand.Execute(commentId);
         }
     }
 

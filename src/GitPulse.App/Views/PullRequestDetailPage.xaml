@@ -872,6 +872,18 @@
                                     FontSize="14" />
                         </VerticalStackLayout>
                     </Border>
+                    <Border IsVisible="{Binding DiffViewModel.SuccessMessage.Value, Source={x:Reference _pageRoot}, Converter={StaticResource StringToBoolConverter}}"
+                            BackgroundColor="{StaticResource Green100}"
+                            Stroke="Transparent"
+                            StrokeShape="RoundRectangle 8"
+                            Padding="12">
+                        <Label Text="{Binding DiffViewModel.SuccessMessage.Value, Source={x:Reference _pageRoot}}"
+                               TextColor="{StaticResource Green900}"
+                               FontSize="13"
+                               LineBreakMode="WordWrap"
+                               VerticalOptions="Center"
+                               AutomationId="PullRequestReviewCommentSuccess" />
+                    </Border>
                     <Border IsVisible="{Binding DiffViewModel.ErrorMessage.Value, Source={x:Reference _pageRoot}, Converter={StaticResource StringToBoolConverter}}"
                             BackgroundColor="{StaticResource Red100}"
                             Stroke="Transparent"
