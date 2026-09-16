@@ -121,6 +121,62 @@ public class GitHubQueryHandlerTests
         Assert.Contains("state=closed", uri);
     }
 
+    [Fact]
+    public async Task SendAsync_Page1_OverwritesExistingPageParam()
+    {
+        var handler = new GitHubQueryHandler(new CapturingHandler()) { Page = 1 };
+
+        var uri = await SendAsync(handler, "https://api.github.com/user/repos?page=9");
+
+        Assert.Contains("page=1", uri);
+        Assert.DoesNotContain("page=9", uri);
+    }
+
+    [Fact]
+    public async Task SendAsync_DefaultPerPage_OverwritesExistingPerPageParam()
+    {
+        var handler = new GitHubQueryHandler(new CapturingHandler()) { PerPage = 30 };
+
+        var uri = await SendAsync(handler, "https://api.github.com/user/repos?per_page=100");
+
+        Assert.Contains("per_page=30", uri);
+        Assert.DoesNotContain("per_page=100", uri);
+    }
+
+    [Fact]
+    public async Task SendAsync_EncodedAmpersandInQuery_RoundTrips()
+    {
+        var handler = new GitHubQueryHandler(new CapturingHandler()) { Page = 2 };
+
+        var uri = await SendAsync(handler, "https://api.github.com/search/code?q=a%26b");
+
+        Assert.Contains("q=a%26b", uri);
+        Assert.Contains("page=2", uri);
+        Assert.DoesNotContain("q=a&b", uri);
+    }
+
+    [Fact]
+    public async Task SendAsync_FlagQueryPair_IsPreserved()
+    {
+        var handler = new GitHubQueryHandler(new CapturingHandler()) { Page = 2 };
+
+        var uri = await SendAsync(handler, "https://api.github.com/user/repos?draft");
+
+        Assert.Contains("draft=", uri);
+        Assert.Contains("page=2", uri);
+    }
+
+    [Fact]
+    public async Task SendAsync_DuplicateQueryKeys_LastValueWins()
+    {
+        var handler = new GitHubQueryHandler(new CapturingHandler());
+
+        var uri = await SendAsync(handler, "https://api.github.com/user/repos?sort=created&sort=updated");
+
+        Assert.Contains("sort=updated", uri);
+        Assert.DoesNotContain("sort=created", uri);
+    }
+
     /// <summary>
     /// Inner handler that returns a 200 OK without doing any I/O.
     /// </summary>
