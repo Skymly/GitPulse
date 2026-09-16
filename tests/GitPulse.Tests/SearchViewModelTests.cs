@@ -210,18 +210,16 @@ public class SearchViewModelTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Forbidden, "rate limit")]
-    [InlineData(HttpStatusCode.UnprocessableEntity, "syntax")]
-    [InlineData(HttpStatusCode.InternalServerError, "Search failed")]
+    [InlineData(HttpStatusCode.Forbidden, "rate limit", "0")]
+    [InlineData(HttpStatusCode.UnprocessableEntity, "syntax", null)]
+    [InlineData(HttpStatusCode.InternalServerError, "Search failed", null)]
     public async Task Search_HttpFailure_ShowsSpecificMessage(
         HttpStatusCode statusCode,
-        string expectedMessage)
+        string expectedMessage,
+        string? remaining)
     {
         var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(new HttpResponseMessage(statusCode)
-            {
-                Content = new StringContent("{}", Encoding.UTF8, "application/json"),
-            }));
+            Task.FromResult(StatusResponse(statusCode, remaining)));
         using var vm = CreateViewModel(handler);
         vm.Query.Value = "failing query";
 
@@ -229,6 +227,35 @@ public class SearchViewModelTests
 
         Assert.Contains(expectedMessage, vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
         Assert.False(vm.IsLoading.Value);
+    }
+
+    [Fact]
+    public async Task Search_ForbiddenWithRemaining_IsNotRateLimit()
+    {
+        var handler = new RecordingHandler((_, _, _) =>
+            Task.FromResult(StatusResponse(HttpStatusCode.Forbidden, "12")));
+        using var vm = CreateViewModel(handler);
+        vm.Query.Value = "private repo";
+
+        await vm.SearchCommand.ExecuteAsync(null);
+
+        Assert.Contains("Not allowed", vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("rate limit", vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.False(vm.IsLoading.Value);
+    }
+
+    [Fact]
+    public async Task Search_ForbiddenWithoutRemainingHeader_IsNotRateLimit()
+    {
+        var handler = new RecordingHandler((_, _, _) =>
+            Task.FromResult(StatusResponse(HttpStatusCode.Forbidden)));
+        using var vm = CreateViewModel(handler);
+        vm.Query.Value = "sso org";
+
+        await vm.SearchCommand.ExecuteAsync(null);
+
+        Assert.Contains("Not allowed", vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("rate limit", vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -368,11 +395,9 @@ public class SearchViewModelTests
         HttpStatusCode statusCode,
         string expectedMessage)
     {
+        var remaining = statusCode == HttpStatusCode.Forbidden ? "0" : null;
         var handler = new RecordingHandler((_, _, _) =>
-            Task.FromResult(new HttpResponseMessage(statusCode)
-            {
-                Content = new StringContent("{}", Encoding.UTF8, "application/json"),
-            }));
+            Task.FromResult(StatusResponse(statusCode, remaining)));
         using var vm = CreateViewModel(handler);
 
         await vm.SelectHubCommand.ExecuteAsync(hub);
@@ -380,6 +405,21 @@ public class SearchViewModelTests
         Assert.Contains(expectedMessage, vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(hub, vm.SelectedHub.Value);
         Assert.False(vm.IsLoading.Value);
+    }
+
+    [Theory]
+    [MemberData(nameof(InboxHubs))]
+    public async Task SelectHub_ForbiddenWithRemaining_IsNotRateLimit(string hub)
+    {
+        var handler = new RecordingHandler((_, _, _) =>
+            Task.FromResult(StatusResponse(HttpStatusCode.Forbidden, "8")));
+        using var vm = CreateViewModel(handler);
+
+        await vm.SelectHubCommand.ExecuteAsync(hub);
+
+        Assert.Contains("Not allowed", vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("rate limit", vm.ErrorMessage.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(hub, vm.SelectedHub.Value);
     }
 
     [Fact]
@@ -542,6 +582,19 @@ public class SearchViewModelTests
         };
         if (link is not null)
             response.Headers.Add("Link", link);
+        return response;
+    }
+
+    private static HttpResponseMessage StatusResponse(
+        HttpStatusCode statusCode,
+        string? remaining = null)
+    {
+        var response = new HttpResponseMessage(statusCode)
+        {
+            Content = new StringContent("{}", Encoding.UTF8, "application/json"),
+        };
+        if (remaining is not null)
+            response.Headers.TryAddWithoutValidation("X-RateLimit-Remaining", remaining);
         return response;
     }
 
