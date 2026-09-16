@@ -49,6 +49,11 @@ public partial class CheckRunDetailPage : ContentPage
         _ = AppNavigation.GoToAsync("..");
     }
 
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
+    }
+
     private async void OnAnnotationTapped(object? sender, TappedEventArgs e)
     {
         if (sender is not BindableObject bindable

@@ -97,6 +97,11 @@ public partial class IssueDetailPage : ContentPage
         _ = AppNavigation.GoToAsync("..");
     }
 
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();

@@ -48,6 +48,11 @@ public partial class RepoDetailPage : ContentPage
         _ = AppNavigation.GoToAsync("..");
     }
 
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
+    }
+
     private async void OnOpenForkClicked(object? sender, EventArgs e)
     {
         var fullName = _viewModel.ForkedFullName.Value;

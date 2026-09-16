@@ -102,6 +102,11 @@ public partial class CreatePullRequestPage : ContentPage
         _ = AppNavigation.GoToAsync("..");
     }
 
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
+    }
+
     private async void OnCreateClicked(object? sender, EventArgs e)
     {
         var empty = string.IsNullOrWhiteSpace(_viewModel.TitleInput.Value);

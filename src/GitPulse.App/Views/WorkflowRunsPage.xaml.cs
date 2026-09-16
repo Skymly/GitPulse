@@ -54,6 +54,11 @@ public partial class WorkflowRunsPage : ContentPage
         _ = AppNavigation.GoToAsync("..");
     }
 
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
+    }
+
     private void OnRunSelected(object? sender, SelectionChangedEventArgs e)
     {
         if (e.CurrentSelection.FirstOrDefault() is not WorkflowRun run)

@@ -85,6 +85,11 @@ public partial class FileEditorPage : ContentPage
         _ = AppNavigation.GoToAsync("..");
     }
 
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
+    }
+
     private async Task LeaveAfterDeleteAsync()
     {
         if (_leavingAfterDelete)

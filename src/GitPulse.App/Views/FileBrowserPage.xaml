@@ -53,7 +53,7 @@
                 StrokeShape="RoundRectangle 8"
                 Padding="12"
                 Margin="16,0">
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
                 <Label Text="{Binding ErrorMessage.Value}"
                        TextColor="{StaticResource Red900}"
                        FontSize="13"
@@ -67,6 +67,13 @@
                         Padding="8,10"
                         FontSize="13" />
                 <Button Grid.Column="2"
+                        Text="Settings"
+                        Clicked="OnOpenSettingsClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Red900}"
+                        Padding="8,10"
+                        FontSize="13" />
+                <Button Grid.Column="3"
                         Text="Back"
                         Clicked="OnBackClicked"
                         BackgroundColor="Transparent"
