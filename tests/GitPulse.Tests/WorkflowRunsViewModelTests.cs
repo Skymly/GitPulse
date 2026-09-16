@@ -168,12 +168,51 @@ public class WorkflowRunsViewModelTests
         Assert.Equal(11, vm.SelectedWorkflow.Value!.Id);
     }
 
+    private const string RepoJsonDevelop =
+        "{\"id\":1,\"name\":\"repo\",\"full_name\":\"owner/repo\",\"default_branch\":\"develop\"}";
+
     [Fact]
-    public async Task Dispatch_WhenAllowed_StaysQuiet()
+    public async Task Load_SetsDispatchRefFromDefaultBranch()
     {
-        HttpRequestMessage? post = null;
         var handler = new MockHttpHandler()
             .When("/repos/owner/repo/actions/runs", RunsJson)
+            .When("/repos/owner/repo/actions/workflows", WorkflowsJson)
+            .When("/repos/owner/repo", RepoJsonDevelop);
+        using var vm = new WorkflowRunsViewModel(new FakeGitHubClientFactory(handler));
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("develop", vm.DispatchRef.Value);
+    }
+
+    [Fact]
+    public async Task Load_KeepsTypedDispatchRef()
+    {
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/actions/runs", RunsJson)
+            .When("/repos/owner/repo/actions/workflows", WorkflowsJson)
+            .When("/repos/owner/repo", RepoJsonDevelop);
+        using var vm = new WorkflowRunsViewModel(new FakeGitHubClientFactory(handler));
+        vm.Initialize("owner", "repo");
+        vm.DispatchRef.Value = "feature";
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal("feature", vm.DispatchRef.Value);
+    }
+
+    [Fact]
+    public async Task Dispatch_WhenAllowed_ReloadsAndShowsSuccess()
+    {
+        HttpRequestMessage? post = null;
+        var runGets = 0;
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/actions/runs", _ =>
+            {
+                Interlocked.Increment(ref runGets);
+                return new MockResponse(RunsJson);
+            })
             .When("/repos/owner/repo/actions/workflows", WorkflowsJson)
             .When("/repos/owner/repo/actions/workflows/11/dispatches", req =>
             {
@@ -190,6 +229,8 @@ public class WorkflowRunsViewModelTests
         Assert.NotNull(post);
         Assert.Equal(HttpMethod.Post, post!.Method);
         Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal("Workflow dispatched.", vm.SuccessMessage.Value);
+        Assert.True(runGets >= 2);
         Assert.False(vm.IsDispatching.Value);
     }
 
