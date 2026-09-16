@@ -155,22 +155,27 @@ public sealed partial class PullRequestsViewModel : IDisposable
                 var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(ct);
                 return ApiResponses.PageOrThrow(response);
             });
-            if (!result.Completed)
-                return;
-            if (result.Error is not null)
+            if (result.Completed)
             {
-                ErrorMessage.Value = result.Error;
-                return;
+                if (result.Error is not null)
+                {
+                    ErrorMessage.Value = result.Error;
+                }
+                else
+                {
+                    foreach (var pr in result.Items)
+                        PullRequests.Add(pr);
+                    CanLoadMore.Value = result.HasNextPage;
+                }
             }
-
-            foreach (var pr in result.Items)
-                PullRequests.Add(pr);
-            CanLoadMore.Value = result.HasNextPage;
         }
         finally
         {
             IsLoading.Value = false;
         }
+
+        if (_reloadQueued)
+            await LoadAsync();
     }
 
     public void Dispose()

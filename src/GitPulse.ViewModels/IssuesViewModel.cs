@@ -167,21 +167,26 @@ public sealed partial class IssuesViewModel : IDisposable
                 var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync(ct);
                 return ApiResponses.PageOrThrow(response);
             });
-            if (!result.Completed)
-                return;
-            if (result.Error is not null)
+            if (result.Completed)
             {
-                ErrorMessage.Value = result.Error;
-                return;
+                if (result.Error is not null)
+                {
+                    ErrorMessage.Value = result.Error;
+                }
+                else
+                {
+                    AppendIssues(result.Items);
+                    CanLoadMore.Value = result.HasNextPage;
+                }
             }
-
-            AppendIssues(result.Items);
-            CanLoadMore.Value = result.HasNextPage;
         }
         finally
         {
             IsLoading.Value = false;
         }
+
+        if (_reloadQueued)
+            await LoadAsync();
     }
 
     /// <summary>
