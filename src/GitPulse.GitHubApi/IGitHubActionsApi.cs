@@ -5,7 +5,7 @@ using R3;
 namespace GitPulse.GitHubApi;
 
 /// <summary>
-/// Declarative GitHub Actions REST API (workflow runs, jobs, rerun, logs).
+/// Declarative GitHub Actions REST API (workflow runs, jobs, rerun, dispatch).
 /// Pagination for list endpoints is injected by <c>GitHubQueryHandler</c>.
 /// </summary>
 public interface IGitHubActionsApi
@@ -30,11 +30,4 @@ public interface IGitHubActionsApi
     [Post("/repos/{owner}/{repo}/actions/workflows/{workflowId}/dispatches")]
     Observable<ApiResponse<Unit>> DispatchWorkflow(
         string owner, string repo, long workflowId, [Body] WorkflowDispatchRequest body);
-
-    /// <summary>
-    /// Returns a redirect to a short-lived plain-text log download URL.
-    /// Callers should follow redirects or read the Location header.
-    /// </summary>
-    [Get("/repos/{owner}/{repo}/actions/jobs/{jobId}/logs")]
-    Observable<ApiResponse<string>> GetJobLogs(string owner, string repo, long jobId);
 }
