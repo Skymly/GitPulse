@@ -7,7 +7,7 @@ namespace GitPulse.App.Views;
 
 /// <summary>
 /// Repos page code-behind — Observables.Events.R3 pipelines for filter text
-/// and remaining-items load more. SearchBar still uses the ADR-007 adapter
+/// and remaining-items load more. SearchBar still uses the ADR-015 adapter
 /// because <c>SearchBar.Events()</c> hits CS0122.
 /// </summary>
 public partial class ReposPage : ContentPage
