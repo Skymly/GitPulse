@@ -82,6 +82,11 @@ public partial class IssuesPage : ContentPage
         _ = AppNavigation.GoToAsync("..");
     }
 
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
+    }
+
     private async void OnPrsClicked(object? sender, EventArgs e)
     {
         await AppNavigation.GoToAsync(

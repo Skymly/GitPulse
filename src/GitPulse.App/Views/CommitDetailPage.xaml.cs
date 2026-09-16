@@ -80,6 +80,11 @@ public partial class CommitDetailPage : ContentPage
 
     private void OnLeavePageClicked(object? sender, EventArgs e) => LeavePage();
 
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
+    }
+
     private void OnBackToFilesClicked(object? sender, EventArgs e) => ShowStackedList();
 
     protected override bool OnBackButtonPressed()

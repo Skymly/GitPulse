@@ -89,6 +89,11 @@ public partial class PullRequestsPage : ContentPage
         _ = AppNavigation.GoToAsync("..");
     }
 
+    private void OnOpenSettingsClicked(object? sender, EventArgs e)
+    {
+        _ = AppNavigation.GoToAsync("//SettingsPage");
+    }
+
     private void OnFilterOpen(object? sender, EventArgs e)
     {
         _viewModel.StateFilter.Value = "open";
