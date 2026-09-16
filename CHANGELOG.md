@@ -101,6 +101,18 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Fixed
 
+- **PR / Commit Gate:** A 404 on check endpoints is No checks. Other load
+  failures show Inline Error in the Gate area with Retry (`#588`).
+- **PR Files / branches:** Files, review comments, and branches follow
+  `Link` pages (cap 10) instead of stopping at page 1 (`#591`).
+- **PR / Commit Gate:** When check-runs `total_count` exceeds the first
+  page, Success / No checks become Partial (`#591`).
+- **Pull request Files / Gate:** After a refresh, a new head SHA reloads
+  the diff and Gate (`#595`).
+- **PR / Commit Gate:** A failed check plus an in-progress check is
+  Failure, not Pending. Cancelled checks are muted, not Failure (`#597`).
+- **Pull request Files:** Posting a review comment shows Inline Success
+  (`#600`).
 - **File editor:** Encoding that is not GitHub `base64`, files larger than
   1 MB, and empty blobs stay read-only with a reason instead of a false
   error (`#552`).

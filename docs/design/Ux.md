@@ -80,7 +80,7 @@ Two surfaces only:
 - **Page Error** — in-page failure for a GitHub request that did not succeed (load, write, timeout, 401/403/404/422/5xx).
 - **Field Error** — client-side validation next to the control that must change.
 
-Success is quiet: the page state updates. Never put success in the error banner. **Toast** remains the Windows out-of-app surface for New Notification while the window is hidden; it is not an error surface. No app-wide error modal queue.
+Success is quiet: the page state updates. Never put success in the error banner. Exception: a successful Files review comment shows Inline Success next to the composer, because the page does not bind the comment list. **Toast** remains the Windows out-of-app surface for New Notification while the window is hidden; it is not an error surface. No app-wide error modal queue.
 
 ### Stay-on-page
 
@@ -216,12 +216,14 @@ Windows expression locked in [Prototype the top-ranked surfaces](https://github.
 - Locked B detail header; TabBar hidden (stacked Surface).
 - Lifecycle strip under the header: head→base, mergeable, Merge (danger, Destructive Confirm), Close, Convert to draft. Merge is not buried in a card.
 - Main column: body Markdown, submitted reviews + Review Event composer, comments + composer.
-- Metadata/checks rail: assignees, labels (hex swatch + name), requested reviewers, Gate Rollup (Domain Icon + conclusion text, never color alone).
+- Metadata/checks rail: assignees, labels (hex swatch + name), requested reviewers, Gate Rollup (Domain Icon + conclusion text, never color alone). Gate HTTP 404 is No checks; other Gate load failures are Inline Error in the checks region with Retry, not the page-top Page Error.
 
 **Files**:
 
 - File list | diff split. Diff view lives here.
 - Line-comment stub on the focused file. Not accordion stacking. Not a Files-first default.
+- After a successful review-comment POST, Inline Success next to the composer (not the error banner).
+- When `Head.Sha` changes after the first load, Files lazy-load and Gate reload.
 
 Destructive Confirm: platform dialog names `#n` + title and the selected merge method; Cancel + Merge; Escape cancels; Merge is not the default.
 
