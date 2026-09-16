@@ -113,12 +113,17 @@ public sealed partial class PrDiffViewModel : IDisposable
 
             await Task.WhenAll(filesTask, commentsTask);
 
+            var filesResponse = filesTask.Result;
+            var commentsResponse = commentsTask.Result;
+            ApiResponses.EnsureSuccess(filesResponse);
+            ApiResponses.EnsureSuccess(commentsResponse);
+
             Files.Clear();
-            foreach (var f in filesTask.Result)
+            foreach (var f in filesResponse.Content ?? [])
                 Files.Add(f);
 
             FileComments.Clear();
-            foreach (var c in commentsTask.Result)
+            foreach (var c in commentsResponse.Content ?? [])
             {
                 if (!FileComments.TryGetValue(c.Path, out var list))
                 {

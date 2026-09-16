@@ -84,9 +84,10 @@ public sealed partial class CreatePullRequestViewModel : IDisposable
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
-            var branches = await api.ListBranches(_owner, _repo).FirstAsync(cts.Token);
+            var response = await api.ListBranches(_owner, _repo).FirstAsync(cts.Token);
+            ApiResponses.EnsureSuccess(response);
             Branches.Clear();
-            foreach (var b in branches)
+            foreach (var b in response.Content ?? [])
                 Branches.Add(b);
         }
         catch (OperationCanceledException)
