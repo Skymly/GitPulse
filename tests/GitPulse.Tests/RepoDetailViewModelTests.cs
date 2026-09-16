@@ -119,6 +119,27 @@ public class RepoDetailViewModelTests
     }
 
     [Fact]
+    public async Task Load_ReadmeServerErrorContaining404_SetsErrorMessage()
+    {
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}", RepoJson)
+            .When($"/repos/{Owner}/{Repo}/readme", _ =>
+                new MockResponse(
+                    "{\"message\":\"NotFound 404-demo\"}",
+                    StatusCode: HttpStatusCode.InternalServerError,
+                    AttachRequest: true));
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new RepoDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Contains("Load failed", vm.ErrorMessage.Value);
+        Assert.NotNull(vm.Repo.Value);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task Load_WithEmptyOwner_DoesNothing()
     {
         var handler = new MockHttpHandler()

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Net;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Models;
@@ -393,14 +394,16 @@ public sealed partial class RepoDetailViewModel : IDisposable
 
     private static bool IsNotFoundError(Exception ex)
     {
-        if (ex is HttpRequestException { StatusCode: System.Net.HttpStatusCode.NotFound })
-            return true;
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is ApiException { StatusCode: HttpStatusCode.NotFound })
+                return true;
 
-        if (ex.Message.Contains("404", StringComparison.Ordinal)
-            || ex.Message.Contains("NotFound", StringComparison.OrdinalIgnoreCase))
-            return true;
+            if (current is HttpRequestException { StatusCode: HttpStatusCode.NotFound })
+                return true;
+        }
 
-        return ex.InnerException is not null && IsNotFoundError(ex.InnerException);
+        return false;
     }
 
     /// <summary>Decode base64-encoded file content to a UTF-8 string.</summary>
