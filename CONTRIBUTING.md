@@ -7,10 +7,12 @@ workflow and release conventions.
 
 ### Before you open a PR
 
-1. Build and test locally (same as CI):
+1. Build and test locally (same as CI). Every PR must pass `CiLib`. Run
+   `CiAll` when the PR changes App or formatting:
 
    ```powershell
-   ./build.ps1 --target CiAll --configuration Release
+   ./build.ps1 --target CiLib --configuration Release
+   ./build.ps1 --target CiAll --configuration Release   # App or formatting
    ```
 
 2. If you change user-facing behavior, update documentation:
@@ -28,8 +30,10 @@ workflow and release conventions.
 ### PR conventions
 
 - **Titles and descriptions**: English.
-- **Scope**: Prefer one layer per PR (App, Core, GitHubApi, Services, Tests, or
-  Solution Items for root props / `build/` / `.github/`).
+- **Scope**: Prefer one layer per PR: App, ViewModels, Core, GitHubApi,
+  Services, Tests (`tests/GitPulse.Tests/`), or Docs-Repo (`docs/`, root
+  markdown, `build/`, `.github/`). Windows/Android UI test projects are not a
+  separate PR module; they ride with App changes and `CiAll`.
 - **Commits**: English.
 
 ## Build & CI (Nuke)
@@ -38,7 +42,10 @@ Build orchestration uses [Nuke](https://nuke.build). The CI workflow calls Nuke
 targets; the same commands run locally.
 
 ```powershell
-# CI-equivalent (what the workflow runs)
+# Library tests (required on every PR)
+./build.ps1 --target CiLib --configuration Release
+
+# Format + Windows + Android (required when App or formatting changed)
 ./build.ps1 --target CiAll --configuration Release
 
 # Quick local build + test
@@ -57,7 +64,7 @@ targets; the same commands run locally.
 Equivalent dotnet CLI:
 
 ```powershell
-dotnet run --project build/_build.csproj -- --target CiAll --configuration Release
+dotnet run --project build/_build.csproj -- --target CiLib --configuration Release
 ```
 
 ## Releases and versioning
