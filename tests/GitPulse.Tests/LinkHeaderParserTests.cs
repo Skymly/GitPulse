@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Reflection;
 using GitPulse.Core.Http;
 using Xunit;
 
@@ -45,22 +46,10 @@ public class LinkHeaderParserTests
     }
 
     [Fact]
-    public void GetNextPageNumber_WithNextUrl_ReturnsPageNumber()
+    public void LinkHeaderParser_DoesNotExposeGetNextPageNumber()
     {
-        var response = new HttpResponseMessage();
-        response.Headers.Add("Link",
-            "<https://api.github.com/repos/owner/repo/issues?page=3>; rel=\"next\"");
-
-        Assert.Equal(3, LinkHeaderParser.GetNextPageNumber(response.Headers));
-    }
-
-    [Fact]
-    public void GetNextPageNumber_NoNextUrl_ReturnsNull()
-    {
-        var response = new HttpResponseMessage();
-        response.Headers.Add("Link",
-            "<https://api.github.com/repos/owner/repo/issues?page=1>; rel=\"first\"");
-
-        Assert.Null(LinkHeaderParser.GetNextPageNumber(response.Headers));
+        Assert.Null(typeof(LinkHeaderParser).GetMethod(
+            "GetNextPageNumber",
+            BindingFlags.Public | BindingFlags.Static));
     }
 }

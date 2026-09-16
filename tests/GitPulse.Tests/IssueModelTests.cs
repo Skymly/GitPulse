@@ -20,6 +20,7 @@ public class IssueModelTests
         Assert.Null(issue.User);
         Assert.Null(issue.PullRequestRef);
         Assert.False(issue.IsPullRequest);
+        Assert.Null(typeof(Issue).GetProperty("MilestoneTitle"));
     }
 
     [Fact]
