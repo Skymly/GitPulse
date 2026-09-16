@@ -89,14 +89,26 @@ public partial class FileBrowserPage : ContentPage
 
     private async void OnNewFileClicked(object? sender, EventArgs e)
     {
-        // Navigate to editor without SHA (new file mode).
-        // The new file path will be relative to the current directory.
+        var name = await DisplayPromptAsync(
+            "New file",
+            "File name in this folder.",
+            accept: "Create",
+            cancel: "Cancel",
+            placeholder: "new-file.txt",
+            initialValue: "new-file.txt");
+        if (string.IsNullOrWhiteSpace(name))
+            return;
+
+        name = name.Trim().Replace('\\', '/').Trim('/');
+        if (name.Length == 0)
+            return;
+
         var currentDir = _viewModel.CurrentPath.Value;
         var basePath = string.IsNullOrEmpty(currentDir) ? "" : currentDir + "/";
         await AppNavigation.GoToAsync(
             $"FileEditorPage?owner={Uri.EscapeDataString(_viewModel.Owner.Value)}"
             + $"&repo={Uri.EscapeDataString(_viewModel.RepoName.Value)}"
-            + $"&path={Uri.EscapeDataString(basePath + "new-file.txt")}"
+            + $"&path={Uri.EscapeDataString(basePath + name)}"
             + "&sha=");
     }
 
