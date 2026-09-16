@@ -160,9 +160,9 @@ internal sealed class PullRequestLifecycle(
                     response = await api.MergePullRequest(io.Owner, io.Repo, io.Number, request)
                         .FirstAsync(cts.Token);
                 }
-                catch (OperationCanceledException)
+                catch (Exception ex) when (WriteTimeout.IsCanceled(ex))
                 {
-                    io.Timeout();
+                    await ConfirmMergeAfterTimeoutAsync(api);
                     return;
                 }
                 catch (ApiException ex) when ((int)ex.StatusCode == 409)
@@ -191,9 +191,9 @@ internal sealed class PullRequestLifecycle(
                     api, cts.Token, pr => Copy(pr, state: "closed", merged: true));
             }
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (WriteTimeout.IsCanceled(ex))
         {
-            io.Timeout();
+            io.Error.Value = WriteTimeout.MaybeSubmitted;
         }
         catch (ApiException ex) when ((int)ex.StatusCode == 409)
         {
@@ -379,6 +379,27 @@ internal sealed class PullRequestLifecycle(
                 apply(fallback(current));
             io.Error.Value = "The change was saved. Refresh to see the latest state.";
         }
+    }
+
+    private async Task ConfirmMergeAfterTimeoutAsync(IGitHubReposApi api)
+    {
+        try
+        {
+            using var confirm = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var pr = await api.GetPullRequest(io.Owner, io.Repo, io.Number)
+                .FirstAsync(confirm.Token);
+            if (pr.Merged)
+            {
+                apply(pr);
+                return;
+            }
+        }
+        catch (Exception)
+        {
+            // Still unknown whether GitHub accepted the merge.
+        }
+
+        io.Error.Value = WriteTimeout.MaybeSubmitted;
     }
 
     private static PullRequest Copy(

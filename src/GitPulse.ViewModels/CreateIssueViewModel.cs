@@ -86,9 +86,9 @@ public sealed partial class CreateIssueViewModel : IDisposable
             var issue = await api.CreateIssue(_owner, _repo, request).FirstAsync(cts.Token);
             CreatedIssueNumber.Value = issue.Number;
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (WriteTimeout.IsCanceled(ex))
         {
-            ErrorMessage.Value = "Request timed out.";
+            await ConfirmCreatedIssueAsync();
         }
         catch (Exception ex)
         {
@@ -98,6 +98,39 @@ public sealed partial class CreateIssueViewModel : IDisposable
         {
             IsSaving.Value = false;
         }
+    }
+
+    private async Task ConfirmCreatedIssueAsync()
+    {
+        try
+        {
+            using var scope = await _clientFactory.OpenAsync();
+            var client = scope.Client;
+            if (client.DefaultRequestHeaders.Authorization is null)
+            {
+                ErrorMessage.Value = WriteTimeout.MaybeSubmitted;
+                return;
+            }
+
+            var api = RestService.For<IGitHubReposApi>(client);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync(cts.Token);
+            var title = TitleInput.Value;
+            var match = (response.Content ?? []).FirstOrDefault(issue =>
+                !issue.IsPullRequest
+                && string.Equals(issue.Title, title, StringComparison.Ordinal));
+            if (match is not null)
+            {
+                CreatedIssueNumber.Value = match.Number;
+                return;
+            }
+        }
+        catch (Exception)
+        {
+            // Still unknown whether GitHub created the issue.
+        }
+
+        ErrorMessage.Value = WriteTimeout.MaybeSubmitted;
     }
 
     public void Dispose()
