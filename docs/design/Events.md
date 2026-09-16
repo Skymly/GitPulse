@@ -18,6 +18,8 @@ MAUI UI 事件与 R3 响应式管道的集成约定；通知轮询的进程级�
 | 仓库过滤防抖 | SearchBar → ADR-015 adapter → `.Events().TextChanged` → Debounce(300ms) → DistinctUntilChanged → VM | `ReposPage` / `UiEventPipelines` |
 | GitHub Search 输入 | SearchBar → ADR-015 adapter → `.Events().TextChanged` → Debounce(300ms) → DistinctUntilChanged → 查询状态 | `SearchPage` / `UiEventPipelines` |
 | Repos 加载更多 | CollectionView remaining-items → adapter → `.Events().Requested` → `LoadMoreCommand` | `ReposPage` / `UiEventPipelines` |
+| Search / inbox 加载更多 | CollectionView remaining-items → adapter → `.Events().Requested` → `LoadMoreCommand` | `SearchPage` (typed Search + Review / Assigned / Mentions) / `UiEventPipelines` |
+| 仓库内列表加载更多 | CollectionView remaining-items → adapter → `.Events().Requested` → `LoadMoreCommand` | `IssuesPage` / `PullRequestsPage` / `CommitsPage` / `WorkflowRunsPage` / `UiEventPipelines` |
 | 通知轮询 | `Observable.Interval` → REST（`ApiResponse` + `Link`，≤10 页）→ event | `NotificationPoller` |
 | 轮询 → UI | poller event → R3 绑定 | `NotificationsViewModel` |
 | 轮询 → Toast | poller event → id 差集 → `IToastNotifier`（仅主窗隐藏） | `NotificationToastHost` / `NotificationToastCoordinator` |
