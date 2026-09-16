@@ -131,14 +131,20 @@ public sealed partial class NotificationsViewModel : IDisposable
         context.Post(_ => action(), null);
     }
 
-    /// <summary>Start polling (called when the page appears).</summary>
+    /// <summary>
+    /// Start polling. Idempotent; the toast host already starts the poller
+    /// at process start (ADR-010).
+    /// </summary>
     [RelayCommand]
     private void StartPolling()
     {
         _poller.Start();
     }
 
-    /// <summary>Stop polling (called when the page disappears).</summary>
+    /// <summary>
+    /// Stop polling. Used when the PAT is cleared, not when the page
+    /// disappears (ADR-010).
+    /// </summary>
     [RelayCommand]
     private void StopPolling()
     {
