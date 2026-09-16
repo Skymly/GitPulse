@@ -122,9 +122,15 @@ public sealed partial class CreatePullRequestViewModel : IDisposable
 
         if (string.IsNullOrWhiteSpace(title)
             || string.IsNullOrWhiteSpace(head)
-            || string.IsNullOrWhiteSpace(@base)
-            || string.Equals(head, @base, StringComparison.Ordinal))
+            || string.IsNullOrWhiteSpace(@base))
         {
+            ErrorMessage.Value = "Title, head branch, and base branch are required.";
+            return;
+        }
+
+        if (string.Equals(head, @base, StringComparison.Ordinal))
+        {
+            ErrorMessage.Value = "Head and base must be different branches.";
             return;
         }
 
