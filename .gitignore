@@ -55,7 +55,7 @@ token.bin
 ## Scratch / editor local
 .scratch/
 .claude/
-nul
+
 
 ## Nuke
 .nuke/temp/
