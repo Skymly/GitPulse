@@ -171,6 +171,34 @@ public class RepoDetailViewModelTests
     }
 
     [Fact]
+    public async Task LoadBranches_FollowsNextLink_ConcatenatesPages()
+    {
+        const string page1 =
+            "[{\"name\":\"main\",\"commit\":{\"sha\":\"abc\",\"url\":\"https://api.github.com/repos/owner/repo/commits/abc\"},\"protected\":false}]";
+        const string page2 =
+            "[{\"name\":\"feature\",\"commit\":{\"sha\":\"def\",\"url\":\"https://api.github.com/repos/owner/repo/commits/def\"},\"protected\":true}]";
+        var handler = new MockHttpHandler()
+            .When($"/repos/{Owner}/{Repo}/branches", req =>
+            {
+                var query = req.RequestUri?.Query ?? "";
+                if (query.Contains("page=2", StringComparison.Ordinal))
+                    return new MockResponse(page2);
+                return new MockResponse(
+                    page1,
+                    "<https://api.github.com/repos/owner/repo/branches?page=2>; rel=\"next\"");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new RepoDetailViewModel(factory, new FakeBrowserLauncher());
+        vm.Initialize(Owner, Repo);
+
+        await vm.LoadBranchesCommand.ExecuteAsync(null);
+
+        Assert.Equal(["main", "feature"], vm.Branches.Select(b => b.Name).ToArray());
+        Assert.True(vm.Branches[1].Protected);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task LoadBranches_LoadsOnlyOnce()
     {
         var callCount = 0;

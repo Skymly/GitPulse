@@ -158,6 +158,42 @@ public class PrDiffViewModelTests
     }
 
     [Fact]
+    public async Task Load_FollowsNextLink_ConcatenatesFiles()
+    {
+        const string page1 =
+            "[{\"sha\":\"blob1\",\"filename\":\"src/Program.cs\",\"status\":\"modified\"," +
+            "\"additions\":5,\"deletions\":2,\"changes\":7," +
+            "\"blob_url\":\"https://github.com/owner/repo/blob/src/Program.cs\"," +
+            "\"raw_url\":\"https://github.com/owner/repo/raw/src/Program.cs\"," +
+            "\"contents_url\":\"https://api.github.com/repos/owner/repo/contents/src/Program.cs\"}]";
+        const string page2 =
+            "[{\"sha\":\"blob2\",\"filename\":\"README.md\",\"status\":\"added\"," +
+            "\"additions\":10,\"deletions\":0,\"changes\":10," +
+            "\"blob_url\":\"https://github.com/owner/repo/blob/README.md\"," +
+            "\"raw_url\":\"https://github.com/owner/repo/raw/README.md\"," +
+            "\"contents_url\":\"https://api.github.com/repos/owner/repo/contents/README.md\"}]";
+        var handler = new MockHttpHandler()
+            .When("/pulls/42/files", req =>
+            {
+                var query = req.RequestUri?.Query ?? "";
+                if (query.Contains("page=2", StringComparison.Ordinal))
+                    return new MockResponse(page2);
+                return new MockResponse(
+                    page1,
+                    "<https://api.github.com/repos/owner/repo/pulls/42/files?page=2>; rel=\"next\"");
+            })
+            .When("/pulls/42/comments", "[]");
+        var vm = new PrDiffViewModel(new FakeGitHubClientFactory(handler));
+
+        vm.Initialize(Owner, Repo, PrNumber, HeadSha);
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(["src/Program.cs", "README.md"], vm.Files.Select(f => f.Filename).ToArray());
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task Load_With404_SetsErrorMessage()
     {
         var handler = new MockHttpHandler(); // no routes → 404

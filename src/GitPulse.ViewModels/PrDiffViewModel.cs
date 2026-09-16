@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
+using GitPulse.Core.Http;
 using GitPulse.Core.Models;
 using GitPulse.GitHubApi;
 using Observables.RestAPI;
@@ -98,32 +99,34 @@ public sealed partial class PrDiffViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
-            if (client.DefaultRequestHeaders.Authorization is null)
+            using var filesSession = await _clientFactory.CreatePagedSessionAsync();
+            if (filesSession.Client.DefaultRequestHeaders.Authorization is null)
             {
                 ErrorMessage.Value = "No token configured.";
                 return;
             }
 
-            var api = RestService.For<IGitHubReposApi>(client);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var commentsSession = await _clientFactory.CreatePagedSessionAsync();
+            var filesApi = RestService.For<IGitHubReposApi>(filesSession.Client);
+            var commentsApi = RestService.For<IGitHubReposApi>(commentsSession.Client);
 
-            var filesTask = api.ListPullRequestFiles(_owner, _repo, _prNumber).FirstAsync(cts.Token);
-            var commentsTask = api.ListReviewComments(_owner, _repo, _prNumber).FirstAsync(cts.Token);
+            var filesTask = PagedGitHubLists.LoadAllAsync(
+                filesSession,
+                ct => filesApi.ListPullRequestFiles(_owner, _repo, _prNumber).FirstAsync(ct),
+                CancellationToken.None);
+            var commentsTask = PagedGitHubLists.LoadAllAsync(
+                commentsSession,
+                ct => commentsApi.ListReviewComments(_owner, _repo, _prNumber).FirstAsync(ct),
+                CancellationToken.None);
 
             await Task.WhenAll(filesTask, commentsTask);
 
-            var filesResponse = filesTask.Result;
-            var commentsResponse = commentsTask.Result;
-            ApiResponses.EnsureSuccess(filesResponse);
-            ApiResponses.EnsureSuccess(commentsResponse);
-
             Files.Clear();
-            foreach (var f in filesResponse.Content ?? [])
+            foreach (var f in filesTask.Result)
                 Files.Add(f);
 
             FileComments.Clear();
-            foreach (var c in commentsResponse.Content ?? [])
+            foreach (var c in commentsTask.Result)
             {
                 if (!FileComments.TryGetValue(c.Path, out var list))
                 {
