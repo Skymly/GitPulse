@@ -23,10 +23,10 @@ namespace GitPulse.ViewModels;
 /// (so credential changes are picked up) and holds it so that page cursor and
 /// <c>State</c> persist between the initial load and subsequent "load more"
 /// requests. Clearing or replacing the PAT invalidates the held session so
-/// Load more cannot reuse the previous Bearer. The session writes these values onto
-/// <see cref="GitHubQueryHandler"/> at the HTTP layer, working around the
-/// Observables OBS3004 limitation that prevents <c>[Query]</c> parameters on
-/// declarative interface methods with path parameters.
+/// Load more cannot reuse the previous Bearer. The session writes page /
+/// per_page / state onto <see cref="GitHubQueryHandler"/> (ADR-006). Business
+/// query parameters such as Search <c>q</c> use <c>[Query]</c> on the
+/// declarative interfaces since Observables.RestAPI 0.1.5.
 /// </para>
 /// </remarks>
 public sealed partial class IssuesViewModel : IDisposable
