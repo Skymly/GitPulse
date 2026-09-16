@@ -238,6 +238,34 @@ public class CreatePullRequestViewModelTests
     }
 
     [Fact]
+    public async Task LoadBranches_FollowsNextLink_ConcatenatesPages()
+    {
+        const string page1 =
+            "[{\"name\":\"main\",\"commit\":{\"sha\":\"abc123def456\",\"url\":\"https://api.github.com/repos/owner/repo/commits/abc123def456\"},\"protected\":false}]";
+        const string page2 =
+            "[{\"name\":\"feature\",\"commit\":{\"sha\":\"789012abcdef\",\"url\":\"https://api.github.com/repos/owner/repo/commits/789012abcdef\"},\"protected\":false}]";
+        var handler = new MockHttpHandler()
+            .When("/repos/owner/repo/branches", req =>
+            {
+                var query = req.RequestUri?.Query ?? "";
+                if (query.Contains("page=2", StringComparison.Ordinal))
+                    return new MockResponse(page2);
+                return new MockResponse(
+                    page1,
+                    "<https://api.github.com/repos/owner/repo/branches?page=2>; rel=\"next\"");
+            });
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new CreatePullRequestViewModel(factory);
+        vm.Initialize("owner", "repo");
+
+        await vm.LoadBranchesCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(["main", "feature"], vm.Branches.Select(b => b.Name).ToArray());
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task LoadBranches_WithoutToken_SetsErrorMessage()
     {
         var handler = new MockHttpHandler()

@@ -420,14 +420,14 @@ public sealed partial class RepoDetailViewModel : IDisposable
 
         try
         {
-            var client = await _clientFactory.CreateClientAsync();
-            var api = RestService.For<IGitHubReposApi>(client);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-
-            var response = await api.ListBranches(_owner, _repo).FirstAsync(cts.Token);
-            ApiResponses.EnsureSuccess(response);
+            using var session = await _clientFactory.CreatePagedSessionAsync();
+            var api = RestService.For<IGitHubReposApi>(session.Client);
+            var branches = await PagedGitHubLists.LoadAllAsync(
+                session,
+                ct => api.ListBranches(_owner, _repo).FirstAsync(ct),
+                CancellationToken.None);
             Branches.Clear();
-            foreach (var b in response.Content ?? [])
+            foreach (var b in branches)
                 Branches.Add(b);
             _branchesLoaded = true;
         }
