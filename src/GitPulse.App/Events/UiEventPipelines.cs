@@ -4,7 +4,7 @@ using R3;
 namespace GitPulse.App.Events;
 
 /// <summary>
-/// Observable text source for ADR-007. MAUI <c>SearchBar.Events()</c> hits CS0122
+/// Observable text source for ADR-015. MAUI <c>SearchBar.Events()</c> hits CS0122
 /// (<c>IControlsVisualElement</c>); this adapter is a public-event type
 /// Observables.Events.R3 can generate for.
 /// </summary>
