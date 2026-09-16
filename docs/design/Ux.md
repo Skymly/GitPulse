@@ -84,7 +84,7 @@ Success is quiet: the page state updates. Never put success in the error banner.
 
 ### Stay-on-page
 
-Every request failure stays on the current page: first load, Load more, writes, 401, 403, 404, 422, 5xx, timeout. Missing PAT / 401 is a Page Error with a Settings action, not an automatic navigation. Search 403 (rate limit) and 422 (syntax) stay on the query with the dedicated copy; do not invent an immediate Retry for rate limit. User-initiated Back, Shell tab changes, and tapping Settings are not Stay-on-page failures.
+Every request failure stays on the current page: first load, Load more, writes, 401, 403, 404, 422, 5xx, timeout. Missing PAT / 401 is a Page Error with a Settings action, not an automatic navigation. Search 403 with `X-RateLimit-Remaining: 0` uses the rate-limit copy (no Retry); other Search 403s use the permission copy; 422 (syntax) stays on the query. User-initiated Back, Shell tab changes, and tapping Settings are not Stay-on-page failures.
 
 ### Page Error
 
@@ -240,7 +240,7 @@ One Surface with four hubs: typed Search + Review Inbox / Assigned Inbox / Menti
 - Inboxes: the list only (same row atom). No SearchBar.
 - Empty State: title + reason; next step is the SearchBar; no Create.
 - Field Error: query shorter than 3 characters, next to the SearchBar.
-- Page Error: Search 403 rate limit stays on the query; dedicated copy; no Retry.
+- Page Error: Search 403 with remaining 0 stays on the query with the rate-limit copy and no Retry. Other Search 403s stay with the permission copy.
 
 Rejected: 2×2 hub grid; always-on SearchBar on Inboxes; inbox-card landing.
 
