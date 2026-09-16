@@ -11,8 +11,9 @@ namespace GitPulse.Core.Abstractions;
 /// <remarks>
 /// <para>
 /// The poller is a singleton service — one instance shared across the app.
-/// It starts polling when the app is in the foreground and stops when
-/// backgrounded, conserving API rate limit and battery.
+/// App starts it at process start and stops it on Exit (host dispose).
+/// Polling continues while the app is backgrounded or in Tray Presence
+/// (ADR-010). There is no OnSleep / OnResume hook.
 /// </para>
 /// <para>
 /// <b>Events domain showcase:</b> The polling timer is an R3
@@ -41,7 +42,7 @@ public interface INotificationPoller : IDisposable
     /// <summary>Current unread notification count.</summary>
     int UnreadCount { get; }
 
-    /// <summary>Whether the poller is actively polling (foreground).</summary>
+    /// <summary>Whether the poller is actively polling.</summary>
     bool IsPolling { get; }
 
     /// <summary>Fired when <see cref="IsPolling"/> changes.</summary>
@@ -59,10 +60,15 @@ public interface INotificationPoller : IDisposable
     /// <summary>Polling interval (default 60 seconds).</summary>
     TimeSpan PollInterval { get; set; }
 
-    /// <summary>Start polling. Called when the app enters the foreground.</summary>
+    /// <summary>
+    /// Start polling. Called at process start and after a PAT is saved.
+    /// </summary>
     void Start();
 
-    /// <summary>Stop polling. Called when the app enters the background.</summary>
+    /// <summary>
+    /// Stop polling. Called on process Exit and when the PAT is cleared.
+    /// Not called when the app is backgrounded (ADR-010).
+    /// </summary>
     void Stop();
 
     /// <summary>Trigger an immediate poll (manual refresh).</summary>
