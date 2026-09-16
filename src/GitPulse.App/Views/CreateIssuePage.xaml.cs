@@ -37,8 +37,8 @@ public partial class CreateIssuePage : ContentPage
     {
         base.OnAppearing();
 
-        var owner = Uri.UnescapeDataString(OwnerQuery);
-        var repo = Uri.UnescapeDataString(RepoQuery);
+        var owner = OwnerQuery;
+        var repo = RepoQuery;
         var query = $"{owner}/{repo}";
         if (_appliedQuery == query)
             return;
@@ -59,8 +59,8 @@ public partial class CreateIssuePage : ContentPage
         _navigatingToDetail = true;
         _viewModel.CreatedIssueNumber.Value = null;
         ClearCreateForm();
-        var owner = Uri.UnescapeDataString(OwnerQuery);
-        var repo = Uri.UnescapeDataString(RepoQuery);
+        var owner = OwnerQuery;
+        var repo = RepoQuery;
         RepoListStale.Send(RepoListKind.Issues, owner, repo);
         try
         {

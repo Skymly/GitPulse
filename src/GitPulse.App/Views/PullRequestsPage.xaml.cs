@@ -45,8 +45,8 @@ public partial class PullRequestsPage : ContentPage
         base.OnAppearing();
         PullToRefresh.WindowsOff(ListRefresh);
 
-        var owner = Uri.UnescapeDataString(OwnerQuery);
-        var repo = Uri.UnescapeDataString(RepoQuery);
+        var owner = OwnerQuery;
+        var repo = RepoQuery;
         var query = $"{owner}/{repo}";
         if (_appliedQuery == query)
         {

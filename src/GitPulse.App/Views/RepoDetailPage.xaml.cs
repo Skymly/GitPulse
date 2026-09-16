@@ -29,8 +29,8 @@ public partial class RepoDetailPage : ContentPage
     {
         base.OnAppearing();
 
-        var owner = Uri.UnescapeDataString(OwnerQuery);
-        var repo = Uri.UnescapeDataString(RepoQuery);
+        var owner = OwnerQuery;
+        var repo = RepoQuery;
         var query = $"{owner}/{repo}";
         if (_appliedQuery == query)
             return;

@@ -53,11 +53,11 @@ public partial class FileEditorPage : ContentPage
     {
         base.OnAppearing();
 
-        var owner = Uri.UnescapeDataString(OwnerQuery);
-        var repo = Uri.UnescapeDataString(RepoQuery);
-        var path = Uri.UnescapeDataString(PathQuery);
-        var sha = Uri.UnescapeDataString(ShaQuery);
-        var gitRef = Uri.UnescapeDataString(RefQuery);
+        var owner = OwnerQuery;
+        var repo = RepoQuery;
+        var path = PathQuery;
+        var sha = ShaQuery;
+        var gitRef = RefQuery;
         var query = $"{owner}/{repo}/{path}/{sha}/{gitRef}";
         if (_appliedQuery == query)
             return;
@@ -167,8 +167,8 @@ public partial class FileEditorPage : ContentPage
     {
         RepoListStale.Send(
             RepoListKind.Files,
-            Uri.UnescapeDataString(OwnerQuery),
-            Uri.UnescapeDataString(RepoQuery));
+            OwnerQuery,
+            RepoQuery);
     }
 
     protected override void OnDisappearing()

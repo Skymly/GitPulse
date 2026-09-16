@@ -43,8 +43,8 @@ public partial class IssueDetailPage : ContentPage
     {
         base.OnAppearing();
 
-        var owner = Uri.UnescapeDataString(OwnerQuery);
-        var repo = Uri.UnescapeDataString(RepoQuery);
+        var owner = OwnerQuery;
+        var repo = RepoQuery;
         var query = $"{owner}/{repo}/{NumberQuery}";
         if (_appliedQuery == query)
             return;

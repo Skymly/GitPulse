@@ -40,8 +40,8 @@ public partial class CreatePullRequestPage : ContentPage
     {
         base.OnAppearing();
 
-        var owner = Uri.UnescapeDataString(OwnerQuery);
-        var repo = Uri.UnescapeDataString(RepoQuery);
+        var owner = OwnerQuery;
+        var repo = RepoQuery;
         var query = $"{owner}/{repo}";
         if (_appliedQuery == query)
             return;
@@ -63,8 +63,8 @@ public partial class CreatePullRequestPage : ContentPage
         _navigatingToDetail = true;
         _viewModel.CreatedPullRequestNumber.Value = null;
         ClearCreateForm();
-        var owner = Uri.UnescapeDataString(OwnerQuery);
-        var repo = Uri.UnescapeDataString(RepoQuery);
+        var owner = OwnerQuery;
+        var repo = RepoQuery;
         RepoListStale.Send(RepoListKind.PullRequests, owner, repo);
         try
         {
