@@ -121,7 +121,7 @@ When `HasNextPage` is true: remaining-items auto-request **and** a visible Load 
 
 ### Destructive Confirm
 
-Required only for **Merge** and **Delete file**. Close issue, Convert to Draft, Ready for Review, Update Branch, Workflow Dispatch, Star Toggle, and Watch Toggle run immediately; failure is Stay-on-page.
+Required only for **Merge** and **Delete file**. Close issue, Update Branch, Workflow Dispatch, Star Toggle, and Watch Toggle run immediately; failure is Stay-on-page.
 
 Chrome: a **platform confirm dialog** (the only legitimate modal). It names the object (PR number + title, or file path) and the action; Merge includes the already-selected merge method. Two buttons: Cancel and the action name. Delete file: pass the commit-message Field Error first, then confirm; the dialog does not edit the message.
 
@@ -215,7 +215,7 @@ Windows expression locked in [Prototype the top-ranked surfaces](https://github.
 **Conversation** (default):
 
 - Locked B detail header; TabBar hidden (stacked Surface).
-- Lifecycle strip under the header: head→base, mergeable, Merge (danger, Destructive Confirm), Close, Convert to draft. Merge is not buried in a card.
+- Lifecycle strip under the header: head→base, mergeable, Merge (danger, Destructive Confirm), Close, Update branch. Merge is not buried in a card.
 - Main column: body Markdown, submitted reviews + Review Event composer, comments + composer.
 - Metadata/checks rail: assignees, labels (hex swatch + name), requested reviewers, Gate Rollup (Domain Icon + conclusion text, never color alone). Gate HTTP 404 is No checks; other Gate load failures are Inline Error in the checks region with Retry, not the page-top Page Error.
 

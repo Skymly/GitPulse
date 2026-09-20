@@ -83,8 +83,8 @@ Issues / PRs / Commits / Starred / Workflow runs 列表在 `ApiResponse` 通道�
 | M41 ✅ | Repo `topics` on GET repo (no new method) |
 | M42 ✅ | Repo `homepage` on GET repo (no new method) |
 | M43 ✅ | `PUT /repos/{owner}/{repo}/pulls/{number}/update-branch` (`UpdatePullRequestBranch`) |
-| M44 ✅ | `POST /repos/{owner}/{repo}/pulls/{number}/ready_for_review` (`MarkPullRequestReadyForReview`) |
-| M45 ✅ | `POST /repos/{owner}/{repo}/pulls/{number}/convert_to_draft` (`ConvertPullRequestToDraft`) |
+| M44 ✅ | `POST /repos/{owner}/{repo}/pulls/{number}/ready_for_review` (`MarkPullRequestReadyForReview`) — GitHub REST has no such endpoint (404); Conversation no longer offers Ready for review |
+| M45 ✅ | `POST /repos/{owner}/{repo}/pulls/{number}/convert_to_draft` (`ConvertPullRequestToDraft`) — GitHub REST has no such endpoint (404); Conversation no longer offers Convert to draft |
 
 ## M9 Search
 
@@ -410,11 +410,11 @@ Write on `IGitHubReposApi`. `UpdatePullRequestBranch` is `PUT .../pulls/{number}
 
 ### Ready for Review (M44)
 
-Write on `IGitHubReposApi`. `MarkPullRequestReadyForReview` is `POST .../pulls/{number}/ready_for_review` with no body (`ApiResponse<PullRequest>`, 201). Conversation offers it for open draft unmerged pull requests. 403/422 stay on the page.
+`IGitHubReposApi.MarkPullRequestReadyForReview` still declares `POST .../pulls/{number}/ready_for_review` with no body (`ApiResponse<PullRequest>`). GitHub REST has no such endpoint (404). Conversation no longer offers Ready for review. The supported write is GraphQL `markPullRequestReadyForReview`, which remains out of scope.
 
 ### Convert to Draft (M45)
 
-Write on `IGitHubReposApi`. `ConvertPullRequestToDraft` is `POST .../pulls/{number}/convert_to_draft` with no body (`ApiResponse<PullRequest>`, 201). Conversation offers it for open non-draft unmerged pull requests. 403/422 stay on the page. Ready for review stays the draft-only inverse.
+`IGitHubReposApi.ConvertPullRequestToDraft` still declares `POST .../pulls/{number}/convert_to_draft` with no body (`ApiResponse<PullRequest>`). GitHub REST has no such endpoint (404). Conversation no longer offers Convert to draft. The supported write is GraphQL `convertPullRequestToDraft`, which remains out of scope.
 
 ## 设计权衡- **QueryHandler vs `[Query]`**：业务查询 `q` 使用 `[Query]` 明示；通用分页继续由 Handler 注入，并由 Paged GitHub Session 统一 cursor / Link / dispose。
 - **Paged GitHub Session vs 元组工厂**：列表与 Search ViewModel 面向 session；`CreatePagedSessionAsync` 构造 session。写路径用 `OpenAsync`。

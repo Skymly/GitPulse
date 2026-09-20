@@ -49,7 +49,7 @@ A Core type (`PagedGitHubSession`) that owns one paged GitHub HTTP client cycle:
 _Avoid_: generic HTTP session, repository, paging service, call envelope
 
 **Draft PR**:
-A pull request opened with GitHub’s create-time draft flag. Distinct from Ready for Review and Convert to Draft (the post-create writes).
+A pull request opened with GitHub’s create-time draft flag. Distinct from Ready for Review and Convert to Draft (post-create writes GitPulse no longer offers).
 _Avoid_: WIP PR (informal)
 
 **Pull Request Review**:
@@ -166,7 +166,7 @@ _Avoid_: treating commit SHA as blob SHA
 
 
 **Conversation Lifecycle**:
-The Conversation composite for PR open/closed, mergeability, merge, Update Branch, Ready for Review, and Convert to Draft. Distinct from Pull Request Review and from Conversation Metadata.
+The Conversation composite for PR open/closed, mergeability, merge, and Update Branch. Distinct from Pull Request Review and from Conversation Metadata.
 _Avoid_: conversation comments, files tab
 
 **Conversation Metadata**:
@@ -181,12 +181,12 @@ Updating a pull request head from its base with `PUT /repos/{owner}/{repo}/pulls
 _Avoid_: compare, behind_by, convert-to-draft
 
 **Ready for Review**:
-Marking an open draft pull request ready with `POST /repos/{owner}/{repo}/pulls/{number}/ready_for_review`. Shown on Conversation for open draft unmerged PRs. Distinct from Draft PR (create-time), Convert to Draft, and a submitted Pull Request Review.
-_Avoid_: pending review
+GitHub’s post-create write that marks an open draft pull request ready. GitHub REST has no `POST /repos/{owner}/{repo}/pulls/{number}/ready_for_review`. Conversation no longer offers this action. Distinct from Draft PR (create-time), Convert to Draft, and a submitted Pull Request Review.
+_Avoid_: POST ready_for_review, treating GraphQL markPullRequestReadyForReview as in-scope
 
 **Convert to Draft**:
-Converting an open non-draft pull request to draft with `POST /repos/{owner}/{repo}/pulls/{number}/convert_to_draft`. Shown on Conversation for open non-draft unmerged PRs. Distinct from Draft PR (create-time) and from Ready for Review.
-_Avoid_: GraphQL convertPullRequestToDraft, PATCH draft
+GitHub’s post-create write that converts an open non-draft pull request to draft. GitHub REST has no `POST /repos/{owner}/{repo}/pulls/{number}/convert_to_draft`. Conversation no longer offers this action. Distinct from Draft PR (create-time) and from Ready for Review.
+_Avoid_: POST convert_to_draft, treating GraphQL convertPullRequestToDraft as in-scope
 
 
 **Page Error**:

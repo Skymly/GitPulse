@@ -102,6 +102,11 @@ Versions are derived automatically from Git tags by MinVer.
   Files. Empty States on Notifications, pull requests, Commits, and Actions
   stay hidden while loading (and Notifications also after a failure).
 
+### Removed
+
+- **Pull request Conversation:** Ready for review and Convert to draft. GitHub
+  REST has no such endpoints; the buttons always 404 (`#544`).
+
 ### Fixed
 
 - **Create PR:** Empty title, missing head/base, or the same head and base
