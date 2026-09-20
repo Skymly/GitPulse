@@ -60,10 +60,6 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
     public BindableReactiveProperty<bool> IsMerged => _lifecycle.IsMerged;
     public BindableReactiveProperty<bool> CanUpdateBranch => _lifecycle.CanUpdateBranch;
     public BindableReactiveProperty<bool> IsUpdatingBranch => _lifecycle.IsUpdatingBranch;
-    public BindableReactiveProperty<bool> CanMarkReadyForReview => _lifecycle.CanMarkReadyForReview;
-    public BindableReactiveProperty<bool> IsMarkingReadyForReview => _lifecycle.IsMarkingReadyForReview;
-    public BindableReactiveProperty<bool> CanConvertToDraft => _lifecycle.CanConvertToDraft;
-    public BindableReactiveProperty<bool> IsConvertingToDraft => _lifecycle.IsConvertingToDraft;
 
     public ObservableCollection<PullRequestReview> Reviews => _review.Reviews;
     public BindableReactiveProperty<string> ReviewEvent => _review.ReviewEvent;
@@ -268,12 +264,6 @@ public sealed partial class PullRequestDetailViewModel : IDisposable
 
     [RelayCommand]
     private Task UpdateBranchAsync() => _lifecycle.UpdateBranchAsync();
-
-    [RelayCommand]
-    private Task MarkReadyForReviewAsync() => _lifecycle.MarkReadyForReviewAsync();
-
-    [RelayCommand]
-    private Task ConvertToDraftAsync() => _lifecycle.ConvertToDraftAsync();
 
     [RelayCommand]
     private Task AddAssigneeAsync() => _meta.AddAssigneeAsync();
