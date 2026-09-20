@@ -46,8 +46,8 @@
 
 | 里程碑 | 内容 | Observables 域 |
 |--------|------|----------------|
-| **M45** ✅ | v0.33.0 Convert to draft：PR Conversation 对 open 非 draft 未合并 PR 调用 `POST /pulls/{number}/convert_to_draft`（[#425](https://github.com/Skymly/GitPulse/issues/425)） | RestAPI |
-| **M44** ✅ | v0.32.0 Ready for review：PR Conversation 对 open draft 调用 `POST /pulls/{number}/ready_for_review`（[#407](https://github.com/Skymly/GitPulse/issues/407)） | RestAPI |
+| **M45** ✅ | v0.33.0 Convert to draft：PR Conversation 对 open 非 draft 未合并 PR 调用 `POST /pulls/{number}/convert_to_draft`（[#425](https://github.com/Skymly/GitPulse/issues/425)）。Conversation 已撤回该按钮：GitHub REST 无此端点，恒 404（[#544](https://github.com/Skymly/GitPulse/issues/544)） | RestAPI |
+| **M44** ✅ | v0.32.0 Ready for review：PR Conversation 对 open draft 调用 `POST /pulls/{number}/ready_for_review`（[#407](https://github.com/Skymly/GitPulse/issues/407)）。Conversation 已撤回该按钮：GitHub REST 无此端点，恒 404（[#544](https://github.com/Skymly/GitPulse/issues/544)） | RestAPI |
 | **M43** ✅ | v0.31.0 Update PR branch：PR Conversation 对 open 未合并 PR 调用 `PUT /pulls/{number}/update-branch`（[#390](https://github.com/Skymly/GitPulse/issues/390)） | RestAPI |
 | **M42** ✅ | v0.30.0 Repo homepage：Repo detail 显示/打开 GET repo 的 homepage（[#362](https://github.com/Skymly/GitPulse/issues/362)） | RestAPI |
 | **M41** ✅ | v0.29.0 Repo topics：Repo detail 显示 GET repo 的 topics（[#356](https://github.com/Skymly/GitPulse/issues/356)） | RestAPI |
