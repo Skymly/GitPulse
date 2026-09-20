@@ -7,8 +7,7 @@ using R3;
 namespace GitPulse.ViewModels;
 
 /// <summary>
-/// Conversation lifecycle: mergeability, merge, update branch, ready for review,
-/// convert to draft, and open/closed toggle.
+/// Conversation lifecycle: mergeability, merge, update branch, and open/closed toggle.
 /// </summary>
 internal sealed class PullRequestLifecycle(
     PullRequestConversationIo io,
@@ -28,19 +27,9 @@ internal sealed class PullRequestLifecycle(
 
     public BindableReactiveProperty<bool> IsUpdatingBranch { get; } = new(false);
 
-    public BindableReactiveProperty<bool> CanMarkReadyForReview { get; } = new(false);
-
-    public BindableReactiveProperty<bool> IsMarkingReadyForReview { get; } = new(false);
-
-    public BindableReactiveProperty<bool> CanConvertToDraft { get; } = new(false);
-
-    public BindableReactiveProperty<bool> IsConvertingToDraft { get; } = new(false);
-
     public void Sync(PullRequest pr)
     {
         CanUpdateBranch.Value = pr.State == "open" && !pr.Merged;
-        CanMarkReadyForReview.Value = pr.State == "open" && pr.Draft && !pr.Merged;
-        CanConvertToDraft.Value = pr.State == "open" && !pr.Draft && !pr.Merged;
         SyncMergeStatus(pr);
     }
 
@@ -268,106 +257,6 @@ internal sealed class PullRequestLifecycle(
         }
     }
 
-    public async Task MarkReadyForReviewAsync()
-    {
-        if (pullRequest.Value is null || isSaving.Value || IsMarkingReadyForReview.Value || !CanMarkReadyForReview.Value)
-            return;
-
-        isSaving.Value = true;
-        IsMarkingReadyForReview.Value = true;
-        io.Error.Value = string.Empty;
-
-        try
-        {
-            var (scope, api, cts) = await io.OpenAsync();
-            if (scope is null || api is null || cts is null)
-                return;
-
-            using (scope)
-            using (cts)
-            {
-                var response = await api.MarkPullRequestReadyForReview(io.Owner, io.Repo, io.Number)
-                    .FirstAsync(cts.Token);
-                var code = (int)(response.StatusCode ?? 0);
-                if (code is >= 200 and < 300)
-                {
-                    await RefreshAfterWriteAsync(api, cts.Token, pr => Copy(pr, draft: false));
-                    return;
-                }
-
-                io.Error.Value = code switch
-                {
-                    403 => "Not allowed to mark this pull request ready for review.",
-                    422 => "GitHub could not mark this pull request ready for review.",
-                    _ => $"Ready for review failed: {code}.",
-                };
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            io.Timeout();
-        }
-        catch (Exception ex)
-        {
-            io.Error.Value = $"Ready for review failed: {ex.Message}";
-        }
-        finally
-        {
-            IsMarkingReadyForReview.Value = false;
-            isSaving.Value = false;
-        }
-    }
-
-    public async Task ConvertToDraftAsync()
-    {
-        if (pullRequest.Value is null || isSaving.Value || IsConvertingToDraft.Value || !CanConvertToDraft.Value)
-            return;
-
-        isSaving.Value = true;
-        IsConvertingToDraft.Value = true;
-        io.Error.Value = string.Empty;
-
-        try
-        {
-            var (scope, api, cts) = await io.OpenAsync();
-            if (scope is null || api is null || cts is null)
-                return;
-
-            using (scope)
-            using (cts)
-            {
-                var response = await api.ConvertPullRequestToDraft(io.Owner, io.Repo, io.Number)
-                    .FirstAsync(cts.Token);
-                var code = (int)(response.StatusCode ?? 0);
-                if (code is >= 200 and < 300)
-                {
-                    await RefreshAfterWriteAsync(api, cts.Token, pr => Copy(pr, draft: true));
-                    return;
-                }
-
-                io.Error.Value = code switch
-                {
-                    403 => "Not allowed to convert this pull request to draft.",
-                    422 => "GitHub could not convert this pull request to draft.",
-                    _ => $"Convert to draft failed: {code}.",
-                };
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            io.Timeout();
-        }
-        catch (Exception ex)
-        {
-            io.Error.Value = $"Convert to draft failed: {ex.Message}";
-        }
-        finally
-        {
-            IsConvertingToDraft.Value = false;
-            isSaving.Value = false;
-        }
-    }
-
     private async Task RefreshAfterWriteAsync(
         IGitHubReposApi api,
         CancellationToken cancellationToken,
@@ -411,7 +300,6 @@ internal sealed class PullRequestLifecycle(
     private static PullRequest Copy(
         PullRequest pr,
         string? state = null,
-        bool? draft = null,
         bool? merged = null)
     {
         return new()
@@ -420,7 +308,7 @@ internal sealed class PullRequestLifecycle(
             Title = pr.Title,
             Body = pr.Body,
             State = state ?? pr.State,
-            Draft = draft ?? pr.Draft,
+            Draft = pr.Draft,
             Merged = merged ?? pr.Merged,
             HtmlUrl = pr.HtmlUrl,
             CreatedAt = pr.CreatedAt,
@@ -449,9 +337,5 @@ internal sealed class PullRequestLifecycle(
         IsMerged.Dispose();
         CanUpdateBranch.Dispose();
         IsUpdatingBranch.Dispose();
-        CanMarkReadyForReview.Dispose();
-        IsMarkingReadyForReview.Dispose();
-        CanConvertToDraft.Dispose();
-        IsConvertingToDraft.Dispose();
     }
 }
