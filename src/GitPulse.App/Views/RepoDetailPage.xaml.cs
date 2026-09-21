@@ -13,6 +13,8 @@ public partial class RepoDetailPage : ContentPage
 {
     private readonly RepoDetailViewModel _viewModel;
     private string? _appliedQuery;
+    private bool _hadParent;
+    private bool _viewModelDisposed;
 
     public RepoDetailPage(RepoDetailViewModel viewModel)
     {
@@ -144,9 +146,20 @@ public partial class RepoDetailPage : ContentPage
         ChromeTabs.Style(ReleasesTab, tab == "releases");
     }
 
+    protected override void OnParentSet()
+    {
+        base.OnParentSet();
+        PageViewModelLifetime.OnParentSet(
+            this,
+            _viewModel,
+            ref _hadParent,
+            ref _viewModelDisposed);
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
+        // Do not dispose here: disappear is tab switch, push, or peek.
+        // ViewModel Dispose is Page ViewModel lifetime (leave the back stack).
     }
 }

@@ -19,6 +19,8 @@ public partial class FileBrowserPage : ContentPage
     private readonly FileBrowserViewModel _viewModel;
     private string? _appliedQuery;
     private bool _reloadOnAppear;
+    private bool _hadParent;
+    private bool _viewModelDisposed;
 
     public FileBrowserPage(FileBrowserViewModel viewModel)
     {
@@ -122,9 +124,21 @@ public partial class FileBrowserPage : ContentPage
         _ = AppNavigation.GoToAsync("//SettingsPage");
     }
 
+    protected override void OnParentSet()
+    {
+        base.OnParentSet();
+        PageViewModelLifetime.OnParentSet(
+            this,
+            _viewModel,
+            ref _hadParent,
+            ref _viewModelDisposed,
+            () => WeakReferenceMessenger.Default.UnregisterAll(this));
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
+        // Do not dispose here: disappear is tab switch, push, or peek.
+        // ViewModel Dispose is Page ViewModel lifetime (leave the back stack).
     }
 }

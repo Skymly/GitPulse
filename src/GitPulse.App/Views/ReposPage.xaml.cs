@@ -47,8 +47,7 @@ public partial class ReposPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Keep the Events pipelines and ViewModel alive: Repos is a root tab and is
-        // reused when switching back (same pattern as NotificationsPage).
+        // Do not dispose: Repos is a root tab (Page ViewModel lifetime).
     }
 
     private async void OnRepoSelected(object? sender, SelectionChangedEventArgs e)

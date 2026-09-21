@@ -15,6 +15,8 @@ public partial class WorkflowRunsPage : ContentPage
     private readonly WorkflowRunsViewModel _viewModel;
     private readonly CompositeDisposable _events = [];
     private string? _appliedQuery;
+    private bool _hadParent;
+    private bool _viewModelDisposed;
 
     public WorkflowRunsPage(WorkflowRunsViewModel viewModel)
     {
@@ -71,9 +73,21 @@ public partial class WorkflowRunsPage : ContentPage
             + $"&runId={run.Id}");
     }
 
+    protected override void OnParentSet()
+    {
+        base.OnParentSet();
+        PageViewModelLifetime.OnParentSet(
+            this,
+            _viewModel,
+            ref _hadParent,
+            ref _viewModelDisposed,
+            () => _events.Dispose());
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
+        // Do not dispose here: disappear is tab switch, push, or peek.
+        // ViewModel Dispose is Page ViewModel lifetime (leave the back stack).
     }
 }

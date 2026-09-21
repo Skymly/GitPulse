@@ -18,6 +18,8 @@ public partial class CreatePullRequestPage : ContentPage
     private IDisposable? _createdSubscription;
     private string? _appliedQuery;
     private bool _navigatingToDetail;
+    private bool _hadParent;
+    private bool _viewModelDisposed;
 
     public CreatePullRequestPage(CreatePullRequestViewModel viewModel)
     {
@@ -114,6 +116,21 @@ public partial class CreatePullRequestPage : ContentPage
         if (empty)
             return;
         await _viewModel.CreateCommand.ExecuteAsync(null);
+    }
+
+    protected override void OnParentSet()
+    {
+        base.OnParentSet();
+        PageViewModelLifetime.OnParentSet(
+            this,
+            _viewModel,
+            ref _hadParent,
+            ref _viewModelDisposed,
+            () =>
+            {
+                _createdSubscription?.Dispose();
+                _createdSubscription = null;
+            });
     }
 
     protected override void OnDisappearing()

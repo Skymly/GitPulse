@@ -33,8 +33,7 @@ public partial class NotificationsPage : ContentPage
     {
         base.OnDisappearing();
         // Do not stop the poller (ADR-010 Tray Presence) and do not dispose the
-        // ViewModel: Shell tab pages are reused; toast/tray navigation expects a
-        // live BindingContext when returning to Notifications.
+        // ViewModel: Notifications is a root tab (Page ViewModel lifetime).
     }
 
     private async void OnNotificationSelected(object? sender, SelectionChangedEventArgs e)

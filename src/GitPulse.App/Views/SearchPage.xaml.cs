@@ -49,6 +49,7 @@ public partial class SearchPage : ContentPage
     {
         StopSearchBridge();
         base.OnDisappearing();
+        // Do not dispose the ViewModel: Search is a root tab (Page ViewModel lifetime).
     }
 
     private void StartSearchBridge()

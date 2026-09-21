@@ -12,6 +12,8 @@ public partial class WorkflowRunDetailPage : ContentPage
 {
     private readonly WorkflowRunDetailViewModel _viewModel;
     private string? _appliedQuery;
+    private bool _hadParent;
+    private bool _viewModelDisposed;
 
     public WorkflowRunDetailPage(WorkflowRunDetailViewModel viewModel)
     {
@@ -54,9 +56,20 @@ public partial class WorkflowRunDetailPage : ContentPage
         _ = AppNavigation.GoToAsync("//SettingsPage");
     }
 
+    protected override void OnParentSet()
+    {
+        base.OnParentSet();
+        PageViewModelLifetime.OnParentSet(
+            this,
+            _viewModel,
+            ref _hadParent,
+            ref _viewModelDisposed);
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
+        // Do not dispose here: disappear is tab switch, push, or peek.
+        // ViewModel Dispose is Page ViewModel lifetime (leave the back stack).
     }
 }

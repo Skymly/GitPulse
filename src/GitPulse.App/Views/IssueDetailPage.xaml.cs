@@ -18,6 +18,8 @@ public partial class IssueDetailPage : ContentPage
     private bool _conversationWide;
     private bool _conversationLayoutReady;
     private double _lastWidth;
+    private bool _hadParent;
+    private bool _viewModelDisposed;
 
     public IssueDetailPage(IssueDetailViewModel viewModel)
     {
@@ -102,9 +104,20 @@ public partial class IssueDetailPage : ContentPage
         _ = AppNavigation.GoToAsync("//SettingsPage");
     }
 
+    protected override void OnParentSet()
+    {
+        base.OnParentSet();
+        PageViewModelLifetime.OnParentSet(
+            this,
+            _viewModel,
+            ref _hadParent,
+            ref _viewModelDisposed);
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
+        // Do not dispose here: disappear is tab switch, push, or peek.
+        // ViewModel Dispose is Page ViewModel lifetime (leave the back stack).
     }
 }
