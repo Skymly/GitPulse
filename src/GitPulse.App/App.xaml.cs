@@ -47,10 +47,7 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        bool uiTestHost = string.Equals(
-            Environment.GetEnvironmentVariable("GITPULSE_UI_TEST_HOST"),
-            "1",
-            StringComparison.Ordinal);
+        bool uiTestHost = UiTestHost.IsEnabled;
 
         Page root = uiTestHost
             ? new ContentPage
