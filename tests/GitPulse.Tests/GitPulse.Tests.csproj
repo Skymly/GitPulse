@@ -25,4 +25,13 @@
 		<ProjectReference Include="..\..\src\GitPulse.ViewModels\GitPulse.ViewModels.csproj" />
 	</ItemGroup>
 
+	<!-- App-layer in-memory PAT store is net10.0 with no MAUI usings. Compile
+	     it here so CiLib can cover GITPULSE_UI_TEST_HOST routing without
+	     referencing GitPulse.App. -->
+	<ItemGroup>
+		<Compile Include="..\..\src\GitPulse.App\UiTestHost.cs" Link="App\UiTestHost.cs" />
+		<Compile Include="..\..\src\GitPulse.App\Services\InMemoryCredentialStore.cs" Link="App\InMemoryCredentialStore.cs" />
+		<Compile Include="..\..\src\GitPulse.App\Services\UiTestHostCredentialStore.cs" Link="App\UiTestHostCredentialStore.cs" />
+	</ItemGroup>
+
 </Project>
