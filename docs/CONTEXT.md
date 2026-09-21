@@ -41,7 +41,7 @@ A short, repeatable Appium (UiAutomator2) UI pass on a default portrait phone em
 _Avoid_: device-only smoke (required), full E2E, IME automation, CI UI gate
 
 **UI Test Host**:
-The non-Shell `UiTestHostPage` (TabbedPage + NavigationPage) enabled by `GITPULSE_UI_TEST_HOST=1` so UI automation can see page controls. Used for Windows FlaUI and Android Emulator UI Smoke; not the production Shell chrome.
+The non-Shell `UiTestHostPage` (TabbedPage + NavigationPage) enabled by `GITPULSE_UI_TEST_HOST=1` so UI automation can see page controls. While the flag is on, `ICredentialStore` is in-memory so saving `GITPULSE_UI_TEST_PAT` does not overwrite the daily platform store (Windows `token.bin` / Android SecureStorage). Used for Windows FlaUI and Android Emulator UI Smoke; not the production Shell chrome.
 _Avoid_: production Shell, test-only navigation as user-facing design
 
 **Paged GitHub Session**:
