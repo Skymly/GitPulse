@@ -1,7 +1,9 @@
 # Design Doc: RestApi
 
 > **版本**：Unreleased
-> **关联 ADR**：[ADR-002](../adr/ADR-002-observables-declarative-github-api.md)、[ADR-006](../adr/ADR-006-github-query-handler-pagination.md)、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)
+> **关联 ADR**：[ADR-002](../adr/ADR-002-observables-declarative-github-api.md)、[ADR-018](../adr/ADR-018-per-request-pagination-options.md)（已接受）、[ADR-006](../adr/ADR-006-github-query-handler-pagination.md)（当前运行时，直至 #606 Core）、[ADR-008](../adr/ADR-008-split-github-search-api-interface.md)、[ADR-009](../adr/ADR-009-split-github-actions-api-interface.md)
+>
+> **实现状态**：分页契约以 ADR-018 为准（逐请求 `HttpRequestOptions`）。当前代码仍用 `GitHubQueryHandler` 实例字段注入 `page` / `per_page` / `state`。
 
 ## 概述
 
@@ -96,7 +98,7 @@ Issues / PRs / Commits / Starred / Workflow runs 列表在 `ApiResponse` 通道�
 | 代码 | `GET /search/code` | `[Query] q` |
 
 - 方法返回 `Observable<ApiResponse<SearchResult<T>>>`；`SearchResult<T>` 提供 `total_count`、`incomplete_results` 和 `items`。
-- `q` 在 `IGitHubSearchApi` 上显式声明；`page` / `per_page` 由 `GitHubQueryHandler` 注入，并从 `Link` 头判断下一页。
+- `q` 在 `IGitHubSearchApi` 上显式声明；`page` / `per_page` 由 `GitHubQueryHandler` 注入，并从 `Link` 头判断下一页（ADR-018：改为逐请求 `HttpRequestOptions`，尚未落地）。
 - `SearchViewModel` 在传入接口前对完整查询表达式做 URI 编码，避免 `#` 等保留字符被解释为 URI 片段。
 - Issue/PR 项保留 `repository_url`，由消费方提取 owner/repo；`SearchIssueItem.RepositoryFullName` 为计算属性。代码项使用嵌套 repository 的 `full_name`，并保留 `path` 与 `sha`。
 - Search 与仓库 API 共用工厂创建的认证 `HttpClient`，但遵守 GitHub Search 独立限流。
@@ -109,7 +111,7 @@ Issues / PRs / Commits / Starred / Workflow runs 列表在 `ApiResponse` 通道�
 1. Path 占位符名与 C# 参数名一致（Observables 路径校验）。
 2. 分页列表不得改为 `Observable<T[]>` 若需 `Link` 头。
 3. GitHub snake_case JSON 须在 Core 模型上用 `[JsonPropertyName]` 映射。
-4. Search 的 `q` 必须保留在声明式接口签名中；分页参数继续由 handler 注入。
+4. Search 的 `q` 必须保留在声明式接口签名中；业务查询参数走 `[Query]`。分页参数当前由 handler 实例字段注入；ADR-018 要求改为逐请求 `HttpRequestOptions`（#606 Core）。
 5. 写请求 DTO 的可空成员序列化时省略 JSON `null`（`JsonIgnoreCondition.WhenWritingNull`）。GitHub Update-an-issue 对 `title` / `body` / `state` / `labels` 的 JSON `null` 返回 422，不会当作 unchanged；close-only PATCH 必须是 `{"state":"closed"}`。
 6. 写操作不返回响应体时使用 `Observable<ApiResponse<Unit>>`。GitHub 的 empty-body 成功码（204 / 201 / 205）不能走 `Observable<Unit>`：生成器会按 JSON 反序列化空体并抛 `ApiException`。
 7. `Observable<T>` 与 `Observable<ApiResponse<T>>` 互不自动转换。前者非 2xx 抛 `ApiException`；后者不抛，调用方必须检查 `StatusCode`。列表页不得把 `ApiResponse` 通道上的非 2xx 显示成空成功。
@@ -121,7 +123,7 @@ Issues / PRs / Commits / Starred / Workflow runs 列表在 `ApiResponse` 通道�
 列表分页（Repos / Issues / PRs / WorkflowRuns）经 **Paged GitHub Session**（`PagedGitHubSession`，`IGitHubClientFactory.CreatePagedSessionAsync`）：
 
 1. ViewModel：`Reset` → `PrepareRequest` → `List*Paged`（`Observable<ApiResponse<T>>`）→ `ApplyLink`；Load more：`Advance`（当 `HasNextPage`）→ `PrepareRequest` → 再请求 → `ApplyLink`；`CanLoadMore` 映射自 `HasNextPage`
-2. Session 内部用 `GitHubQueryHandler` 注入 `page` / `per_page`（及 Issues/PRs 的 `state`）；handler 不是 ViewModel 面向契约
+2. Session 内部用 `GitHubQueryHandler` 注入 `page` / `per_page`（及 Issues/PRs 的 `state`）；handler 不是 ViewModel 面向契约。ADR-018：改为逐请求 `HttpRequestOptions`（#606 Core）
 3. Session 用 `LinkHeaderParser` 解析 `rel="next"` → `HasNextPage`
 
 Typed Search 与每个 Search Inbox 使用 `PagedGitHubSession`。
