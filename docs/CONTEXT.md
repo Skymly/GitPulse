@@ -237,3 +237,7 @@ _Avoid_: Segoe Fluent Icons as the Android source, dotnet_bot tab icons
 A first-class, user-reachable place: a Shell tab, a stacked page, or Windows-only Tray Presence / Tray Menu / Toast. Hubs and regions inside it are not Surfaces; nor are embedded Diff view / Markdown, chrome atoms (tab bar, list row, detail header), or Chrome Neutral (the color layer).
 _Avoid_: page, screen, view, ContentPage, ranking Diff view or Markdown, ranking Search Inboxes as their own Surfaces
 
+**Page ViewModel lifetime**:
+When a Transient page ViewModel is disposed: only if that page will not return (removed from the tab back stack). Tab roots, tab switch, peek, and a page still on the stack stay alive. `OnDisappearing` is not Dispose. List cycles subscribe to credential invalidation with `CredentialEpoch.Subscribe()` (`IDisposable`); do not add strong static handlers or weak events.
+_Avoid_: disposing on every disappear, weak CredentialEpoch handlers, leaving popped list ViewModels subscribed for process life
+

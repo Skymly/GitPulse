@@ -32,7 +32,7 @@ MAUI UI 事件与 R3 响应式管道的集成约定；通知轮询的进程级�
 
 ## 不变量
 
-1. 事件订阅在 Page `OnDisappearing` 或 ViewModel `Dispose` 中释放（ViewModel 在 Shell Tab 复用期间不因 disappear 而 Dispose）。
+1. UI 事件管道可在 Page `OnDisappearing` 释放（返回时重建）。ViewModel `Dispose` 只在页面不会再回来时发生（离开 back stack）；切 Tab、peek、仍在栈上的页面不 Dispose。见 Architecture「Page ViewModel lifetime」。
 2. UI 线程更新经 `ObserveOn` 或 MAUI 调度器。
 3. 若 Observables `.Events()` 因 MAUI internal API 不可用，须用公开 event 的 adapter（ADR-015）并文档化；管道走 `.Events()`，不要在页面里手写 Subject。
 4. `INotificationPoller` 由 App 层 `NotificationToastHost` 在进程启动时 `Start`，仅在 Exit（host `Dispose`）时 `Stop`；`NotificationsPage` 不再在 disappear 时停轮询（ADR-010）。`Stop()` 始终发布空快照（`UnreadCount = 0`），清 PAT 后角标归零。
