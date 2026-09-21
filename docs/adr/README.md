@@ -15,7 +15,7 @@
 | [ADR-003](ADR-003-r3-bindable-reactive-property.md) | R3 BindableReactiveProperty 状态管理 | Superseded by ADR-017 | 2026-03-01 | — |
 | [ADR-004](ADR-004-pat-auth-platform-credential-store.md) | PAT 认证与平台凭据存储 | Accepted | 2026-03-01 | — |
 | [ADR-005](ADR-005-windows-first-platform-strategy.md) | Windows 优先平台策略 | Accepted | 2026-07-06 | — |
-| [ADR-006](ADR-006-github-query-handler-pagination.md) | GitHubQueryHandler 分页注入 | Accepted | 2026-04-01 | — |
+| [ADR-006](ADR-006-github-query-handler-pagination.md) | GitHubQueryHandler 分页注入 | Superseded by ADR-018 | 2026-04-01 | — |
 | [ADR-007](ADR-007-manual-searchbar-event-bridge.md) | SearchBar 手动 R3 事件桥接 | Superseded by ADR-015 | 2026-04-01 | — |
 | [ADR-008](ADR-008-split-github-search-api-interface.md) | 拆分 GitHub Search API 接口 | Accepted | 2026-07-11 | — |
 | [ADR-009](ADR-009-split-github-actions-api-interface.md) | 拆分 GitHub Actions API 接口 | Accepted | 2026-07-18 | — |
@@ -27,7 +27,8 @@
 | [ADR-015](ADR-015-searchbar-public-event-adapter.md) | SearchBar 公开事件适配器 | Accepted | 2026-09-14 | [#511](https://github.com/Skymly/GitPulse/issues/511) |
 | [ADR-016](ADR-016-viewmodels-depend-on-abstractions.md) | ViewModels 依赖抽象而非 Services 项目 | Accepted | 2026-09-14 | [#511](https://github.com/Skymly/GitPulse/issues/511) |
 | [ADR-017](ADR-017-bindable-reactive-property-in-r3.md) | BindableReactiveProperty 属于 R3 核心包 | Accepted | 2026-09-14 | [#511](https://github.com/Skymly/GitPulse/issues/511) |
+| [ADR-018](ADR-018-per-request-pagination-options.md) | 逐请求 HttpRequestOptions 分页 | Accepted | 2026-09-21 | [#606](https://github.com/Skymly/GitPulse/issues/606) |
 
 ## 下一个可用编号
 
-**ADR-018**
+**ADR-019**
