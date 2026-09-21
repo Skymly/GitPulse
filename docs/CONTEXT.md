@@ -45,7 +45,7 @@ The non-Shell `UiTestHostPage` (TabbedPage + NavigationPage) enabled by `GITPULS
 _Avoid_: production Shell, test-only navigation as user-facing design
 
 **Paged GitHub Session**:
-A Core type (`PagedGitHubSession`) that owns one paged GitHub HTTP client cycle: current page cursor, per-request `page` / `per_page` / `state` `HttpRequestOptions` for `GitHubQueryHandler`, `Link`-header `HasNextPage`, and client dispose. List ViewModels call `RestService.For` on its `Client` and map domain items; they do not reassemble handler + Link parsing. Created via `IGitHubClientFactory.CreatePagedSessionAsync`. Does not own auth-timeout error envelope or Search-specific TotalCount / multi-type tables. Typed Search and each Search Inbox use the same session.
+A Core type (`PagedGitHubSession`) that owns one paged GitHub HTTP client cycle: `GitHubQueryHandler` page/state injection, current page cursor, `Link`-header `HasNextPage`, and client dispose. ADR-018 replaces instance-field injection with per-request `HttpRequestOptions` once #606 Core lands. List ViewModels call `RestService.For` on its `Client` and map domain items; they do not reassemble handler + Link parsing. Created via `IGitHubClientFactory.CreatePagedSessionAsync`. Does not own auth-timeout error envelope or Search-specific TotalCount / multi-type tables. Typed Search and each Search Inbox use the same session.
 _Avoid_: generic HTTP session, repository, paging service, call envelope
 
 **Draft PR**:
