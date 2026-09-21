@@ -10,14 +10,16 @@ namespace GitPulse.ViewModels;
 /// List ViewModels map domain items and filters only.
 /// A generation counter drops stale Load / Load more responses when a newer
 /// request has already replaced the session. Credential invalidation disposes
-/// the held session so Load more cannot reuse an old Bearer.
+/// the held session so Load more cannot reuse an old Bearer. The cycle
+/// subscribes with <see cref="CredentialEpoch.Subscribe"/> and unsubscribes
+/// on <see cref="Dispose"/>.
 /// </summary>
 internal sealed class PagedListCycle : IDisposable
 {
     private const int TimeoutSeconds = 30;
     private readonly IGitHubClientFactory _factory;
     private readonly Action? _onInvalidated;
-    private readonly Action _drop;
+    private readonly IDisposable _credentials;
     private PagedGitHubSession? _session;
     private int _generation;
     private CancellationTokenSource _abort = new();
@@ -27,8 +29,7 @@ internal sealed class PagedListCycle : IDisposable
     {
         _factory = factory;
         _onInvalidated = onInvalidated;
-        _drop = OnCredentialsInvalidated;
-        CredentialEpoch.For(factory).Invalidated += _drop;
+        _credentials = CredentialEpoch.Subscribe(factory, OnCredentialsInvalidated);
     }
 
     public bool HasSession => _session is not null;
@@ -92,7 +93,7 @@ internal sealed class PagedListCycle : IDisposable
 
     public void Dispose()
     {
-        CredentialEpoch.For(_factory).Invalidated -= _drop;
+        _credentials.Dispose();
         DropSession();
         _abort.Dispose();
     }

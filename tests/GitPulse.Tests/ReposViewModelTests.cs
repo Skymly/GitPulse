@@ -1,4 +1,5 @@
 using System.Net;
+using GitPulse.Core.Abstractions;
 using GitPulse.Core.Models;
 using GitPulse.Tests.TestHelpers;
 using GitPulse.ViewModels;
@@ -355,5 +356,40 @@ public class ReposViewModelTests
         Assert.NotNull(seen);
         Assert.Contains("sort=pushed", seen!.RequestUri!.Query, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(ReposViewModel.MyReposSort, "pushed");
+    }
+
+    [Fact]
+    public async Task Dispose_UnsubscribesFromCredentialEpoch()
+    {
+        var handler = new MockHttpHandler()
+            .When("/user/repos", ReposJson(("alpha", null)), LinkNoNext);
+        var factory = new FakeGitHubClientFactory(handler);
+        var vm = new ReposViewModel(factory);
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Single(vm.Repos);
+
+        vm.Dispose();
+
+        var settings = new SettingsViewModel(new ClearingCredentialStore("tok"), factory);
+        await settings.ClearTokenCommand.ExecuteAsync(null);
+        settings.Dispose();
+    }
+
+    private sealed class ClearingCredentialStore(string? token) : ICredentialStore
+    {
+        public Task<string?> GetTokenAsync(CancellationToken ct = default)
+            => Task.FromResult(token);
+
+        public Task SetTokenAsync(string value, CancellationToken ct = default)
+        {
+            token = value;
+            return Task.CompletedTask;
+        }
+
+        public Task ClearTokenAsync(CancellationToken ct = default)
+        {
+            token = null;
+            return Task.CompletedTask;
+        }
     }
 }
