@@ -45,7 +45,7 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 
 ### DI（`MauiProgram.cs`）
 
-- Singleton：`ICredentialStore`、`IGitHubClientFactory`、`IBrowserLauncher`、`INotificationPoller`、`IAppPresence`、`IToastNotifier`、`NotificationToastCoordinator`、`NotificationToastHost`（ADR-010）
+- Singleton：`ICredentialStore`（`UiTestHostCredentialStore` 包装平台日常存储；`GITPULSE_UI_TEST_HOST=1` 时改走内存，UI smoke 不写 `token.bin` / SecureStorage）、`IGitHubClientFactory`、`IBrowserLauncher`、`INotificationPoller`、`IAppPresence`、`IToastNotifier`、`NotificationToastCoordinator`、`NotificationToastHost`（ADR-010）
 - Transient：各 ViewModel 与 Page（Shell `GoToAsync` 解析）
 
 ### Conversation

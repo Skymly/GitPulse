@@ -37,7 +37,7 @@ $env:GITPULSE_UI_TEST_PAT = [Environment]::GetEnvironmentVariable('GITPULSE_UI_T
 dotnet test tests/GitPulse.UITests/GitPulse.UITests.csproj -c Release
 ```
 
-`FlaUISetup` 会设置 `GITPULSE_UI_TEST_HOST=1`。在该模式下 App 用 `UiTestHostPage`（`TabbedPage` + `NavigationPage`）代替 `AppShell`，因为 **Shell + NavigationView** 下 UIA 看不到 `ContentPage` 正文。页面在 `Window` 首帧 `Appearing` 后再构造（`CreateWindow` 期间 inflate `SettingsPage` 会 WinUI 崩溃）。深度导航走 `AppNavigation`（有 Shell 时仍用 `Shell.GoToAsync`）。诊断输出：`artifacts/uitest-diagnostics/`。
+`FlaUISetup` 会设置 `GITPULSE_UI_TEST_HOST=1`。在该模式下 App 用 `UiTestHostPage`（`TabbedPage` + `NavigationPage`）代替 `AppShell`，因为 **Shell + NavigationView** 下 UIA 看不到 `ContentPage` 正文。页面在 `Window` 首帧 `Appearing` 后再构造（`CreateWindow` 期间 inflate `SettingsPage` 会 WinUI 崩溃）。深度导航走 `AppNavigation`（有 Shell 时仍用 `Shell.GoToAsync`）。该模式下 `ICredentialStore` 走进程内内存实现，Settings 保存 PAT **不会**写入日常 `%LOCALAPPDATA%/GitPulse/token.bin`。诊断输出：`artifacts/uitest-diagnostics/`。
 
 ### Android UI 自动化（本机模拟器）
 
@@ -84,7 +84,7 @@ $env:GITPULSE_UI_TEST_PAT = [Environment]::GetEnvironmentVariable('GITPULSE_UI_T
 dotnet test tests/GitPulse.AndroidUITests/GitPulse.AndroidUITests.csproj -c Release
 ```
 
-失败时诊断输出写入 `artifacts/uitest-diagnostics/`（截图 + page source）。`AppiumSetup` 会在端口 `4723` 无服务时自启本地 Appium；也可另开终端手动 `appium`。
+失败时诊断输出写入 `artifacts/uitest-diagnostics/`（截图 + page source）。`AppiumSetup` 会在端口 `4723` 无服务时自启本地 Appium；也可另开终端手动 `appium`。UI Test Host 下 Settings 保存 PAT 只进内存，不写模拟器/设备上的 SecureStorage。
 
 
 ## 克隆与构建

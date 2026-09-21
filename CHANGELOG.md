@@ -109,6 +109,8 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Fixed
 
+- **UI Test Host:** Saving `GITPULSE_UI_TEST_PAT` through Settings stays in
+  memory and does not overwrite the daily PAT store (`#629`).
 - **Create PR:** Empty title, missing head/base, or the same head and base
   stay on the form with a Page Error instead of doing nothing (`#696`).
 - **Search:** HTTP 403 is a rate-limit wait only when
