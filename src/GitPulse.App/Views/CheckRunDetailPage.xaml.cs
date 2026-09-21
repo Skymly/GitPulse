@@ -10,6 +10,8 @@ public partial class CheckRunDetailPage : ContentPage
 {
     private readonly CheckRunDetailViewModel _viewModel;
     private string? _appliedQuery;
+    private bool _hadParent;
+    private bool _viewModelDisposed;
 
     public CheckRunDetailPage(CheckRunDetailViewModel viewModel)
     {
@@ -75,4 +77,15 @@ public partial class CheckRunDetailPage : ContentPage
             + $"&path={Uri.EscapeDataString(annotation.Path)}"
             + $"&ref={Uri.EscapeDataString(headSha)}");
     }
+
+    protected override void OnParentSet()
+    {
+        base.OnParentSet();
+        PageViewModelLifetime.OnParentSet(
+            this,
+            _viewModel,
+            ref _hadParent,
+            ref _viewModelDisposed);
+    }
+
 }

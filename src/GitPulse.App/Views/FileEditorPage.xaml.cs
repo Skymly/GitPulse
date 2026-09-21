@@ -23,6 +23,8 @@ public partial class FileEditorPage : ContentPage
     private string? _appliedQuery;
     private bool _leavingAfterDelete;
     private RetryAction _retryAction = RetryAction.Load;
+    private bool _hadParent;
+    private bool _viewModelDisposed;
 
     private enum RetryAction
     {
@@ -173,6 +175,21 @@ public partial class FileEditorPage : ContentPage
             RepoListKind.Files,
             OwnerQuery,
             RepoQuery);
+    }
+
+    protected override void OnParentSet()
+    {
+        base.OnParentSet();
+        PageViewModelLifetime.OnParentSet(
+            this,
+            _viewModel,
+            ref _hadParent,
+            ref _viewModelDisposed,
+            () =>
+            {
+                _deletedSubscription?.Dispose();
+                _deletedSubscription = null;
+            });
     }
 
     protected override void OnDisappearing()

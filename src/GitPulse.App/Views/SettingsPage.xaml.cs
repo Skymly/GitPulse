@@ -16,7 +16,6 @@ public partial class SettingsPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Do not dispose: Settings is a root tab (Shell / UiTestHost) and is reused
-        // when returning to the tab. Transient VMs are released with the page.
+        // Do not dispose: Settings is a root tab (Page ViewModel lifetime).
     }
 }

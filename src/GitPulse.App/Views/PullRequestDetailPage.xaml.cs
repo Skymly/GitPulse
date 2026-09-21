@@ -35,6 +35,8 @@ public partial class PullRequestDetailPage : ContentPage
     private bool _conversationWide;
     private bool _conversationLayoutReady;
     private double _lastWidth;
+    private bool _hadParent;
+    private bool _viewModelDisposed;
 
     public static readonly BindableProperty SelectedDiffFileProperty =
         BindableProperty.Create(
@@ -327,10 +329,26 @@ public partial class PullRequestDetailPage : ContentPage
         }
     }
 
+    protected override void OnParentSet()
+    {
+        base.OnParentSet();
+        PageViewModelLifetime.OnParentSet(
+            this,
+            _viewModel,
+            ref _hadParent,
+            ref _viewModelDisposed,
+            () =>
+            {
+                _events.Dispose();
+                _diffViewModel.Dispose();
+            });
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
+        // Do not dispose here: disappear is tab switch, push, or peek.
+        // ViewModel Dispose is Page ViewModel lifetime (leave the back stack).
     }
 
     private async void OnCheckRunOpened(object? sender, EventArgs e)

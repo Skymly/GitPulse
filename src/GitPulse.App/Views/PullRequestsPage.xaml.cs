@@ -18,6 +18,8 @@ public partial class PullRequestsPage : ContentPage
     private readonly CompositeDisposable _events = [];
     private string? _appliedQuery;
     private bool _reloadOnAppear;
+    private bool _hadParent;
+    private bool _viewModelDisposed;
 
     public PullRequestsPage(PullRequestsViewModel viewModel)
     {
@@ -128,9 +130,25 @@ public partial class PullRequestsPage : ContentPage
         }
     }
 
+    protected override void OnParentSet()
+    {
+        base.OnParentSet();
+        PageViewModelLifetime.OnParentSet(
+            this,
+            _viewModel,
+            ref _hadParent,
+            ref _viewModelDisposed,
+            () =>
+            {
+                _events.Dispose();
+                WeakReferenceMessenger.Default.UnregisterAll(this);
+            });
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Keep ViewModel(s) alive: pages stay on the navigation stack and are reused on pop.
+        // Do not dispose here: disappear is tab switch, push, or peek.
+        // ViewModel Dispose is Page ViewModel lifetime (leave the back stack).
     }
 }
