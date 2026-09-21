@@ -32,8 +32,10 @@ public static class MauiProgram
 #endif
 
         // Platform-specific credential store, presence, and toast.
+        // UI Test Host wraps the daily store so smoke tests never persist a PAT.
 #if WINDOWS
-        builder.Services.AddSingleton<ICredentialStore, WindowsCredentialStore>();
+        builder.Services.AddSingleton<ICredentialStore>(
+            _ => new UiTestHostCredentialStore(new WindowsCredentialStore()));
         builder.Services.AddSingleton<WindowsAppPresence>();
         builder.Services.AddSingleton<IAppPresence>(sp => sp.GetRequiredService<WindowsAppPresence>());
         builder.Services.AddSingleton<WindowsToastNotifier>();
@@ -44,7 +46,8 @@ public static class MauiProgram
             return new NotificationsNavigator(presence.ShowMainWindow);
         });
 #elif ANDROID
-        builder.Services.AddSingleton<ICredentialStore, AndroidCredentialStore>();
+        builder.Services.AddSingleton<ICredentialStore>(
+            _ => new UiTestHostCredentialStore(new AndroidCredentialStore()));
         builder.Services.AddSingleton<IAppPresence, AndroidAppPresence>();
         builder.Services.AddSingleton<IToastNotifier, AndroidToastNotifier>();
         builder.Services.AddSingleton<NotificationsNavigator>();

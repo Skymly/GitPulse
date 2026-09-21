@@ -32,14 +32,15 @@ public class MainActivity : MauiAppCompatActivity
     /// <summary>
     ///   Host env vars do not reach the Android process. Appium passes
     ///   <c>--es GITPULSE_UI_TEST_HOST 1</c> via optionalIntentArguments so
-    ///   <see cref="App"/> can enable <c>UiTestHostPage</c> the same way as Windows.
+    ///   <see cref="App"/> can enable <c>UiTestHostPage</c> and the in-memory
+    ///   credential store the same way as Windows.
     /// </summary>
     void ApplyUiTestHostFromIntent()
     {
-        string? flag = Intent?.GetStringExtra("GITPULSE_UI_TEST_HOST");
-        if (string.Equals(flag, "1", StringComparison.Ordinal))
+        string? flag = Intent?.GetStringExtra(UiTestHost.EnvironmentName);
+        if (string.Equals(flag, UiTestHost.EnabledValue, StringComparison.Ordinal))
         {
-            System.Environment.SetEnvironmentVariable("GITPULSE_UI_TEST_HOST", "1");
+            UiTestHost.Enable();
         }
     }
 }
