@@ -40,6 +40,7 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 1. Core 不引用 MAUI、Observables 生成产物以外的 UI 包。
 2. ViewModels 不引用 `Microsoft.Maui.*`。
 3. 平台凭据实现仅存在于 App 的 `Platforms/`。
+4. Transient ViewModel 只在页面不会再回来时 Dispose（见「导航」Page ViewModel lifetime）。
 
 ## 实现概览
 
@@ -57,6 +58,7 @@ PR Conversation 由 ViewModel 外壳组合三个内部模块：`PullRequestLifec
 - Shell TabBar：Repos、Notifications、Search、Settings
 - 详情页经 `Routing.RegisterRoute` 压入当前 Tab 栈，query 参数（`owner`、`repo`、`number`）
 - 托盘 / Toast 激活：显示主窗并 `GoToAsync("//NotificationsPage")`
+- **Page ViewModel lifetime**（[#605](https://github.com/Skymly/GitPulse/issues/605)）：只在页面**不会再回来**时 `Dispose` Transient ViewModel（离开该 Tab 的 back stack）。切 Tab、peek（未真正离栈的返回手势）、以及仍在栈上的页面（含 Push 后的父页）不得 Dispose。`OnDisappearing` 不是 Dispose 信号。列表 cycle 用 `CredentialEpoch.Subscribe()`（`IDisposable`）；禁止再加强静态订阅或弱事件。UiTestHost 同一条规则。Page 级 Events 管道仍可在 disappear 释放、appear 重建。
 
 ### 平台
 
