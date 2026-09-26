@@ -18,6 +18,14 @@ namespace GitPulse.GitHubApi;
 /// <see href="https://github.com/Skymly/Observables/issues/111"/>.
 /// </para>
 /// <para>
+/// <b>Observables 0.3.0:</b> <c>ApiResponse&lt;T&gt;</c> owns the
+/// <c>HttpResponseMessage</c> and implements <c>IDisposable</c>. Copy
+/// <c>Content</c>, <c>StatusCode</c>, and <c>Link</c> before disposing.
+/// Generated query strings are escaped; the query name of <c>@ref</c> stays
+/// <c>ref</c>. <c>RestService.For&lt;T&gt;(HttpClient)</c> still uses the
+/// caller-owned client.
+/// </para>
+/// <para>
 /// <b>Pagination via <c>ApiResponse&lt;T&gt;</c>:</b> List methods that need the
 /// <c>Link</c> response header (for <c>rel="next"</c> pagination detection) return
 /// <c>Observable&lt;ApiResponse&lt;T&gt;&gt;</c> instead of <c>Observable&lt;T&gt;</c>.
@@ -54,15 +62,15 @@ public interface IGitHubReposApi
 
     /// <summary>204 if starred, 404 if not (M24).</summary>
     [Get("/user/starred/{owner}/{repo}")]
-    Observable<ApiResponse<Unit>> GetStarredRepo(string owner, string repo);
+    Observable<ApiResponse<GitHubNoContent>> GetStarredRepo(string owner, string repo);
 
     /// <summary>Star a repository (204).</summary>
     [Put("/user/starred/{owner}/{repo}")]
-    Observable<ApiResponse<Unit>> StarRepo(string owner, string repo);
+    Observable<ApiResponse<GitHubNoContent>> StarRepo(string owner, string repo);
 
     /// <summary>Unstar a repository (204).</summary>
     [Delete("/user/starred/{owner}/{repo}")]
-    Observable<ApiResponse<Unit>> UnstarRepo(string owner, string repo);
+    Observable<ApiResponse<GitHubNoContent>> UnstarRepo(string owner, string repo);
 
     /// <summary>200 if a subscription exists, 404 if not watching (M30).</summary>
     [Get("/repos/{owner}/{repo}/subscription")]
@@ -75,7 +83,7 @@ public interface IGitHubReposApi
 
     /// <summary>Stop watching a repository (204).</summary>
     [Delete("/repos/{owner}/{repo}/subscription")]
-    Observable<ApiResponse<Unit>> DeleteRepoSubscription(string owner, string repo);
+    Observable<ApiResponse<GitHubNoContent>> DeleteRepoSubscription(string owner, string repo);
 
     [Get("/repos/{owner}/{repo}")]
     Observable<Repo> GetRepo(string owner, string repo);
@@ -265,7 +273,7 @@ public interface IGitHubReposApi
 
     /// <summary>Ask GitHub to rerequest a Check Run (201) (M32).</summary>
     [Post("/repos/{owner}/{repo}/check-runs/{checkRunId}/rerequest")]
-    Observable<ApiResponse<Unit>> RerequestCheckRun(string owner, string repo, long checkRunId);
+    Observable<ApiResponse<GitHubNoContent>> RerequestCheckRun(string owner, string repo, long checkRunId);
 
     /// <summary>
     /// Combined Commit Statuses for a git ref. Does not include Check Runs.
@@ -291,11 +299,11 @@ public interface IGitHubReposApi
 
     /// <summary>Mark a single notification thread as read (205 empty).</summary>
     [Patch("/notifications/threads/{threadId}")]
-    Observable<ApiResponse<Unit>> MarkThreadRead(string threadId);
+    Observable<ApiResponse<GitHubNoContent>> MarkThreadRead(string threadId);
 
     /// <summary>Mark all notifications as read (205 empty).</summary>
     [Put("/notifications")]
-    Observable<ApiResponse<Unit>> MarkAllRead();
+    Observable<ApiResponse<GitHubNoContent>> MarkAllRead();
 
     // ── Repository Contents (M5: File browsing & editing) ────────
     // The GitHub Contents API uses the same endpoint for directory listing

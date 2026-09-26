@@ -121,7 +121,7 @@ public sealed partial class CheckRunDetailViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.RerequestCheckRun(_owner, _repo, _checkRunId).FirstAsync(cts.Token);
+            using var response = await api.RerequestCheckRun(_owner, _repo, _checkRunId).FirstAsync(cts.Token);
             var code = (int)(response.StatusCode ?? 0);
             if (code is >= 200 and < 300)
                 return;

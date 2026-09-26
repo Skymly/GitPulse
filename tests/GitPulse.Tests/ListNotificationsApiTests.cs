@@ -27,7 +27,7 @@ public class ListNotificationsApiTests
         using var client = await factory.CreateClientAsync(TestContext.Current.CancellationToken);
         var api = RestService.For<IGitHubReposApi>(client);
 
-        var response = await api.ListNotifications().FirstAsync(TestContext.Current.CancellationToken);
+        using var response = await api.ListNotifications().FirstAsync(TestContext.Current.CancellationToken);
 
         Assert.True(response.IsSuccessStatusCode);
         Assert.Equal("1", Assert.Single(response.Content ?? []).Id);
