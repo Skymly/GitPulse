@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Net;
-using System.Net.Http.Headers;
 using CommunityToolkit.Mvvm.Input;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Http;
@@ -166,7 +165,7 @@ public sealed partial class SearchViewModel : IDisposable
         catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {
             if (IsCurrent(version))
-                ErrorMessage.Value = SearchForbidden.Message(ex.Headers);
+                ErrorMessage.Value = SearchForbidden.Message(ex.Remaining);
         }
         catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -251,7 +250,7 @@ public sealed partial class SearchViewModel : IDisposable
         catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {
             if (IsCurrent(version))
-                ErrorMessage.Value = SearchForbidden.Message(ex.Headers);
+                ErrorMessage.Value = SearchForbidden.Message(ex.Remaining);
         }
         catch (SearchRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -292,7 +291,7 @@ public sealed partial class SearchViewModel : IDisposable
         {
             case SearchType.Repositories:
                 {
-                    var response = await api.SearchRepositories(EncodeQuery(query)).FirstAsync(cancellationToken);
+                    using var response = await api.SearchRepositories(SearchQueryText(query)).FirstAsync(cancellationToken);
                     if (!IsCurrent(version))
                         return;
                     EnsureSearchSucceeded(response);
@@ -302,7 +301,7 @@ public sealed partial class SearchViewModel : IDisposable
                 }
             case SearchType.Issues:
                 {
-                    var response = await api.SearchIssues(EncodeQuery($"{query} is:issue"))
+                    using var response = await api.SearchIssues(SearchQueryText($"{query} is:issue"))
                         .FirstAsync(cancellationToken);
                     if (!IsCurrent(version))
                         return;
@@ -313,7 +312,7 @@ public sealed partial class SearchViewModel : IDisposable
                 }
             case SearchType.PullRequests:
                 {
-                    var response = await api.SearchPullRequests(EncodeQuery($"{query} is:pr"))
+                    using var response = await api.SearchPullRequests(SearchQueryText($"{query} is:pr"))
                         .FirstAsync(cancellationToken);
                     if (!IsCurrent(version))
                         return;
@@ -324,7 +323,7 @@ public sealed partial class SearchViewModel : IDisposable
                 }
             case SearchType.Code:
                 {
-                    var response = await api.SearchCode(EncodeQuery(query)).FirstAsync(cancellationToken);
+                    using var response = await api.SearchCode(SearchQueryText(query)).FirstAsync(cancellationToken);
                     if (!IsCurrent(version))
                         return;
                     EnsureSearchSucceeded(response);
@@ -518,10 +517,9 @@ public sealed partial class SearchViewModel : IDisposable
         session.Paged?.ApplyLink(headers);
     }
 
-    private static string EncodeQuery(string query)
-    {
-        return Uri.EscapeDataString(query);
-    }
+    // Observables 0.2.2+ escapes query values. GitHubQueryHandler unescapes
+    // once and re-encodes, so pre-escaping q would leave a double-encoded wire value.
+    private static string SearchQueryText(string query) => query;
 
     private void OnCredentialsInvalidated()
     {
@@ -553,7 +551,7 @@ public sealed partial class SearchViewModel : IDisposable
         if (!response.IsSuccessStatusCode)
             throw new SearchRequestException(
                 response.StatusCode ?? HttpStatusCode.ServiceUnavailable,
-                response.Headers);
+                SearchForbidden.Remaining(response.Headers));
     }
 
 
@@ -666,9 +664,9 @@ public sealed partial class SearchViewModel : IDisposable
 
     private sealed class SearchRequestException(
         HttpStatusCode statusCode,
-        HttpResponseHeaders? headers) : Exception
+        string? remaining) : Exception
     {
         public HttpStatusCode StatusCode { get; } = statusCode;
-        public HttpResponseHeaders? Headers { get; } = headers;
+        public string? Remaining { get; } = remaining;
     }
 }

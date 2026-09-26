@@ -69,10 +69,11 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
             var result = await _cycle.LoadAsync(null, async (client, ct) =>
             {
                 var api = RestService.For<IGitHubActionsApi>(client);
-                var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(ct);
+                using var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(ct);
                 ApiResponses.EnsureSuccess(response);
                 return new PagedListPage<WorkflowRun>(
-                    response.Content?.WorkflowRuns ?? [], response.Headers);
+                    response.Content?.WorkflowRuns ?? [],
+                    LinkHeaderParser.CopyLinkHeader(response.Headers));
             });
             if (!result.Completed)
                 return;
@@ -123,10 +124,11 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
             var result = await _cycle.LoadMoreAsync(async (client, ct) =>
             {
                 var api = RestService.For<IGitHubActionsApi>(client);
-                var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(ct);
+                using var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(ct);
                 ApiResponses.EnsureSuccess(response);
                 return new PagedListPage<WorkflowRun>(
-                    response.Content?.WorkflowRuns ?? [], response.Headers);
+                    response.Content?.WorkflowRuns ?? [],
+                    LinkHeaderParser.CopyLinkHeader(response.Headers));
             });
             if (!result.Completed)
                 return;
@@ -173,7 +175,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
 
             var api = RestService.For<IGitHubActionsApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.DispatchWorkflow(
+            using var response = await api.DispatchWorkflow(
                     _owner, _repo, workflow.Id, new WorkflowDispatchRequest { Ref = gitRef })
                 .FirstAsync(cts.Token);
             var code = (int)(response.StatusCode ?? 0);

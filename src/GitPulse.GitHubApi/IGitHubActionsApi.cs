@@ -20,7 +20,7 @@ public interface IGitHubActionsApi
     Observable<ApiResponse<WorkflowJobsResult>> ListWorkflowJobs(string owner, string repo, long runId);
 
     [Post("/repos/{owner}/{repo}/actions/runs/{runId}/rerun")]
-    Observable<ApiResponse<Unit>> RerunWorkflow(string owner, string repo, long runId);
+    Observable<ApiResponse<GitHubNoContent>> RerunWorkflow(string owner, string repo, long runId);
 
     /// <summary>List repository workflows (M40).</summary>
     [Get("/repos/{owner}/{repo}/actions/workflows")]
@@ -28,6 +28,6 @@ public interface IGitHubActionsApi
 
     /// <summary>Create a workflow_dispatch event (204) (M40).</summary>
     [Post("/repos/{owner}/{repo}/actions/workflows/{workflowId}/dispatches")]
-    Observable<ApiResponse<Unit>> DispatchWorkflow(
+    Observable<ApiResponse<GitHubNoContent>> DispatchWorkflow(
         string owner, string repo, long workflowId, [Body] WorkflowDispatchRequest body);
 }

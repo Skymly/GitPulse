@@ -13,22 +13,32 @@ public static partial class LinkHeaderParser
     /// Extracts the <c>rel="next"</c> URL from a <c>Link</c> header, or
     /// <c>null</c> if there is no next page.
     /// </summary>
-    public static string? GetNextUrl(HttpResponseHeaders? headers)
+    public static string? GetNextUrl(HttpResponseHeaders? headers) =>
+        GetNextUrlFromCopy(CopyLinkHeader(headers));
+
+    /// <summary>
+    /// Copies <c>Link</c> header values so callers can dispose
+    /// <c>ApiResponse&lt;T&gt;</c> before pagination uses them.
+    /// </summary>
+    public static string? CopyLinkHeader(HttpResponseHeaders? headers)
     {
         if (headers is null || !headers.TryGetValues("Link", out var values))
             return null;
 
-        foreach (var linkHeader in values)
-        {
-            if (string.IsNullOrEmpty(linkHeader))
-                continue;
+        return string.Join(", ", values);
+    }
 
-            var match = NextRelRegex().Match(linkHeader);
-            if (match.Success)
-                return match.Groups[1].Value;
-        }
+    /// <summary>
+    /// Extracts the <c>rel="next"</c> URL from an already-copied <c>Link</c>
+    /// header value, or <c>null</c> if there is no next page.
+    /// </summary>
+    public static string? GetNextUrlFromCopy(string? linkHeader)
+    {
+        if (string.IsNullOrEmpty(linkHeader))
+            return null;
 
-        return null;
+        var match = NextRelRegex().Match(linkHeader);
+        return match.Success ? match.Groups[1].Value : null;
     }
 
     [GeneratedRegex(

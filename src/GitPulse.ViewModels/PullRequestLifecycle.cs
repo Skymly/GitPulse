@@ -225,7 +225,7 @@ internal sealed class PullRequestLifecycle(
                 {
                     ExpectedHeadSha = string.IsNullOrEmpty(headSha) ? null : headSha,
                 };
-                var response = await api.UpdatePullRequestBranch(io.Owner, io.Repo, io.Number, request)
+                using var response = await api.UpdatePullRequestBranch(io.Owner, io.Repo, io.Number, request)
                     .FirstAsync(cts.Token);
                 var code = (int)(response.StatusCode ?? 0);
                 if (code is >= 200 and < 300)

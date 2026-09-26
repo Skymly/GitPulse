@@ -99,7 +99,7 @@ Shell `GoToAsync("..")` 不会给下层页面带 query。Create issue/PR 成功 
 ## 兼容基线
 
 - R3 1.3.0+、`R3Extensions.Maui`
-- Observables.Events.R3 0.1.5（SearchBar 生成器已知问题）
+- Observables.Events.R3 0.3.0（SearchBar 生成器已知问题仍在；ADR-015 公开事件适配器保留）
 
 ## 参考
 

@@ -80,7 +80,7 @@ internal sealed class PullRequestConversationMeta(
             using (cts)
             {
                 var request = new ReviewersRequest { Reviewers = [login] };
-                var response = await api.RequestReviewers(io.Owner, io.Repo, io.Number, request)
+                using var response = await api.RequestReviewers(io.Owner, io.Repo, io.Number, request)
                     .FirstAsync(cts.Token);
                 if (!ApplyReviewerWriteStatus(response.StatusCode, requesting: true))
                     return;
@@ -122,7 +122,7 @@ internal sealed class PullRequestConversationMeta(
             using (cts)
             {
                 var request = new ReviewersRequest { Reviewers = [login] };
-                var response = await api.RemoveRequestedReviewers(io.Owner, io.Repo, io.Number, request)
+                using var response = await api.RemoveRequestedReviewers(io.Owner, io.Repo, io.Number, request)
                     .FirstAsync(cts.Token);
                 if (!ApplyReviewerWriteStatus(response.StatusCode, requesting: false))
                     return;
@@ -240,7 +240,7 @@ internal sealed class PullRequestConversationMeta(
             using (scope)
             using (cts)
             {
-                var response = await call(api).FirstAsync(cts.Token);
+                using var response = await call(api).FirstAsync(cts.Token);
                 var code = (int)(response.StatusCode ?? 0);
                 if (code is < 200 or >= 300)
                 {

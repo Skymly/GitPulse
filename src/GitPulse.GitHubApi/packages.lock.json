@@ -10,9 +10,9 @@
       },
       "Observables.RestAPI.R3": {
         "type": "Direct",
-        "requested": "[0.1.5, )",
-        "resolved": "0.1.5",
-        "contentHash": "GgsUaCsbTmig1CqLgWJzx3yJg1UbLVClFiOOYoK92Fxi4Hs13S7Tobs4lUqvYc9nmWDHwzfNDcHSyxwSfgLOoA==",
+        "requested": "[0.3.0, )",
+        "resolved": "0.3.0",
+        "contentHash": "nCgNZ6FYz783W8q9Pl4HAO/TePCoVFwiqXT39voqDx3yAOJDTQPym/ObDQm+jMkLBqe4VXM/iuH8eWkMN2nmGg==",
         "dependencies": {
           "R3": "1.3.0"
         }

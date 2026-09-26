@@ -67,7 +67,14 @@ public sealed class PagedGitHubSession : IDisposable
     /// Updates <see cref="HasNextPage"/> from response <c>Link</c> headers.
     /// Commits a pending <see cref="Advance"/> so failed LoadMore retries the same page.
     /// </summary>
-    public void ApplyLink(HttpResponseHeaders? headers)
+    public void ApplyLink(HttpResponseHeaders? headers) =>
+        ApplyCopiedLink(LinkHeaderParser.CopyLinkHeader(headers));
+
+    /// <summary>
+    /// Updates <see cref="HasNextPage"/> from an already-copied <c>Link</c> header.
+    /// Use this after <c>ApiResponse&lt;T&gt;</c> has been disposed.
+    /// </summary>
+    public void ApplyCopiedLink(string? linkHeader)
     {
         ThrowIfDisposed();
         if (_loadMorePage is int page)
@@ -76,7 +83,7 @@ public sealed class PagedGitHubSession : IDisposable
             _loadMorePage = null;
         }
 
-        HasNextPage = LinkHeaderParser.GetNextUrl(headers) is not null;
+        HasNextPage = LinkHeaderParser.GetNextUrlFromCopy(linkHeader) is not null;
     }
 
     /// <summary>
