@@ -32,12 +32,12 @@ ViewModel 写路径优先 `OpenAsync` 作用域（用完释放 `HttpClient`，�
 | 分页列表 | `Observable<ApiResponse<T[]>>` | `ListIssuesPaged`, `ListMyReposSortedPaged` |
 | 单资源 GET | `Observable<T>` | `GetRepo`, `GetIssue` |
 | 写操作 | `Observable<T>` + `[Body]` | `CreateIssue`, `CreatePullRequest`, `MergePullRequest` |
-| 无 body 写 | `Observable<ApiResponse<Unit>>` | `MarkThreadRead` (205), `MarkAllRead` (205), `RerunWorkflow` (201), `StarRepo` (204) |
+| 无 body 写 | `Observable<ApiResponse<GitHubNoContent>>` | `MarkThreadRead` (205), `MarkAllRead` (205), `RerunWorkflow` (201), `StarRepo` (204) |
 
 生成器有两条 HTTP 通道，互不自动转换：
 
 - `Observable<T>`：非 2xx 由生成器抛 `ApiException`。空体成功响应不能反序列化为 `Unit`，会变成反序列化 `ApiException`。
-- `Observable<ApiResponse<T>>`：非 2xx 不抛。调用方必须检查 `StatusCode` / `IsSuccessStatusCode`。GitHub 的 empty-body 写端点（204 / 201 / 205）必须声明为 `ApiResponse<Unit>`。
+- `Observable<ApiResponse<T>>`：非 2xx 不抛。调用方必须检查 `StatusCode` / `IsSuccessStatusCode`。GitHub 的 empty-body 写端点（204 / 201 / 205）必须声明为 `ApiResponse<GitHubNoContent>`。Observables 0.3.0 不能用 `ApiResponse<Unit>`，见下文「响应释放与查询编码」。
 
 Issues / PRs / Commits / Starred / Workflow runs 列表在 `ApiResponse` 通道上把非 2xx 映射为 Page Error，而不是空列表。
 
@@ -113,7 +113,7 @@ Issues / PRs / Commits / Starred / Workflow runs 列表在 `ApiResponse` 通道�
 3. GitHub snake_case JSON 须在 Core 模型上用 `[JsonPropertyName]` 映射。
 4. Search 的 `q` 必须保留在声明式接口签名中；业务查询参数走 `[Query]`。分页参数当前由 handler 实例字段注入；ADR-018 要求改为逐请求 `HttpRequestOptions`（#606 Core）。
 5. 写请求 DTO 的可空成员序列化时省略 JSON `null`（`JsonIgnoreCondition.WhenWritingNull`）。GitHub Update-an-issue 对 `title` / `body` / `state` / `labels` 的 JSON `null` 返回 422，不会当作 unchanged；close-only PATCH 必须是 `{"state":"closed"}`。
-6. 写操作不返回响应体时使用 `Observable<ApiResponse<Unit>>`。GitHub 的 empty-body 成功码（204 / 201 / 205）不能走 `Observable<Unit>`：生成器会按 JSON 反序列化空体并抛 `ApiException`。
+6. 写操作不返回响应体时使用 `Observable<ApiResponse<GitHubNoContent>>`。GitHub 的 empty-body 成功码（204 / 201 / 205）不能走 `Observable<Unit>` 或 `Observable<GitHubNoContent>`：生成器会按 JSON 反序列化空体并抛 `ApiException`。0.3.0 也不能用 `ApiResponse<Unit>`（会返回 null）。
 7. `Observable<T>` 与 `Observable<ApiResponse<T>>` 互不自动转换。前者非 2xx 抛 `ApiException`；后者不抛，调用方必须检查 `StatusCode`。列表页不得把 `ApiResponse` 通道上的非 2xx 显示成空成功。
 
 ## 实现概览
@@ -203,7 +203,7 @@ Typed Search 与每个 Search Inbox 使用 `PagedGitHubSession`。
 | 重跑 run | `POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun` |
 | job 日志 | `GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs` |
 
-列表返回 `ApiResponse<T>`；非 2xx 须检查 `StatusCode`（ViewModel 映射为 Page Error）。`RerunWorkflow` 是 empty-body 201，声明为 `ApiResponse<Unit>`。日志下载需处理重定向。Windows 托盘 / Toast 见 [ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md) 与 [Events.md](Events.md)（App/platform，非本 API 文档范围）。
+列表返回 `ApiResponse<T>`；非 2xx 须检查 `StatusCode`（ViewModel 映射为 Page Error）。`RerunWorkflow` 是 empty-body 201，声明为 `ApiResponse<GitHubNoContent>`。日志下载需处理重定向。Windows 托盘 / Toast 见 [ADR-010](../adr/ADR-010-windows-tray-presence-and-toast.md) 与 [Events.md](Events.md)（App/platform，非本 API 文档范围）。
 
 
 ### Pull Request Reviews (M15)
@@ -293,7 +293,7 @@ Write + read on `IGitHubReposApi`. No new Core model.
 
 | 方法 | 端点 | 说明 |
 |------|------|------|
-| `GetStarredRepo` | `GET /user/starred/{owner}/{repo}` | 204 starred, 404 not starred. `ApiResponse<Unit>`. |
+| `GetStarredRepo` | `GET /user/starred/{owner}/{repo}` | 204 starred, 404 not starred. `ApiResponse<GitHubNoContent>`. |
 | `StarRepo` | `PUT /user/starred/{owner}/{repo}` | 204. |
 | `UnstarRepo` | `DELETE /user/starred/{owner}/{repo}` | 204. |
 
@@ -335,7 +335,7 @@ Read-only. `GetFileContentAtRef` is `GET /repos/{owner}/{repo}/contents/{path}?r
 
 ### Rerequest Check Run (M32)
 
-Write. Lives on `IGitHubReposApi`. `RerequestCheckRun` is `POST /repos/{owner}/{repo}/check-runs/{checkRunId}/rerequest` returning `ApiResponse<Unit>` so 403/422 stay on the page. Success is quiet and does not invent a new run row. Check-suite rerequest and live polling are out of scope.
+Write. Lives on `IGitHubReposApi`. `RerequestCheckRun` is `POST /repos/{owner}/{repo}/check-runs/{checkRunId}/rerequest` returning `ApiResponse<GitHubNoContent>` so 403/422 stay on the page. Success is quiet and does not invent a new run row. Check-suite rerequest and live polling are out of scope.
 
 ### Issue assignees (M33)
 
@@ -374,7 +374,7 @@ Read-only. No new GitHubApi method. `Repo.Language` and `Repo.License` (`key` / 
 
 ### Workflow dispatch (M40)
 
-Write + read on `IGitHubActionsApi`. `ListWorkflows` is first page only. `DispatchWorkflow` is `POST .../workflows/{id}/dispatches` with `{ref}` (`ApiResponse<Unit>`, 204). Only `state=active` workflows are offered. 422 stays on the page. Inputs JSON and branch pickers are out of scope.
+Write + read on `IGitHubActionsApi`. `ListWorkflows` is first page only. `DispatchWorkflow` is `POST .../workflows/{id}/dispatches` with `{ref}` (`ApiResponse<GitHubNoContent>`, 204). Only `state=active` workflows are offered. 422 stays on the page. Inputs JSON and branch pickers are out of scope.
 
 ### Repo topics (M41)
 
@@ -432,9 +432,18 @@ Write on `IGitHubReposApi`. `UpdatePullRequestBranch` is `PUT .../pulls/{number}
 - GraphQL API
 - GitHub Enterprise 自建实例（未测试）
 
+## 响应释放与查询编码（Observables 0.3.0）
+
+0.2.1 起 `ApiResponse<T>` / `IApiResponse<T>` 拥有 `HttpResponseMessage` 并实现 `IDisposable`。`Dispose` 释放响应和对应请求。在 .NET 10 上，`HttpResponseMessage.Dispose` 之后 `HttpResponseHeaders` 仍可读，但 `HttpContentHeaders` 会抛 `ObjectDisposedException`。即便响应头碰巧还能读，调用方也必须在 `Dispose` 之前把还要使用的 `Content`、`StatusCode` 和 `Link`（以及搜索的 `X-RateLimit-Remaining`、通知轮询的 `Retry-After`）复制出来，之后不得再碰活的头对象。分页页对象保存复制后的 Link 字符串。禁止为了省事不释放。
+
+`RestService.For<T>(HttpClient)` 继续使用调用方持有的 client。不要改成 `For(string)`，那个重载会创建并拥有 `HttpClient`。接口不继承 `IDisposable` 时，生成代理不会释放工厂或 session 的 client。
+
+0.2.2 起生成的查询串会转义。`GitHubQueryHandler` 解析时反转义、重建时再转义，因此出站的 `page`、`per_page`、`state`、`q`、`ref`、`filter` 只编码一次。搜索 `q` 不再在调用前预转义。关键字参数 `@ref` 的查询名仍是 `ref`。0.3.0 的生成器把 `ApiResponse<Unit>` 的反序列化类型当成 `Unit`，走 `SendVoidAsync` 后 `return default`，调用方拿到 null，读不到状态码。空体成功写（204/201/205）因此改为 `ApiResponse<GitHubNoContent>`，仍走 `Observable<ApiResponse<T>>` 通道，不改成 `Observable<T>`。`GitHubNoContent` 只是占位类型，调用方只读 `StatusCode`。
+
 ## 兼容基线
 
-- Observables.RestAPI.R3 **0.1.5+**（path + body 共存）
+- Observables.RestAPI.R3 **0.3.0**（path + body 共存自 0.1.5；响应释放自 0.2.1；查询转义自 0.2.2）
+- Observables.Events.R3 **0.3.0**
 
 ## 参考
 

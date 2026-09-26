@@ -114,7 +114,7 @@ public sealed partial class CreateIssueViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync(cts.Token);
+            using var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync(cts.Token);
             var title = TitleInput.Value;
             var match = (response.Content ?? []).FirstOrDefault(issue =>
                 !issue.IsPullRequest

@@ -19,6 +19,12 @@ namespace GitPulse.Core.Http;
 /// See <see href="https://github.com/Skymly/Observables/issues/111"/>.
 /// </para>
 /// <para>
+/// Observables 0.2.2+ escapes generated query strings. This handler
+/// unescapes the incoming query and escapes it again, so outbound
+/// <c>page</c>, <c>per_page</c>, <c>state</c>, <c>q</c>, <c>ref</c>, and
+/// <c>filter</c> are encoded once. Callers must not pre-escape those values.
+/// </para>
+/// <para>
 /// The handler is <b>per-session stateful</b>: set <see cref="Page"/>,
 /// <see cref="PerPage"/>, and <see cref="State"/> before each request to
 /// control pagination/filtering. A fresh query-handler instance is created

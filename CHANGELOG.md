@@ -9,6 +9,12 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Changed
 
+- Upgrade `Observables.RestAPI.R3` and `Observables.Events.R3` from 0.1.5 to 0.3.0.
+  `ApiResponse<T>` now owns the HTTP response and is disposed after content, status,
+  and Link (plus search rate-limit and notification Retry-After) are copied.
+  Search `q` is no longer pre-escaped, so query values are encoded once.
+  Empty-body writes use `ApiResponse<GitHubNoContent>` because 0.3.0 returns null for `ApiResponse<Unit>`.
+
 - GitHub write paths open an `OpenAsync` client scope and dispose it. Paged
   lists use `CreatePagedSessionAsync` only; `CreatePagedClientAsync` is gone
   (`#607`).

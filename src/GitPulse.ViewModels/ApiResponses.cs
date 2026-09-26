@@ -20,7 +20,12 @@ internal static class ApiResponses
 
     public static PagedListPage<T> PageOrThrow<T>(ApiResponse<T[]> response)
     {
-        EnsureSuccess(response);
-        return new PagedListPage<T>(response.Content ?? [], response.Headers);
+        using (response)
+        {
+            EnsureSuccess(response);
+            return new PagedListPage<T>(
+                response.Content ?? [],
+                LinkHeaderParser.CopyLinkHeader(response.Headers));
+        }
     }
 }

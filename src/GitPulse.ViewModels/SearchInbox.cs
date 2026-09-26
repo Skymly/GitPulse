@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Net;
-using System.Net.Http.Headers;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Http;
 using GitPulse.Core.Models;
@@ -83,7 +82,7 @@ internal sealed class SearchInbox : IDisposable
             return ResultIfCurrent(
                 version,
                 isCurrent,
-                SearchForbidden.Message(ex.Headers));
+                SearchForbidden.Message(ex.Remaining));
         }
         catch (SearchInboxRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -139,7 +138,7 @@ internal sealed class SearchInbox : IDisposable
             return ResultIfCurrent(
                 version,
                 isCurrent,
-                SearchForbidden.Message(ex.Headers));
+                SearchForbidden.Message(ex.Remaining));
         }
         catch (SearchInboxRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
@@ -188,10 +187,9 @@ internal sealed class SearchInbox : IDisposable
         Func<int, bool> isCurrent,
         CancellationToken cancellationToken)
     {
-        var encoded = Uri.EscapeDataString(_query);
-        var response = _kind == SearchInboxKind.PullRequests
-            ? await api.SearchPullRequests(encoded).FirstAsync(cancellationToken)
-            : await api.SearchIssues(encoded).FirstAsync(cancellationToken);
+        using var response = _kind == SearchInboxKind.PullRequests
+            ? await api.SearchPullRequests(_query).FirstAsync(cancellationToken)
+            : await api.SearchIssues(_query).FirstAsync(cancellationToken);
         if (!isCurrent(version))
             return;
 
@@ -199,7 +197,7 @@ internal sealed class SearchInbox : IDisposable
         {
             throw new SearchInboxRequestException(
                 response.StatusCode ?? HttpStatusCode.ServiceUnavailable,
-                response.Headers);
+                SearchForbidden.Remaining(response.Headers));
         }
 
         if (replace)
@@ -263,10 +261,10 @@ internal sealed class SearchInbox : IDisposable
 
     private sealed class SearchInboxRequestException(
         HttpStatusCode statusCode,
-        HttpResponseHeaders? headers) : Exception
+        string? remaining) : Exception
     {
         public HttpStatusCode StatusCode { get; } = statusCode;
-        public HttpResponseHeaders? Headers { get; } = headers;
+        public string? Remaining { get; } = remaining;
     }
 }
 

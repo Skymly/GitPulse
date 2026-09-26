@@ -175,7 +175,7 @@ public sealed partial class RepoDetailViewModel : IDisposable
     {
         try
         {
-            var response = await api.GetStarredRepo(_owner, _repo).FirstAsync(ct);
+            using var response = await api.GetStarredRepo(_owner, _repo).FirstAsync(ct);
             var code = (int)(response.StatusCode ?? 0);
             IsStarred.Value = code is >= 200 and < 300;
         }
@@ -194,7 +194,7 @@ public sealed partial class RepoDetailViewModel : IDisposable
     {
         try
         {
-            var response = await api.GetRepoSubscription(_owner, _repo).FirstAsync(ct);
+            using var response = await api.GetRepoSubscription(_owner, _repo).FirstAsync(ct);
             var code = (int)(response.StatusCode ?? 0);
             var subscription = response.Content;
             IsWatching.Value = code is >= 200 and < 300
@@ -233,7 +233,7 @@ public sealed partial class RepoDetailViewModel : IDisposable
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var starring = !IsStarred.Value;
-            var response = starring
+            using var response = starring
                 ? await api.StarRepo(_owner, _repo).FirstAsync(cts.Token)
                 : await api.UnstarRepo(_owner, _repo).FirstAsync(cts.Token);
 
@@ -286,13 +286,21 @@ public sealed partial class RepoDetailViewModel : IDisposable
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var watching = !IsWatching.Value;
-            var status = watching
-                ? (await api.SetRepoSubscription(
+            System.Net.HttpStatusCode? status;
+            if (watching)
+            {
+                using var response = await api.SetRepoSubscription(
                     _owner,
                     _repo,
                     new RepoSubscriptionRequest { Subscribed = true, Ignored = false })
-                    .FirstAsync(cts.Token)).StatusCode
-                : (await api.DeleteRepoSubscription(_owner, _repo).FirstAsync(cts.Token)).StatusCode;
+                    .FirstAsync(cts.Token);
+                status = response.StatusCode;
+            }
+            else
+            {
+                using var response = await api.DeleteRepoSubscription(_owner, _repo).FirstAsync(cts.Token);
+                status = response.StatusCode;
+            }
 
             var code = (int)(status ?? 0);
             if (code is >= 200 and < 300 || (!watching && IsNotFoundStatus(status)))
@@ -341,7 +349,7 @@ public sealed partial class RepoDetailViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.ForkRepo(_owner, _repo).FirstAsync(cts.Token);
+            using var response = await api.ForkRepo(_owner, _repo).FirstAsync(cts.Token);
             var code = (int)(response.StatusCode ?? 0);
             if (code is >= 200 and < 300)
             {
