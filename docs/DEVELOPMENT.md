@@ -229,7 +229,7 @@ v0.1.0 经 **GitHub Release** 分发且 **仅 Windows zip**（[ADR-013](adr/ADR-
 
 1. （公开 cut 前）完成下方短冒烟；将 `CHANGELOG.md` 的 `[Unreleased]` 收成目标版本节（如 `[0.1.1]`）。
 2. 在已合入能力的 `main` 上打并推送 `v*` tag（例如 `v0.1.1`）。**不要** force-push tag；**不要**未经冒烟发版。
-3. Workflow：`ci-lib` + `ci-windows` → `release`（Nuke `Release`）。
+3. Workflow：`ci-lib` + `ci-windows` → `release`（只跑 `PublishVerify` + `PublishAndroidVerify`，不重复 `CiAll`；`DOTNET_ROOT` 与 ci-windows 相同。本地 `./build.ps1 --target Release` 仍 `DependsOn(CiAll)`）。
 4. **v0.1.0**：Release **仅** Windows publish zip（ADR-013，已发布；历史事实不变）。
 5. **v0.1.1+**（ADR-014）：`release` job 挂 **Windows zip + 签名 Android APK**；缺 `ANDROID_*` / APK **fail closed**。Android Emulator UI Smoke 在 cut 清单本机完成，**不**作为本 job 硬步骤。
 6. 发布前可用 `upload-artifact` / Release draft 做干跑检查。
