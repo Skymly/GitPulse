@@ -190,7 +190,7 @@ public sealed partial class CreatePullRequestViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(cts.Token);
+            using var response = await api.ListPullRequestsPaged(_owner, _repo).FirstAsync(cts.Token);
             var match = (response.Content ?? []).FirstOrDefault(pr =>
                 string.Equals(pr.Title, title, StringComparison.Ordinal)
                 && string.Equals(pr.HeadRef, head, StringComparison.Ordinal));

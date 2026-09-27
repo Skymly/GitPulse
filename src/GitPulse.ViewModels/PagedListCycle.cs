@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using GitPulse.Core.Abstractions;
 using GitPulse.Core.Http;
 
@@ -142,7 +141,7 @@ internal sealed class PagedListCycle : IDisposable
             if (!IsCurrent(generation))
                 return PagedListCycleResult<T>.Noop;
 
-            _session.ApplyLink(page.Headers);
+            _session.ApplyCopiedLink(page.LinkHeader);
             return PagedListCycleResult<T>.Ok(page.Items, _session.HasNextPage);
         }
         catch (OperationCanceledException)
@@ -170,7 +169,7 @@ internal sealed class PagedListCycle : IDisposable
     }
 }
 
-internal readonly record struct PagedListPage<T>(T[] Items, HttpResponseHeaders? Headers);
+internal readonly record struct PagedListPage<T>(T[] Items, string? LinkHeader);
 
 internal readonly record struct PagedListCycleResult<T>(
     string? Error,

@@ -16,18 +16,26 @@ internal static class SearchForbidden
         "Not allowed to perform this search.";
 
     public static string Message(HttpResponseHeaders? headers) =>
-        IsRateLimited(headers) ? RateLimitMessage : PermissionMessage;
+        Message(Remaining(headers));
 
-    public static bool IsRateLimited(HttpResponseHeaders? headers)
+    public static string Message(string? remaining) =>
+        IsRateLimited(remaining) ? RateLimitMessage : PermissionMessage;
+
+    public static string? Remaining(HttpResponseHeaders? headers)
     {
         if (headers is null
             || !headers.TryGetValues("X-RateLimit-Remaining", out var values))
         {
-            return false;
+            return null;
         }
 
-        var raw = values.FirstOrDefault();
-        return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var remaining)
-            && remaining <= 0;
+        return values.FirstOrDefault();
     }
+
+    public static bool IsRateLimited(HttpResponseHeaders? headers) =>
+        IsRateLimited(Remaining(headers));
+
+    public static bool IsRateLimited(string? remaining) =>
+        int.TryParse(remaining, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+        && value <= 0;
 }

@@ -26,7 +26,7 @@ internal static class PagedGitHubLists
             session.PrepareRequest();
             using var pageCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             pageCts.CancelAfter(TimeSpan.FromSeconds(30));
-            var response = await fetch(pageCts.Token).ConfigureAwait(false);
+            using var response = await fetch(pageCts.Token).ConfigureAwait(false);
             ApiResponses.EnsureSuccess(response);
             session.ApplyLink(response.Headers);
             if (response.Content is { Length: > 0 } pageItems)

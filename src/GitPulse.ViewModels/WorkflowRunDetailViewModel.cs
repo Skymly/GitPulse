@@ -81,7 +81,7 @@ public sealed partial class WorkflowRunDetailViewModel : IDisposable
                 : $"#{run.RunNumber} {run.DisplayTitle}";
             StatusSummary.Value = FormatStatus(run.Status, run.Conclusion);
 
-            var jobsResponse = await api.ListWorkflowJobs(_owner, _repo, _runId).FirstAsync(cts.Token);
+            using var jobsResponse = await api.ListWorkflowJobs(_owner, _repo, _runId).FirstAsync(cts.Token);
             ApiResponses.EnsureSuccess(jobsResponse);
             Jobs.Clear();
             foreach (var job in jobsResponse.Content?.Jobs ?? [])
@@ -122,7 +122,7 @@ public sealed partial class WorkflowRunDetailViewModel : IDisposable
 
             var api = RestService.For<IGitHubActionsApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.RerunWorkflow(_owner, _repo, _runId).FirstAsync(cts.Token);
+            using var response = await api.RerunWorkflow(_owner, _repo, _runId).FirstAsync(cts.Token);
             if (!response.IsSuccessStatusCode)
             {
                 ErrorMessage.Value = response.StatusCode == HttpStatusCode.Forbidden

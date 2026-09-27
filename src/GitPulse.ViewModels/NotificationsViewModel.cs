@@ -193,7 +193,7 @@ public sealed partial class NotificationsViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.MarkThreadRead(notification.Id).FirstAsync(cts.Token);
+            using var response = await api.MarkThreadRead(notification.Id).FirstAsync(cts.Token);
             if (!response.IsSuccessStatusCode)
             {
                 ErrorMessage.Value = $"Mark as read failed: {(int)(response.StatusCode ?? 0)}.";
@@ -243,7 +243,7 @@ public sealed partial class NotificationsViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await api.MarkAllRead().FirstAsync(cts.Token);
+            using var response = await api.MarkAllRead().FirstAsync(cts.Token);
             if (!response.IsSuccessStatusCode)
             {
                 ErrorMessage.Value = $"Mark all as read failed: {(int)(response.StatusCode ?? 0)}.";

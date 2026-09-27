@@ -265,6 +265,11 @@ public sealed class NotificationPoller : INotificationPoller
             error = "Request timed out.";
             wait = NextBackoff();
         }
+        catch (NotificationApiException ex)
+        {
+            error = ex.Message;
+            wait = ParseRetryAfter(ex.RetryAfter) ?? NextBackoff();
+        }
         catch (ApiException ex)
         {
             error = FormatApiError(ex);
@@ -373,6 +378,44 @@ public sealed class NotificationPoller : INotificationPoller
         return delay > MaxBackoff ? MaxBackoff : delay;
     }
 
+    private static string? CopyRetryAfter(ApiException ex)
+    {
+        if (ex.Headers is null || !ex.Headers.TryGetValues("Retry-After", out var values))
+            return null;
+
+        return values.FirstOrDefault();
+    }
+
+    private TimeSpan? ParseRetryAfter(string? raw)
+    {
+        if (string.IsNullOrEmpty(raw))
+            return null;
+
+        if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds)
+            && seconds > 0)
+        {
+            return TimeSpan.FromSeconds(seconds);
+        }
+
+        if (DateTimeOffset.TryParse(
+                raw,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal,
+                out var when))
+        {
+            var wait = when - _timeProvider.GetUtcNow();
+            if (wait > TimeSpan.Zero)
+                return wait;
+        }
+
+        return null;
+    }
+
+    private sealed class NotificationApiException(string message, string? retryAfter) : Exception(message)
+    {
+        public string? RetryAfter { get; } = retryAfter;
+    }
+
     private TimeSpan? ReadRetryAfter(ApiException ex)
     {
         if (ex.Headers is HttpResponseHeaders http && http.RetryAfter is { } retry)
@@ -429,8 +472,16 @@ public sealed class NotificationPoller : INotificationPoller
             session.PrepareRequest();
             using var pageCts = CancellationTokenSource.CreateLinkedTokenSource(token);
             pageCts.CancelAfter(TimeSpan.FromSeconds(30));
-            var response = await api.ListNotifications().FirstAsync(pageCts.Token);
-            ThrowIfFailed(response);
+            using var response = await api.ListNotifications().FirstAsync(pageCts.Token);
+            try
+            {
+                ThrowIfFailed(response);
+            }
+            catch (ApiException ex)
+            {
+                throw new NotificationApiException(FormatApiError(ex), CopyRetryAfter(ex));
+            }
+
             items.AddRange(response.Content ?? []);
             session.ApplyLink(response.Headers);
         }

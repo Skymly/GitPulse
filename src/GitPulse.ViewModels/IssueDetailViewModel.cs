@@ -304,7 +304,7 @@ public sealed partial class IssueDetailViewModel : IDisposable
 
             var api = RestService.For<IGitHubReposApi>(client);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = await call(api).FirstAsync(cts.Token);
+            using var response = await call(api).FirstAsync(cts.Token);
             var code = (int)(response.StatusCode ?? 0);
             if (code is < 200 or >= 300)
             {
