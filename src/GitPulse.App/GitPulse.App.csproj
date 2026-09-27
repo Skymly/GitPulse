@@ -18,10 +18,10 @@
 		<!-- App Identifier -->
 		<ApplicationId>com.skymly.gitpulse</ApplicationId>
 
-		<!-- 0.1.0 is the design-time / format fallback (MinVer skips when
-		     DesignTimeBuild=true, which would otherwise yield ".."). Real
-		     builds overwrite this after MinVer. ApplicationVersion is the
-		     integer Android versionCode / Windows package revision. -->
+		<!-- 0.1.0 / versionCode 1 are the design-time / format fallbacks
+		     (MinVer skips when DesignTimeBuild=true). Real builds overwrite
+		     both after MinVer. ApplicationVersion is the integer Android
+		     versionCode / Windows package revision. -->
 		<ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
@@ -87,10 +87,20 @@
 	        DependsOnTargets="MinVer"
 	        BeforeTargets="MauiGeneratePackageAppxManifest;_GetAndroidPackageName">
 		<!-- Target Condition is evaluated before DependsOnTargets. MinVer skips
-		     DesignTimeBuild (dotnet format), so keep the 0.1.0 fallback then. -->
-		<PropertyGroup Condition="'$(MinVerMajor)' != ''">
+		     DesignTimeBuild (dotnet format), so keep the 0.1.0 / versionCode 1
+		     fallbacks then. When MinVer runs, versionCode is
+		     major*1000000 + minor*1000 + patch so successive tags differ and
+		     minor can reach 999 without colliding with the next major.
+		     A real MinVer result must not leave versionCode at 1. -->
+		<PropertyGroup Condition="'$(MinVerMajor)' != '' and '$(MinVerMinor)' != '' and '$(MinVerPatch)' != ''">
 			<ApplicationDisplayVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch)</ApplicationDisplayVersion>
+			<ApplicationVersion>$([MSBuild]::Add($([MSBuild]::Multiply($(MinVerMajor), 1000000)), $([MSBuild]::Add($([MSBuild]::Multiply($(MinVerMinor), 1000)), $(MinVerPatch)))))</ApplicationVersion>
 		</PropertyGroup>
+		<Error Condition="'$(MinVerMajor)' != '' and '$(ApplicationVersion)' == '1'"
+		       Text="ApplicationVersion stayed at 1 after MinVer, so successive Android APKs would not be distinguishable." />
+		<Message Importance="high"
+		         Condition="'$(MinVerMajor)' != ''"
+		         Text="GitPulse ApplicationVersion=$(ApplicationVersion) from MinVer $(MinVerMajor).$(MinVerMinor).$(MinVerPatch)" />
 	</Target>
 
 </Project>
