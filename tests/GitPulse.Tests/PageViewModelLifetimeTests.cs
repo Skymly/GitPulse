@@ -63,6 +63,43 @@ public class PageViewModelLifetimeTests
         PageViewModelLifetime.OnParentSet(false, viewModel, ref hadParent, ref disposed);
 
         Assert.Equal(1, viewModel.DisposeCount);
+        Assert.True(hadParent);
+        Assert.True(disposed);
+    }
+
+    [Fact]
+    public void ReattachedAfterPop_DoesNotDisposeAgain()
+    {
+        var viewModel = new RecordingDisposable();
+        var hadParent = false;
+        var disposed = false;
+
+        PageViewModelLifetime.OnParentSet(true, viewModel, ref hadParent, ref disposed);
+        PageViewModelLifetime.OnParentSet(false, viewModel, ref hadParent, ref disposed);
+        PageViewModelLifetime.OnParentSet(true, viewModel, ref hadParent, ref disposed);
+        PageViewModelLifetime.OnParentSet(false, viewModel, ref hadParent, ref disposed);
+
+        Assert.Equal(1, viewModel.DisposeCount);
+    }
+
+    [Fact]
+    public void ThrowingExtraDispose_LeavesViewModelUndisposed_AndFlagStaysSet()
+    {
+        var viewModel = new RecordingDisposable();
+        var hadParent = false;
+        var disposed = false;
+
+        PageViewModelLifetime.OnParentSet(true, viewModel, ref hadParent, ref disposed);
+        Assert.Throws<InvalidOperationException>(() =>
+            PageViewModelLifetime.OnParentSet(false, viewModel, ref hadParent, ref disposed,
+                () => throw new InvalidOperationException()));
+
+        Assert.Equal(0, viewModel.DisposeCount);
+        Assert.True(disposed);
+
+        PageViewModelLifetime.OnParentSet(false, viewModel, ref hadParent, ref disposed);
+
+        Assert.Equal(0, viewModel.DisposeCount);
     }
 
     [Fact]
