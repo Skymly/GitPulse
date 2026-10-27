@@ -8,13 +8,13 @@ namespace GitPulse.App.Views;
 internal static class PageViewModelLifetime
 {
     public static void OnParentSet(
-        Page page,
+        bool hasParent,
         IDisposable viewModel,
         ref bool hadParent,
         ref bool disposed,
         Action? extraDispose = null)
     {
-        if (page.Parent is not null)
+        if (hasParent)
         {
             hadParent = true;
             return;

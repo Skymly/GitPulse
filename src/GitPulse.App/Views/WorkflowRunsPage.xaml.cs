@@ -77,7 +77,7 @@ public partial class WorkflowRunsPage : ContentPage
     {
         base.OnParentSet();
         PageViewModelLifetime.OnParentSet(
-            this,
+            Parent is not null,
             _viewModel,
             ref _hadParent,
             ref _viewModelDisposed,
