@@ -5,4 +5,8 @@
 		<RootNamespace>GitPulse.Core</RootNamespace>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="Observables.RestAPI.R3" />
+	</ItemGroup>
+
 </Project>

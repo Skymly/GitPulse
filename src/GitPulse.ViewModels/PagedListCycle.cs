@@ -73,7 +73,6 @@ internal sealed class PagedListCycle : IDisposable
         _session = session;
         _session.State = state;
         _session.Reset();
-        _session.PrepareRequest();
         return await RunAsync(fetch, loadMore: false, generation, token);
     }
 
@@ -84,7 +83,6 @@ internal sealed class PagedListCycle : IDisposable
         if (_session is null || !_session.HasNextPage || !_session.Advance())
             return PagedListCycleResult<T>.Noop;
 
-        _session.PrepareRequest();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_abort.Token);
         timeout.CancelAfter(TimeSpan.FromSeconds(TimeoutSeconds));
         return await RunAsync(fetch, loadMore: true, generation, timeout.Token);
@@ -137,12 +135,13 @@ internal sealed class PagedListCycle : IDisposable
     {
         try
         {
-            var page = await fetch(_session!.Client, token);
+            var session = _session!;
+            var page = await session.PrepareRequest(() => fetch(session.Client, token));
             if (!IsCurrent(generation))
                 return PagedListCycleResult<T>.Noop;
 
-            _session.ApplyCopiedLink(page.LinkHeader);
-            return PagedListCycleResult<T>.Ok(page.Items, _session.HasNextPage);
+            session.ApplyCopiedLink(page.LinkHeader);
+            return PagedListCycleResult<T>.Ok(page.Items, session.HasNextPage);
         }
         catch (OperationCanceledException)
         {

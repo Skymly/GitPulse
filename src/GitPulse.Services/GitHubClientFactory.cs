@@ -39,7 +39,7 @@ public sealed class GitHubClientFactory : IGitHubClientFactory, IDisposable
         var token = await _credentialStore.GetTokenAsync(ct);
         var queryHandler = new GitHubQueryHandler(ShareHandler());
         var client = BuildClient(token, queryHandler);
-        return new PagedGitHubSession(client, queryHandler);
+        return new PagedGitHubSession(client);
     }
 
     public void Dispose() => _sockets.Dispose();

@@ -469,10 +469,9 @@ public sealed class NotificationPoller : INotificationPoller
             if (page > 0 && (!session.HasNextPage || !session.Advance()))
                 break;
 
-            session.PrepareRequest();
             using var pageCts = CancellationTokenSource.CreateLinkedTokenSource(token);
             pageCts.CancelAfter(TimeSpan.FromSeconds(30));
-            using var response = await api.ListNotifications().FirstAsync(pageCts.Token);
+            using var response = await session.PrepareRequest(api.ListNotifications).FirstAsync(pageCts.Token);
             try
             {
                 ThrowIfFailed(response);

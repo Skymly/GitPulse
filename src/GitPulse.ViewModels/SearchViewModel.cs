@@ -143,13 +143,13 @@ public sealed partial class SearchViewModel : IDisposable
 
         try
         {
-            var paged = await StartPagedAsync(session, query, version, requestCts.Token);
-            if (paged is null)
+            if (!await StartPagedAsync(session, query, version, requestCts.Token))
                 return;
 
-            var api = RestService.For<IGitHubSearchApi>(paged.Client);
-            await SearchPageAsync(
-                api, type, query, session, replace: true, version, requestCts.Token);
+            await session.RunPageAsync(
+                paged => SearchPageAsync(
+                    paged, type, query, session, replace: true, version, requestCts.Token),
+                loadMore: false);
 
             if (!IsCurrent(version))
                 return;
@@ -216,7 +216,7 @@ public sealed partial class SearchViewModel : IDisposable
 
         var type = SelectedType.Value;
         var session = _sessions[type];
-        if (session.Paged is null
+        if (!session.HasSession
             || !session.HasNextPage
             || IsLoading.Value)
         {
@@ -229,13 +229,10 @@ public sealed partial class SearchViewModel : IDisposable
 
         try
         {
-            if (!session.Paged.Advance())
-                return;
-
-            session.Paged.PrepareRequest();
-            var api = RestService.For<IGitHubSearchApi>(session.Paged.Client);
-            await SearchPageAsync(
-                api, type, session.Query, session, replace: false, version, requestCts.Token);
+            await session.RunPageAsync(
+                paged => SearchPageAsync(
+                    paged, type, session.Query, session, replace: false, version, requestCts.Token),
+                loadMore: true);
 
             if (!IsCurrent(version))
                 return;
@@ -279,7 +276,7 @@ public sealed partial class SearchViewModel : IDisposable
     }
 
     private async Task SearchPageAsync(
-        IGitHubSearchApi api,
+        PagedGitHubSession paged,
         SearchType type,
         string query,
         SearchSession session,
@@ -287,48 +284,60 @@ public sealed partial class SearchViewModel : IDisposable
         int version,
         CancellationToken cancellationToken)
     {
+        var api = RestService.For<IGitHubSearchApi>(paged.Client);
+        // Pass cancellation to the proxy so this await settles only after the HTTP operation unwinds.
         switch (type)
         {
             case SearchType.Repositories:
                 {
-                    using var response = await api.SearchRepositories(SearchQueryText(query)).FirstAsync(cancellationToken);
+                    using var response = await paged
+                        .PrepareRequest(() => api.SearchRepositories(query, cancellationToken))
+                        .FirstAsync();
                     if (!IsCurrent(version))
                         return;
+                    cancellationToken.ThrowIfCancellationRequested();
                     EnsureSearchSucceeded(response);
                     UpdateCollection(Repositories, response.Content?.Items, replace);
-                    UpdateSession(session, response.Content, response.Headers);
+                    UpdateSession(session, paged, response.Content, response.Headers);
                     break;
                 }
             case SearchType.Issues:
                 {
-                    using var response = await api.SearchIssues(SearchQueryText($"{query} is:issue"))
-                        .FirstAsync(cancellationToken);
+                    using var response = await paged
+                        .PrepareRequest(() => api.SearchIssues($"{query} is:issue", cancellationToken))
+                        .FirstAsync();
                     if (!IsCurrent(version))
                         return;
+                    cancellationToken.ThrowIfCancellationRequested();
                     EnsureSearchSucceeded(response);
                     UpdateCollection(Issues, response.Content?.Items, replace);
-                    UpdateSession(session, response.Content, response.Headers);
+                    UpdateSession(session, paged, response.Content, response.Headers);
                     break;
                 }
             case SearchType.PullRequests:
                 {
-                    using var response = await api.SearchPullRequests(SearchQueryText($"{query} is:pr"))
-                        .FirstAsync(cancellationToken);
+                    using var response = await paged
+                        .PrepareRequest(() => api.SearchPullRequests($"{query} is:pr", cancellationToken))
+                        .FirstAsync();
                     if (!IsCurrent(version))
                         return;
+                    cancellationToken.ThrowIfCancellationRequested();
                     EnsureSearchSucceeded(response);
                     UpdateCollection(PullRequests, response.Content?.Items, replace);
-                    UpdateSession(session, response.Content, response.Headers);
+                    UpdateSession(session, paged, response.Content, response.Headers);
                     break;
                 }
             case SearchType.Code:
                 {
-                    using var response = await api.SearchCode(SearchQueryText(query)).FirstAsync(cancellationToken);
+                    using var response = await paged
+                        .PrepareRequest(() => api.SearchCode(query, cancellationToken))
+                        .FirstAsync();
                     if (!IsCurrent(version))
                         return;
+                    cancellationToken.ThrowIfCancellationRequested();
                     EnsureSearchSucceeded(response);
                     UpdateCollection(CodeResults, response.Content?.Items, replace);
-                    UpdateSession(session, response.Content, response.Headers);
+                    UpdateSession(session, paged, response.Content, response.Headers);
                     break;
                 }
             default:
@@ -510,16 +519,13 @@ public sealed partial class SearchViewModel : IDisposable
 
     private static void UpdateSession<T>(
         SearchSession session,
+        PagedGitHubSession paged,
         SearchResult<T>? result,
         System.Net.Http.Headers.HttpResponseHeaders? headers)
     {
         session.TotalCount = result?.TotalCount ?? 0;
-        session.Paged?.ApplyLink(headers);
+        paged.ApplyLink(headers);
     }
-
-    // Observables 0.2.2+ escapes query values. GitHubQueryHandler unescapes
-    // once and re-encodes, so pre-escaping q would leave a double-encoded wire value.
-    private static string SearchQueryText(string query) => query;
 
     private void OnCredentialsInvalidated()
     {
@@ -555,7 +561,7 @@ public sealed partial class SearchViewModel : IDisposable
     }
 
 
-    private async Task<PagedGitHubSession?> StartPagedAsync(
+    private async Task<bool> StartPagedAsync(
         SearchSession session,
         string query,
         int version,
@@ -565,29 +571,29 @@ public sealed partial class SearchViewModel : IDisposable
         if (!IsCurrent(version))
         {
             paged.Dispose();
-            return null;
+            return false;
         }
 
         if (paged.Client.DefaultRequestHeaders.Authorization is null)
         {
             paged.Dispose();
             ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
-            return null;
+            return false;
         }
 
-        session.Paged = paged;
+        session.StartPaging(paged);
         session.Query = query;
-        paged.Reset();
-        paged.PrepareRequest();
-        return paged;
+        return true;
     }
 
     private (int Version, CancellationTokenSource RequestCts) BeginRequest()
     {
-        _requestCts?.Cancel();
+        var version = Interlocked.Increment(ref _requestVersion);
+        var previous = _requestCts;
         var requestCts = new CancellationTokenSource(RequestTimeout);
         _requestCts = requestCts;
-        return (Interlocked.Increment(ref _requestVersion), requestCts);
+        previous?.Cancel();
+        return (version, requestCts);
     }
 
     private void CompleteRequest(int version, CancellationTokenSource requestCts)
@@ -605,8 +611,9 @@ public sealed partial class SearchViewModel : IDisposable
     private void CancelActiveRequest()
     {
         Interlocked.Increment(ref _requestVersion);
-        _requestCts?.Cancel();
+        var previous = _requestCts;
         _requestCts = null;
+        previous?.Cancel();
     }
 
     private bool IsCurrent(int version)
@@ -645,21 +652,6 @@ public sealed partial class SearchViewModel : IDisposable
         IsReviewRequestedSelected.Dispose();
         IsAssignedSelected.Dispose();
         IsMentionsSelected.Dispose();
-    }
-
-    private sealed class SearchSession
-    {
-        public PagedGitHubSession? Paged { get; set; }
-        public string Query { get; set; } = string.Empty;
-        public int TotalCount { get; set; }
-        public bool HasSearched { get; set; }
-        public bool HasNextPage => Paged?.HasNextPage == true;
-
-        public void DisposePaged()
-        {
-            Paged?.Dispose();
-            Paged = null;
-        }
     }
 
     private sealed class SearchRequestException(

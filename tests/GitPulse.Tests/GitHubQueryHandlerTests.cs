@@ -5,6 +5,10 @@ namespace GitPulse.Tests;
 
 public class GitHubQueryHandlerTests
 {
+    private static readonly HttpRequestOptionsKey<int> PageOption = new("GitPulse.Pagination.Page");
+    private static readonly HttpRequestOptionsKey<int> PerPageOption = new("GitPulse.Pagination.PerPage");
+    private static readonly HttpRequestOptionsKey<string> StateOption = new("GitPulse.Pagination.State");
+
     /// <summary>
     /// Sends a request through <see cref="GitHubQueryHandler"/> via an
     /// <see cref="HttpClient"/> and returns the final request URI that the
@@ -12,22 +16,29 @@ public class GitHubQueryHandlerTests
     /// actually modified.
     /// </summary>
     private static async Task<string> SendAsync(
-        GitHubQueryHandler handler, string requestUri)
+        string requestUri,
+        int? page = null,
+        int? perPage = null,
+        string? state = null)
     {
+        var handler = new GitHubQueryHandler(new CapturingHandler());
         using var client = new HttpClient(handler);
         using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-        // Don't actually send — we just need the handler to modify the URI.
-        // Use SendAsync via HttpClient which calls the protected SendAsync.
-        _ = await client.SendAsync(request, CancellationToken.None);
+        if (page is { } pageValue)
+            request.Options.Set(PageOption, pageValue);
+        if (perPage is { } perPageValue)
+            request.Options.Set(PerPageOption, perPageValue);
+        if (state is { } stateValue)
+            request.Options.Set(StateOption, stateValue);
+
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
         return request.RequestUri?.OriginalString ?? "";
     }
 
     [Fact]
     public async Task SendAsync_DefaultPage1_DoesNotInjectPageParam()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler());
-
-        var uri = await SendAsync(handler, "https://api.github.com/user/repos");
+        var uri = await SendAsync("https://api.github.com/user/repos", page: 1);
 
         Assert.DoesNotContain("page=", uri);
     }
@@ -35,9 +46,7 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_Page2_InjectsPageParam()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler()) { Page = 2 };
-
-        var uri = await SendAsync(handler, "https://api.github.com/user/repos");
+        var uri = await SendAsync("https://api.github.com/user/repos", page: 2);
 
         Assert.Contains("page=2", uri);
     }
@@ -45,9 +54,7 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_PerPage50_InjectsPerPageParam()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler()) { PerPage = 50 };
-
-        var uri = await SendAsync(handler, "https://api.github.com/user/repos");
+        var uri = await SendAsync("https://api.github.com/user/repos", perPage: 50);
 
         Assert.Contains("per_page=50", uri);
     }
@@ -55,9 +62,7 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_PerPage30_DoesNotInjectPerPageParam()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler()) { PerPage = 30 };
-
-        var uri = await SendAsync(handler, "https://api.github.com/user/repos");
+        var uri = await SendAsync("https://api.github.com/user/repos", perPage: 30);
 
         Assert.DoesNotContain("per_page", uri);
     }
@@ -65,9 +70,7 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_StateOpen_InjectsStateParam()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler()) { State = "open" };
-
-        var uri = await SendAsync(handler, "https://api.github.com/repos/o/r/issues");
+        var uri = await SendAsync("https://api.github.com/repos/o/r/issues", state: "open");
 
         Assert.Contains("state=open", uri);
     }
@@ -75,19 +78,15 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_StateAll_InjectsStateParam()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler()) { State = "all" };
-
-        var uri = await SendAsync(handler, "https://api.github.com/repos/o/r/issues");
+        var uri = await SendAsync("https://api.github.com/repos/o/r/issues", state: "all");
 
         Assert.Contains("state=all", uri);
     }
 
     [Fact]
-    public async Task SendAsync_StateNull_DoesNotInjectStateParam()
+    public async Task SendAsync_WithoutState_DoesNotInjectStateParam()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler()) { State = null };
-
-        var uri = await SendAsync(handler, "https://api.github.com/repos/o/r/issues");
+        var uri = await SendAsync("https://api.github.com/repos/o/r/issues", page: 2);
 
         Assert.DoesNotContain("state=", uri);
     }
@@ -95,9 +94,8 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_PreservesExistingQueryParams()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler()) { Page = 3, PerPage = 50 };
-
-        var uri = await SendAsync(handler, "https://api.github.com/user/repos?sort=updated");
+        var uri = await SendAsync(
+            "https://api.github.com/user/repos?sort=updated", page: 3, perPage: 50);
 
         Assert.Contains("sort=updated", uri);
         Assert.Contains("page=3", uri);
@@ -107,14 +105,11 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_PageAndPerPageAndStateAllCombined()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler())
-        {
-            Page = 4,
-            PerPage = 100,
-            State = "closed",
-        };
-
-        var uri = await SendAsync(handler, "https://api.github.com/repos/o/r/issues");
+        var uri = await SendAsync(
+            "https://api.github.com/repos/o/r/issues",
+            page: 4,
+            perPage: 100,
+            state: "closed");
 
         Assert.Contains("page=4", uri);
         Assert.Contains("per_page=100", uri);
@@ -124,9 +119,7 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_Page1_OverwritesExistingPageParam()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler()) { Page = 1 };
-
-        var uri = await SendAsync(handler, "https://api.github.com/user/repos?page=9");
+        var uri = await SendAsync("https://api.github.com/user/repos?page=9", page: 1);
 
         Assert.Contains("page=1", uri);
         Assert.DoesNotContain("page=9", uri);
@@ -135,9 +128,7 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_DefaultPerPage_OverwritesExistingPerPageParam()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler()) { PerPage = 30 };
-
-        var uri = await SendAsync(handler, "https://api.github.com/user/repos?per_page=100");
+        var uri = await SendAsync("https://api.github.com/user/repos?per_page=100", perPage: 30);
 
         Assert.Contains("per_page=30", uri);
         Assert.DoesNotContain("per_page=100", uri);
@@ -146,9 +137,7 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_EncodedAmpersandInQuery_RoundTrips()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler()) { Page = 2 };
-
-        var uri = await SendAsync(handler, "https://api.github.com/search/code?q=a%26b");
+        var uri = await SendAsync("https://api.github.com/search/code?q=a%26b", page: 2);
 
         Assert.Contains("q=a%26b", uri);
         Assert.Contains("page=2", uri);
@@ -158,9 +147,7 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_FlagQueryPair_IsPreserved()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler()) { Page = 2 };
-
-        var uri = await SendAsync(handler, "https://api.github.com/user/repos?draft");
+        var uri = await SendAsync("https://api.github.com/user/repos?draft", page: 2);
 
         Assert.Contains("draft=", uri);
         Assert.Contains("page=2", uri);
@@ -169,12 +156,22 @@ public class GitHubQueryHandlerTests
     [Fact]
     public async Task SendAsync_DuplicateQueryKeys_LastValueWins()
     {
-        var handler = new GitHubQueryHandler(new CapturingHandler());
-
-        var uri = await SendAsync(handler, "https://api.github.com/user/repos?sort=created&sort=updated");
+        var uri = await SendAsync(
+            "https://api.github.com/user/repos?sort=created&sort=updated", page: 2);
 
         Assert.Contains("sort=updated", uri);
         Assert.DoesNotContain("sort=created", uri);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithoutOptions_DoesNotRewriteExistingQuery()
+    {
+        const string requestUri =
+            "https://api.github.com/user/repos?page=9&per_page=100&sort=created&sort=updated";
+
+        var uri = await SendAsync(requestUri);
+
+        Assert.Equal(requestUri, uri);
     }
 
     /// <summary>
