@@ -57,16 +57,21 @@ internal sealed class SearchInbox : IDisposable
 
         try
         {
-            if (!await StartPagedAsync(factory, version, isCurrent, cancellationToken))
+            var paged = await factory.CreatePagedSessionAsync(cancellationToken);
+            if (!isCurrent(version))
             {
-                return isCurrent(version)
-                    ? SearchInboxResult.Fail("No token configured. Open Settings to add a GitHub PAT.")
-                    : SearchInboxResult.Stale;
+                paged.Dispose();
+                return SearchInboxResult.Stale;
             }
 
-            await _session.RunPageAsync(
-                paged => FetchPageAsync(paged, replace: true, version, isCurrent, cancellationToken),
-                loadMore: false);
+            if (paged.Client.DefaultRequestHeaders.Authorization is null)
+            {
+                paged.Dispose();
+                return ResultIfCurrent(version, isCurrent, "No token configured. Open Settings to add a GitHub PAT.");
+            }
+
+            await _session.LoadFirstPageAsync(paged, page => FetchPageAsync(
+                page, replace: true, version, isCurrent, cancellationToken));
             if (!isCurrent(version))
                 return SearchInboxResult.Stale;
 
@@ -121,9 +126,8 @@ internal sealed class SearchInbox : IDisposable
 
         try
         {
-            await _session.RunPageAsync(
-                paged => FetchPageAsync(paged, replace: false, version, isCurrent, cancellationToken),
-                loadMore: true);
+            await _session.LoadMoreAsync(paged => FetchPageAsync(
+                paged, replace: false, version, isCurrent, cancellationToken));
             return isCurrent(version) ? SearchInboxResult.Ok : SearchInboxResult.Stale;
         }
         catch (OperationCanceledException)
@@ -210,29 +214,6 @@ internal sealed class SearchInbox : IDisposable
 
         _session.TotalCount = response.Content?.TotalCount ?? 0;
         paged.ApplyLink(response.Headers);
-    }
-
-    private async Task<bool> StartPagedAsync(
-        IGitHubClientFactory factory,
-        int version,
-        Func<int, bool> isCurrent,
-        CancellationToken cancellationToken)
-    {
-        var paged = await factory.CreatePagedSessionAsync(cancellationToken);
-        if (!isCurrent(version))
-        {
-            paged.Dispose();
-            return false;
-        }
-
-        if (paged.Client.DefaultRequestHeaders.Authorization is null)
-        {
-            paged.Dispose();
-            return false;
-        }
-
-        _session.StartPaging(paged);
-        return true;
     }
 
     private static SearchInboxResult ResultIfCurrent(

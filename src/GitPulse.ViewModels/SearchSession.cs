@@ -16,19 +16,26 @@ internal sealed class SearchSession
     public bool HasSession => _paged is not null;
     public bool HasNextPage => _paged?.Session.HasNextPage == true;
 
-    public void StartPaging(PagedGitHubSession session)
+    public Task LoadFirstPageAsync(PagedGitHubSession session, Func<PagedGitHubSession, Task> fetch)
     {
         DisposePaged();
         session.Reset();
-        _paged = new PageClient(session);
+        var paged = new PageClient(session);
+        _paged = paged;
+        return RunPageAsync(paged, fetch);
     }
 
-    public async Task RunPageAsync(Func<PagedGitHubSession, Task> fetch, bool loadMore)
+    public Task LoadMoreAsync(Func<PagedGitHubSession, Task> fetch)
     {
         var paged = _paged;
-        if (paged is null || (loadMore && !paged.Session.Advance()))
-            return;
+        if (paged is null || !paged.Session.Advance())
+            return Task.CompletedTask;
 
+        return RunPageAsync(paged, fetch);
+    }
+
+    private async Task RunPageAsync(PageClient paged, Func<PagedGitHubSession, Task> fetch)
+    {
         paged.ActiveRequests++;
         try
         {
