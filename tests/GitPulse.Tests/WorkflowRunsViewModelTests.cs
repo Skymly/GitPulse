@@ -172,9 +172,9 @@ public class WorkflowRunsViewModelTests
         "{\"id\":1,\"name\":\"repo\",\"full_name\":\"owner/repo\",\"default_branch\":\"develop\"}";
 
     [Theory]
-    [InlineData(2)] // ListWorkflows
-    [InlineData(3)] // GetRepo for the default branch
-    public async Task RetiredPagingClient_DrainsWorkflowMetadataReads(int blockedRequest)
+    [InlineData("/repos/owner/repo/actions/workflows")]
+    [InlineData("/repos/owner/repo")]
+    public async Task RetiredPagingClient_DrainsWorkflowMetadataReads(string path)
     {
         var ct = TestContext.Current.CancellationToken;
         var timeout = TimeSpan.FromSeconds(5);
@@ -182,7 +182,7 @@ public class WorkflowRunsViewModelTests
             .When("/repos/owner/repo/actions/runs", RunsJson)
             .When("/repos/owner/repo/actions/workflows", WorkflowsJson)
             .When("/repos/owner/repo", RepoJsonDevelop);
-        using var handler = new GatedRequestHandler(responses, blockedRequest);
+        using var handler = new GatedRequestHandler(responses, path);
         var factory = new FakeGitHubClientFactory(handler);
         using var vm = new WorkflowRunsViewModel(factory);
         vm.Initialize("owner", "repo");
@@ -201,8 +201,11 @@ public class WorkflowRunsViewModelTests
         finally
         {
             handler.Release.TrySetResult();
-            await oldLoad.WaitAsync(timeout, ct);
-            await handler.Exited.Task.WaitAsync(timeout, ct);
+            if (handler.Started.Task.IsCompletedSuccessfully)
+            {
+                await oldLoad.WaitAsync(timeout, ct);
+                await handler.Exited.Task.WaitAsync(timeout, ct);
+            }
         }
 
         await AsyncTestWait.UntilAsync(() => factory.LiveClients == 1);

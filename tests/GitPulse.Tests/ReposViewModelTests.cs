@@ -385,7 +385,7 @@ public class ReposViewModelTests
         var ct = TestContext.Current.CancellationToken;
         var timeout = TimeSpan.FromSeconds(5);
         var responses = new MockHttpHandler().When("/user/repos", ReposJson(("old", null)), LinkHasNext);
-        using var handler = new GatedRequestHandler(responses, blockedRequest: loadMore ? 2 : 1);
+        using var handler = new GatedRequestHandler(responses, "/user/repos", occurrence: loadMore ? 2 : 1);
         var factory = new FakeGitHubClientFactory(handler);
         using var vm = new ReposViewModel(factory);
         using var settings = new SettingsViewModel(new ClearingCredentialStore(null), factory);
@@ -418,8 +418,11 @@ public class ReposViewModelTests
         finally
         {
             handler.Release.TrySetResult();
-            await oldLoad.WaitAsync(timeout, ct);
-            await handler.Exited.Task.WaitAsync(timeout, ct);
+            if (handler.Started.Task.IsCompletedSuccessfully)
+            {
+                await oldLoad.WaitAsync(timeout, ct);
+                await handler.Exited.Task.WaitAsync(timeout, ct);
+            }
         }
 
         await AsyncTestWait.UntilAsync(() => factory.LiveClients == (clearToken ? 0 : 1));
