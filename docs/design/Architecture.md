@@ -15,7 +15,7 @@ GitPulse 是五项目 MAUI 解决方案；ViewModel 与 UI 分离以支持 `CiLi
 
 | 项目 | TFM | 职责 | 依赖 |
 |------|-----|------|------|
-| GitPulse.Core | net10.0 | 模型、`ICredentialStore` / `IAppPresence` / `IToastNotifier` 等抽象、`NotificationToastCoordinator`、`GitHubQueryHandler` | — |
+| GitPulse.Core | net10.0 | 模型、`ICredentialStore` / `IAppPresence` / `IToastNotifier` 等抽象、`NotificationToastCoordinator`、`GitHubQueryHandler` | Observables.RestAPI.R3（逐请求分页选项） |
 | GitPulse.GitHubApi | net10.0 | `IGitHubReposApi`、`IGitHubSearchApi`、`IGitHubActionsApi` 声明 | Core |
 | GitPulse.Services | net10.0 | `GitHubClientFactory`、`INotificationPoller` | Core, GitHubApi |
 | GitPulse.ViewModels | net10.0 | ViewModel、R3 状态 | Core, GitHubApi |

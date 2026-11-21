@@ -9,7 +9,7 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Changed
 
-- Upgrade `Observables.RestAPI.R3` and `Observables.Events.R3` from 0.1.5 to 0.3.0.
+- Upgrade `Observables.RestAPI.R3` and `Observables.Events.R3` to 0.4.1.
   `ApiResponse<T>` now owns the HTTP response and is disposed after content, status,
   and Link (plus search rate-limit and notification Retry-After) are copied.
   Search `q` is no longer pre-escaped, so query values are encoded once.
@@ -115,6 +115,9 @@ Versions are derived automatically from Git tags by MinVer.
 
 ### Fixed
 
+- **Paging and Search:** Concurrent requests keep their own page and state.
+  A new search cancels the previous request without disposing its client
+  while the request is still in flight (`#606`).
 - **UI Test Host:** Saving `GITPULSE_UI_TEST_PAT` through Settings stays in
   memory and does not overwrite the daily PAT store (`#629`).
 - **Create PR:** Empty title, missing head/base, or the same head and base
