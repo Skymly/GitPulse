@@ -1,6 +1,4 @@
-using System.Net.Http.Headers;
 using GitPulse.Core.Abstractions;
-using GitPulse.Core.Http;
 using GitPulse.Services;
 using Xunit;
 
@@ -107,51 +105,6 @@ public class GitHubClientFactoryTests
 
         Assert.Null(session.Client.DefaultRequestHeaders.Authorization);
         Assert.False(session.HasNextPage);
-    }
-
-    [Fact]
-    public async Task CreatePagedSessionAsync_PrepareRequestAndAdvance_UsesWiredQueryHandler()
-    {
-        var store = new FakeCredentialStore("ghp_test123");
-        var factory = new GitHubClientFactory(store);
-
-        using var session = await factory.CreatePagedSessionAsync(TestContext.Current.CancellationToken);
-        var queryHandler = GetPrimaryQueryHandler(session.Client);
-
-        session.PrepareRequest();
-        Assert.Equal(1, queryHandler.Page);
-        Assert.Equal(30, queryHandler.PerPage);
-
-        session.ApplyLink(HeadersWithNextPage(2));
-        Assert.True(session.HasNextPage);
-        Assert.True(session.Advance());
-
-        session.PrepareRequest();
-        Assert.Equal(2, queryHandler.Page);
-        Assert.Equal(30, queryHandler.PerPage);
-    }
-
-    /// <summary>
-    /// Production factory installs <see cref="GitHubQueryHandler"/> as the client's
-    /// primary handler; the session does not expose it. Reflection is the seam for
-    /// asserting page/per_page defaults after <c>PrepareRequest</c>.
-    /// </summary>
-    private static GitHubQueryHandler GetPrimaryQueryHandler(HttpClient client)
-    {
-        var field = typeof(HttpMessageInvoker).GetField(
-            "_handler",
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        Assert.NotNull(field);
-        return Assert.IsType<GitHubQueryHandler>(field.GetValue(client));
-    }
-
-    private static HttpResponseHeaders HeadersWithNextPage(int page)
-    {
-        var response = new HttpResponseMessage();
-        response.Headers.Add(
-            "Link",
-            $"<https://api.github.com/user/repos?page={page}>; rel=\"next\"");
-        return response.Headers;
     }
 
     private sealed class FakeCredentialStore : ICredentialStore

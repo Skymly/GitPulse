@@ -33,7 +33,7 @@ public sealed class FakeGitHubClientFactory : IGitHubClientFactory
     {
         var queryHandler = new GitHubQueryHandler(_handler);
         var client = BuildClient(queryHandler);
-        return Task.FromResult(new PagedGitHubSession(client, queryHandler));
+        return Task.FromResult(new PagedGitHubSession(client));
     }
 
     private HttpClient BuildClient(HttpMessageHandler handler)

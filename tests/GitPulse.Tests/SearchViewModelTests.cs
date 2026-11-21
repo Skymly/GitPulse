@@ -161,37 +161,70 @@ public class SearchViewModelTests
         Assert.True(vm.IsCodeSelected.Value);
     }
 
-    [Fact]
-    public async Task ConsecutiveSearch_DiscardsStaleResponse()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SupersedingSearch_CancelsAndDrainsPreviousRequestBeforeDisposingSession(
+        bool loadMore)
     {
-        var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var releaseFirst = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var handler = new RecordingHandler(async (_, requestNumber, _) =>
+        var testCt = TestContext.Current.CancellationToken;
+        var timeout = TimeSpan.FromSeconds(5);
+        var staleRequest = loadMore ? 2 : 1;
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var canceled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new RecordingHandler(async (_, requestNumber, cancellationToken) =>
         {
-            if (requestNumber == 1)
+            if (requestNumber == staleRequest)
             {
-                firstStarted.SetResult();
-                await releaseFirst.Task;
+                using var registration = cancellationToken.Register(() => canceled.TrySetResult());
+                started.TrySetResult();
+                await release.Task;
                 return JsonResponse(RepositoryResults("Stale"));
             }
 
+            if (requestNumber < staleRequest)
+                return JsonResponse(RepositoryResults("First"), NextLink);
+
             return JsonResponse(RepositoryResults("Current"));
         });
-        using var vm = CreateViewModel(handler);
+        var factory = new RecordingClientFactory(handler);
+        using var vm = new SearchViewModel(factory);
         vm.Query.Value = "first query";
 
-        var firstSearch = vm.SearchCommand.ExecuteAsync(null);
-        await firstStarted.Task.WaitAsync(
-            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        vm.Query.Value = "second query";
-        var secondSearch = vm.SearchCommand.ExecuteAsync(null);
-        await secondSearch;
+        Task staleRun;
+        if (loadMore)
+        {
+            await vm.SearchCommand.ExecuteAsync(null).WaitAsync(timeout, testCt);
+            staleRun = vm.LoadMoreCommand.ExecuteAsync(null);
+        }
+        else
+        {
+            staleRun = vm.SearchCommand.ExecuteAsync(null);
+        }
 
-        releaseFirst.SetResult();
-        await firstSearch;
+        RecordingHttpClient oldClient;
+        try
+        {
+            await started.Task.WaitAsync(timeout, testCt);
+            oldClient = factory.Clients.First();
+            vm.Query.Value = "second query";
+            await vm.SearchCommand.ExecuteAsync(null).WaitAsync(timeout, testCt);
+            await canceled.Task.WaitAsync(timeout, testCt);
+            Assert.False(oldClient.IsDisposed);
+        }
+        finally
+        {
+            release.TrySetResult();
+            await staleRun.WaitAsync(timeout, testCt);
+        }
 
+        Assert.True(oldClient.IsDisposed);
         var repo = Assert.Single(vm.Repositories);
         Assert.Equal("Current", repo.Name);
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.False(vm.IsLoading.Value);
+        Assert.False(vm.CanLoadMore.Value);
     }
 
     [Fact]
@@ -693,20 +726,22 @@ public class SearchViewModelTests
         string? token = "test_token")
         : IGitHubClientFactory
     {
+        public ConcurrentQueue<RecordingHttpClient> Clients { get; } = [];
+
         public Task<HttpClient> CreateClientAsync(CancellationToken ct = default)
         {
-            return Task.FromResult(BuildClient(handler));
+            return Task.FromResult<HttpClient>(BuildClient(handler));
         }
 
         public Task<PagedGitHubSession> CreatePagedSessionAsync(CancellationToken ct = default)
         {
             var queryHandler = new GitHubQueryHandler(handler);
-            return Task.FromResult(new PagedGitHubSession(BuildClient(queryHandler), queryHandler));
+            return Task.FromResult(new PagedGitHubSession(BuildClient(queryHandler)));
         }
 
-        private HttpClient BuildClient(HttpMessageHandler messageHandler)
+        private RecordingHttpClient BuildClient(HttpMessageHandler messageHandler)
         {
-            var client = new HttpClient(messageHandler, disposeHandler: false)
+            var client = new RecordingHttpClient(messageHandler)
             {
                 BaseAddress = new Uri("https://api.github.com/"),
             };
@@ -715,7 +750,22 @@ public class SearchViewModelTests
                 client.DefaultRequestHeaders.Authorization =
                     new AuthenticationHeaderValue("Bearer", token);
 
+            Clients.Enqueue(client);
             return client;
+        }
+    }
+
+    private sealed class RecordingHttpClient(HttpMessageHandler handler)
+        : HttpClient(handler, disposeHandler: false)
+    {
+        private int _disposed;
+        public bool IsDisposed => Volatile.Read(ref _disposed) != 0;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                Volatile.Write(ref _disposed, 1);
+            base.Dispose(disposing);
         }
     }
 }
