@@ -102,7 +102,7 @@ Issues / PRs / Commits / Starred / Workflow runs 列表在 `ApiResponse` 通道�
 - Search 与仓库 API 共用工厂创建的认证 `HttpClient`，但遵守 GitHub Search 独立限流。
 - 输入防抖只同步查询状态；至少 3 个字符并显式按 Enter 或 Search 后才请求。切换类型不请求 API。
 - 新搜索先更新请求版本并经代理的 `CancellationToken` 取消上一轮，不等待旧请求结束。被替换的分页 client 在在途请求都结束后才释放；只有当前版本可写入结果。
-- 403 映射为 Search 限流提示，422 映射为查询语法提示；其他 HTTP 错误使用通用失败状态。
+- 403 仅在 `X-RateLimit-Remaining` 可解析且 ≤ 0 时显示 Search 限流提示，其余 403 显示 “Not allowed to perform this search.”。422 显示查询语法提示，其他 HTTP 错误显示通用失败状态。
 
 ## 不变量
 
@@ -449,3 +449,4 @@ Write on `IGitHubReposApi`. `UpdatePullRequestBranch` is `PUT .../pulls/{number}
 - `src/GitPulse.Core/Http/PagedGitHubSession.cs`
 - `src/GitPulse.Core/Http/GitHubQueryHandler.cs`
 - `src/GitPulse.Core/Abstractions/IGitHubClientFactory.cs`
+- `src/GitPulse.ViewModels/SearchSession.cs`（Search 的在途请求计数与延后释放）
