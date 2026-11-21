@@ -12,14 +12,18 @@ namespace GitPulse.GitHubApi;
 public interface IGitHubSearchApi
 {
     [Get("/search/repositories")]
-    Observable<ApiResponse<SearchResult<Repo>>> SearchRepositories([Query] string q);
+    Observable<ApiResponse<SearchResult<Repo>>> SearchRepositories(
+        [Query] string q, CancellationToken cancellationToken = default);
 
     [Get("/search/issues")]
-    Observable<ApiResponse<SearchResult<SearchIssueItem>>> SearchIssues([Query] string q);
+    Observable<ApiResponse<SearchResult<SearchIssueItem>>> SearchIssues(
+        [Query] string q, CancellationToken cancellationToken = default);
 
     [Get("/search/issues")]
-    Observable<ApiResponse<SearchResult<SearchIssueItem>>> SearchPullRequests([Query] string q);
+    Observable<ApiResponse<SearchResult<SearchIssueItem>>> SearchPullRequests(
+        [Query] string q, CancellationToken cancellationToken = default);
 
     [Get("/search/code")]
-    Observable<ApiResponse<SearchResult<CodeSearchItem>>> SearchCode([Query] string q);
+    Observable<ApiResponse<SearchResult<CodeSearchItem>>> SearchCode(
+        [Query] string q, CancellationToken cancellationToken = default);
 }
