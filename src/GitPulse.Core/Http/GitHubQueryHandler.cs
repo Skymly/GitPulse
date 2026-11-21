@@ -6,22 +6,13 @@ namespace GitPulse.Core.Http;
 /// DelegatingHandler that injects GitHub pagination/filter query parameters
 /// (<c>page</c>, <c>per_page</c>, <c>state</c>) into outgoing requests.
 /// </summary>
-/// <remarks>Scoped pagination uses request options (ADR-018). Unscoped callers retain the legacy handler defaults during migration.</remarks>
+/// <remarks>Pagination options are attached to individual requests (ADR-018). Requests without options are unchanged.</remarks>
 public sealed class GitHubQueryHandler : DelegatingHandler
 {
     internal static readonly HttpRequestOptionsKey<int> PageOption = new("GitPulse.Pagination.Page");
     internal static readonly HttpRequestOptionsKey<int> PerPageOption = new("GitPulse.Pagination.PerPage");
     internal static readonly HttpRequestOptionsKey<string> StateOption = new("GitPulse.Pagination.State");
     internal const int DefaultPerPage = 30;
-
-    /// <summary>1-based page number for legacy requests (default 1).</summary>
-    public int Page { get; set; } = 1;
-
-    /// <summary>Items per page for legacy requests (default 30).</summary>
-    public int PerPage { get; set; } = DefaultPerPage;
-
-    /// <summary>Optional issue or pull request state filter for legacy requests.</summary>
-    public string? State { get; set; }
 
     public GitHubQueryHandler() : base(new HttpClientHandler())
     {
@@ -38,16 +29,7 @@ public sealed class GitHubQueryHandler : DelegatingHandler
         var hasPage = request.Options.TryGetValue(PageOption, out var page);
         var hasPerPage = request.Options.TryGetValue(PerPageOption, out var perPage);
         request.Options.TryGetValue(StateOption, out var state);
-        // A scoped call owns its entire snapshot, including an absent state filter.
-        if (!hasPage && !hasPerPage && state is null)
-        {
-            page = Page;
-            perPage = PerPage;
-            state = State;
-            hasPage = hasPerPage = true;
-        }
-
-        if (uri is not null)
+        if (uri is not null && (hasPage || hasPerPage || !string.IsNullOrEmpty(state)))
         {
             var builder = new UriBuilder(uri);
             var existing = ParseQuery(builder.Query);

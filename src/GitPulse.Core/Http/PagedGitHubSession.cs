@@ -12,7 +12,6 @@ namespace GitPulse.Core.Http;
 /// </summary>
 public sealed class PagedGitHubSession : IDisposable
 {
-    private readonly GitHubQueryHandler? _legacyHandler;
     private int _currentPage = 1;
     private int? _loadMorePage;
     private bool _disposed;
@@ -25,24 +24,6 @@ public sealed class PagedGitHubSession : IDisposable
     {
         ArgumentNullException.ThrowIfNull(client);
         Client = client;
-    }
-
-    // Retain the original entry points until all list and polling callers have migrated.
-    public PagedGitHubSession(HttpClient client, GitHubQueryHandler queryHandler) : this(client)
-    {
-        ArgumentNullException.ThrowIfNull(queryHandler);
-        _legacyHandler = queryHandler;
-    }
-
-    public void PrepareRequest()
-    {
-        ThrowIfDisposed();
-        if (_legacyHandler is null)
-            throw new InvalidOperationException("Use the scoped PrepareRequest overload with this session.");
-
-        _legacyHandler.Page = _loadMorePage ?? _currentPage;
-        _legacyHandler.PerPage = GitHubQueryHandler.DefaultPerPage;
-        _legacyHandler.State = State;
     }
 
     /// <summary>HttpClient for <c>RestService.For</c>.</summary>
