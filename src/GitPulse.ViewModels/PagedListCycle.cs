@@ -47,11 +47,10 @@ internal sealed class PagedListCycle : IDisposable
             previous = _current;
             _current = next = new Generation();
         }
-        previous?.Retire();
-
-        using var timeout = next.CreateTimeout();
         try
         {
+            previous?.Retire();
+            using var timeout = next.CreateTimeout();
             var session = await _factory.CreatePagedSessionAsync(timeout.Token);
             if (!TryAttach(next, session, state, timeout.Token))
             {
@@ -251,6 +250,8 @@ internal sealed class PagedListCycle : IDisposable
         {
             token.ThrowIfCancellationRequested();
             var client = Session!.Client;
+            // The generated, bodyless GETs subscribe synchronously and enter HttpClient
+            // before returning this task. Keep this contract when adding a caller.
             var request = send(client);
             // CancelPendingRequests covers sends already started. Close the race if
             // retirement occurred between the token check and entering HttpClient.
