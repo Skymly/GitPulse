@@ -66,10 +66,10 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
 
         try
         {
-            var result = await _cycle.LoadAsync(null, async (client, ct) =>
+            var result = await _cycle.LoadAsync(null, async client =>
             {
                 var api = RestService.For<IGitHubActionsApi>(client);
-                using var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(ct);
+                using var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync();
                 ApiResponses.EnsureSuccess(response);
                 return new PagedListPage<WorkflowRun>(
                     response.Content?.WorkflowRuns ?? [],
@@ -88,13 +88,11 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
                 Runs.Add(run);
             CanLoadMore.Value = result.HasNextPage;
 
-            if (_cycle.Client is { } client)
+            await _cycle.UseClientAsync(async (generation, ct) =>
             {
-                var api = RestService.For<IGitHubActionsApi>(client);
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-                await LoadWorkflowsAsync(api, cts.Token);
-                await ApplyDefaultDispatchRefAsync(client, cts.Token);
-            }
+                await LoadWorkflowsAsync(generation, ct);
+                await ApplyDefaultDispatchRefAsync(generation, ct);
+            });
         }
         catch (OperationCanceledException)
         {
@@ -121,10 +119,10 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
 
         try
         {
-            var result = await _cycle.LoadMoreAsync(async (client, ct) =>
+            var result = await _cycle.LoadMoreAsync(async client =>
             {
                 var api = RestService.For<IGitHubActionsApi>(client);
-                using var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync(ct);
+                using var response = await api.ListWorkflowRuns(_owner, _repo).FirstAsync();
                 ApiResponses.EnsureSuccess(response);
                 return new PagedListPage<WorkflowRun>(
                     response.Content?.WorkflowRuns ?? [],
@@ -207,11 +205,16 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
         }
     }
 
-    private async Task LoadWorkflowsAsync(IGitHubActionsApi api, CancellationToken cancellationToken)
+    private async Task LoadWorkflowsAsync(PagedListCycle.Generation generation, CancellationToken cancellationToken)
     {
         try
         {
-            var result = await api.ListWorkflows(_owner, _repo).FirstAsync(cancellationToken);
+            var result = await generation.SendAsync(
+                client => RestService.For<IGitHubActionsApi>(client).ListWorkflows(_owner, _repo).FirstAsync(),
+                cancellationToken);
+            if (generation.IsRetired)
+                return;
+
             Workflows.Clear();
             foreach (var workflow in result.Workflows ?? [])
             {
@@ -224,20 +227,22 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
         }
         catch
         {
-            Workflows.Clear();
+            if (!generation.IsRetired)
+                Workflows.Clear();
         }
     }
 
-    private async Task ApplyDefaultDispatchRefAsync(HttpClient client, CancellationToken cancellationToken)
+    private async Task ApplyDefaultDispatchRefAsync(PagedListCycle.Generation generation, CancellationToken cancellationToken)
     {
         if (!string.IsNullOrEmpty(DispatchRef.Value))
             return;
 
         try
         {
-            var api = RestService.For<IGitHubReposApi>(client);
-            var repo = await api.GetRepo(_owner, _repo).FirstAsync(cancellationToken);
-            if (!string.IsNullOrEmpty(DispatchRef.Value))
+            var repo = await generation.SendAsync(
+                client => RestService.For<IGitHubReposApi>(client).GetRepo(_owner, _repo).FirstAsync(),
+                cancellationToken);
+            if (generation.IsRetired || !string.IsNullOrEmpty(DispatchRef.Value))
                 return;
 
             DispatchRef.Value = string.IsNullOrEmpty(repo.DefaultBranch)
@@ -246,7 +251,7 @@ public sealed partial class WorkflowRunsViewModel : IDisposable
         }
         catch
         {
-            if (string.IsNullOrEmpty(DispatchRef.Value))
+            if (!generation.IsRetired && string.IsNullOrEmpty(DispatchRef.Value))
                 DispatchRef.Value = "main";
         }
     }
