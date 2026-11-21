@@ -143,13 +143,23 @@ public sealed partial class SearchViewModel : IDisposable
 
         try
         {
-            if (!await StartPagedAsync(session, query, version, requestCts.Token))
+            var paged = await _clientFactory.CreatePagedSessionAsync(requestCts.Token);
+            if (!IsCurrent(version))
+            {
+                paged.Dispose();
                 return;
+            }
 
-            await session.RunPageAsync(
-                paged => SearchPageAsync(
-                    paged, type, query, session, replace: true, version, requestCts.Token),
-                loadMore: false);
+            if (paged.Client.DefaultRequestHeaders.Authorization is null)
+            {
+                paged.Dispose();
+                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                return;
+            }
+
+            session.Query = query;
+            await session.LoadFirstPageAsync(paged, page => SearchPageAsync(
+                page, type, query, session, replace: true, version, requestCts.Token));
 
             if (!IsCurrent(version))
                 return;
@@ -229,10 +239,8 @@ public sealed partial class SearchViewModel : IDisposable
 
         try
         {
-            await session.RunPageAsync(
-                paged => SearchPageAsync(
-                    paged, type, session.Query, session, replace: false, version, requestCts.Token),
-                loadMore: true);
+            await session.LoadMoreAsync(paged => SearchPageAsync(
+                paged, type, session.Query, session, replace: false, version, requestCts.Token));
 
             if (!IsCurrent(version))
                 return;
@@ -558,32 +566,6 @@ public sealed partial class SearchViewModel : IDisposable
             throw new SearchRequestException(
                 response.StatusCode ?? HttpStatusCode.ServiceUnavailable,
                 SearchForbidden.Remaining(response.Headers));
-    }
-
-
-    private async Task<bool> StartPagedAsync(
-        SearchSession session,
-        string query,
-        int version,
-        CancellationToken cancellationToken)
-    {
-        var paged = await _clientFactory.CreatePagedSessionAsync(cancellationToken);
-        if (!IsCurrent(version))
-        {
-            paged.Dispose();
-            return false;
-        }
-
-        if (paged.Client.DefaultRequestHeaders.Authorization is null)
-        {
-            paged.Dispose();
-            ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
-            return false;
-        }
-
-        session.StartPaging(paged);
-        session.Query = query;
-        return true;
     }
 
     private (int Version, CancellationTokenSource RequestCts) BeginRequest()
