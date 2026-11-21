@@ -16,9 +16,9 @@
       },
       "Observables.RestAPI.R3": {
         "type": "Direct",
-        "requested": "[0.3.0, )",
-        "resolved": "0.3.0",
-        "contentHash": "nCgNZ6FYz783W8q9Pl4HAO/TePCoVFwiqXT39voqDx3yAOJDTQPym/ObDQm+jMkLBqe4VXM/iuH8eWkMN2nmGg==",
+        "requested": "[0.4.1, )",
+        "resolved": "0.4.1",
+        "contentHash": "HR/gvHP1u9a/8HG9D2hJy+2UDvQZncfv1WPTcsX6ggsFU5ME6v+dZwumTnEzZ2YEUYctNLDE45F4MyOGBlXDSQ==",
         "dependencies": {
           "R3": "1.3.0"
         }
@@ -36,7 +36,7 @@
         "type": "Project",
         "dependencies": {
           "GitPulse.Core": "[1.0.0, )",
-          "Observables.RestAPI.R3": "[0.3.0, )",
+          "Observables.RestAPI.R3": "[0.4.1, )",
           "R3": "[1.3.0, )"
         }
       }
