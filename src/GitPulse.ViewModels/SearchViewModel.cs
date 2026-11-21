@@ -153,7 +153,8 @@ public sealed partial class SearchViewModel : IDisposable
             if (paged.Client.DefaultRequestHeaders.Authorization is null)
             {
                 paged.Dispose();
-                ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
+                if (IsCurrent(version))
+                    ErrorMessage.Value = "No token configured. Open Settings to add a GitHub PAT.";
                 return;
             }
 
@@ -363,7 +364,7 @@ public sealed partial class SearchViewModel : IDisposable
         {
             var result = await inbox.LoadAsync(
                 _clientFactory, version, IsCurrent, requestCts.Token);
-            if (!result.Completed)
+            if (!IsCurrent(version) || !result.Completed)
                 return;
 
             if (result.Error is not null)
@@ -390,7 +391,7 @@ public sealed partial class SearchViewModel : IDisposable
         {
             var result = await inbox.LoadMoreAsync(
                 version, IsCurrent, requestCts.Token);
-            if (!result.Completed)
+            if (!IsCurrent(version) || !result.Completed)
                 return;
 
             if (result.Error is not null)

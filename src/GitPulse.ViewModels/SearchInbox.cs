@@ -67,7 +67,7 @@ internal sealed class SearchInbox : IDisposable
             if (paged.Client.DefaultRequestHeaders.Authorization is null)
             {
                 paged.Dispose();
-                return SearchInboxResult.Fail("No token configured. Open Settings to add a GitHub PAT.");
+                return ResultIfCurrent(version, isCurrent, "No token configured. Open Settings to add a GitHub PAT.");
             }
 
             await _session.LoadFirstPageAsync(paged, page => FetchPageAsync(
