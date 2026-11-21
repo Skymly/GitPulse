@@ -260,17 +260,31 @@ public class SearchViewModelTests
         Assert.False(vm.CanLoadMore.Value);
     }
 
+    public enum FactoryTiming
+    {
+        AuthenticatedAfterReplacement,
+        UnauthenticatedAfterReplacement,
+        ReplacedWhileDisposingUnauthenticatedClient,
+    }
+
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task SupersededFactoryResult_IsDisposedWithoutSendingItsFirstPage(bool startInInbox)
+    [InlineData(false, FactoryTiming.AuthenticatedAfterReplacement)]
+    [InlineData(true, FactoryTiming.AuthenticatedAfterReplacement)]
+    [InlineData(false, FactoryTiming.UnauthenticatedAfterReplacement)]
+    [InlineData(true, FactoryTiming.UnauthenticatedAfterReplacement)]
+    [InlineData(false, FactoryTiming.ReplacedWhileDisposingUnauthenticatedClient)]
+    [InlineData(true, FactoryTiming.ReplacedWhileDisposingUnauthenticatedClient)]
+    public async Task SupersededFactoryResult_IsDisposedWithoutSendingItsFirstPage(
+        bool startInInbox, FactoryTiming timing)
     {
         var timeout = TimeSpan.FromSeconds(5);
         var testCt = TestContext.Current.CancellationToken;
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseFactory = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var disposing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var finishDispose = new ManualResetEventSlim();
         var handler = new RecordingHandler((_, _, _) =>
             Task.FromResult(JsonResponse(RepositoryResults("Current"))));
-        var factory = new RecordingClientFactory(handler) { DelayNextPagedSession = release.Task };
+        var factory = new RecordingClientFactory(handler) { DelayNextPagedSession = releaseFactory.Task };
         using var vm = new SearchViewModel(factory);
         vm.Query.Value = "first query";
         var older = startInInbox
@@ -280,21 +294,47 @@ public class SearchViewModelTests
 
         try
         {
+            if (timing != FactoryTiming.AuthenticatedAfterReplacement)
+                oldClient.DefaultRequestHeaders.Authorization = null;
+
+            if (timing == FactoryTiming.ReplacedWhileDisposingUnauthenticatedClient)
+            {
+                oldClient.OnDisposing = () =>
+                {
+                    disposing.TrySetResult();
+                    if (!finishDispose.Wait(timeout, testCt))
+                        throw new TimeoutException("Timed out waiting for the replacement search.");
+                };
+                releaseFactory.TrySetResult();
+                await disposing.Task.WaitAsync(timeout, testCt);
+            }
+
             vm.Query.Value = "second query";
             await vm.SearchCommand.ExecuteAsync(null).WaitAsync(timeout, testCt);
             Assert.False(oldClient.IsDisposed);
+            Assert.Empty(vm.ErrorMessage.Value);
         }
         finally
         {
-            release.TrySetResult();
+            finishDispose.Set();
+            releaseFactory.TrySetResult();
             await older.WaitAsync(timeout, testCt);
         }
 
-        Assert.True(oldClient.IsDisposed);
+        Assert.Collection(factory.Clients,
+            retired => Assert.True(retired.IsDisposed),
+            current => Assert.False(current.IsDisposed));
         var request = Assert.Single(handler.Requests);
+        Assert.Equal("/search/repositories", request.AbsolutePath);
         Assert.Contains("second%20query", request.Query, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("Current", Assert.Single(vm.Repositories).Name);
+        Assert.Empty(vm.Assigned);
         Assert.Empty(vm.ErrorMessage.Value);
+        Assert.Equal(SearchViewModel.SearchHub, vm.SelectedHub.Value);
+        Assert.True(vm.HasSearched.Value);
+        Assert.Equal(1, vm.TotalCount.Value);
+        Assert.False(vm.IsLoading.Value);
+        Assert.False(vm.CanLoadMore.Value);
     }
 
     [Fact]
@@ -811,6 +851,7 @@ public class SearchViewModelTests
             if (DelayNextPagedSession is { } gate)
             {
                 DelayNextPagedSession = null;
+                // Return the constructed session even if the caller was superseded while waiting.
                 await gate;
             }
 
@@ -837,12 +878,16 @@ public class SearchViewModelTests
         : HttpClient(handler, disposeHandler: false)
     {
         private int _disposed;
+        public Action? OnDisposing { get; set; }
         public bool IsDisposed => Volatile.Read(ref _disposed) != 0;
 
         protected override void Dispose(bool disposing)
         {
             if (disposing)
+            {
+                OnDisposing?.Invoke();
                 Volatile.Write(ref _disposed, 1);
+            }
             base.Dispose(disposing);
         }
     }
