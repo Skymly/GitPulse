@@ -163,6 +163,17 @@ public class GitHubQueryHandlerTests
         Assert.DoesNotContain("sort=created", uri);
     }
 
+    [Fact]
+    public async Task SendAsync_WithoutOptions_DoesNotRewriteExistingQuery()
+    {
+        const string requestUri =
+            "https://api.github.com/user/repos?page=9&per_page=100&sort=created&sort=updated";
+
+        var uri = await SendAsync(requestUri);
+
+        Assert.Equal(requestUri, uri);
+    }
+
     /// <summary>
     /// Inner handler that returns a 200 OK without doing any I/O.
     /// </summary>
