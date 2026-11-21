@@ -375,6 +375,74 @@ public class ReposViewModelTests
         settings.Dispose();
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task RetiredPagingClient_SurvivesUntilTheOldHttpRequestExits(bool loadMore, bool clearToken)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var timeout = TimeSpan.FromSeconds(5);
+        var responses = new MockHttpHandler().When("/user/repos", ReposJson(("old", null)), LinkHasNext);
+        using var handler = new GatedRequestHandler(responses, blockedRequest: loadMore ? 2 : 1);
+        var factory = new FakeGitHubClientFactory(handler);
+        using var vm = new ReposViewModel(factory);
+        using var settings = new SettingsViewModel(new ClearingCredentialStore(null), factory);
+
+        if (loadMore)
+            await vm.LoadCommand.ExecuteAsync(null).WaitAsync(timeout, ct);
+        var oldLoad = loadMore ? vm.LoadMoreCommand.ExecuteAsync(null) : vm.LoadCommand.ExecuteAsync(null);
+
+        try
+        {
+            await handler.Started.Task.WaitAsync(timeout, ct);
+            if (clearToken)
+            {
+                await settings.ClearTokenCommand.ExecuteAsync(null).WaitAsync(timeout, ct);
+                Assert.Equal("Token cleared.", settings.StatusMessage.Value);
+                Assert.False(vm.CanLoadMore.Value);
+                Assert.Empty(vm.Repos);
+            }
+            else
+            {
+                responses.When("/user/repos", ReposJson(("current", null)), LinkHasNext);
+                await vm.LoadCommand.ExecuteAsync(null).WaitAsync(timeout, ct);
+                Assert.Equal("current", Assert.Single(vm.Repos).Name);
+            }
+
+            await handler.Canceled.Task.WaitAsync(timeout, ct);
+            Assert.False(handler.Exited.Task.IsCompleted);
+            Assert.Equal(clearToken ? 1 : 2, factory.LiveClients);
+        }
+        finally
+        {
+            handler.Release.TrySetResult();
+            await oldLoad.WaitAsync(timeout, ct);
+            await handler.Exited.Task.WaitAsync(timeout, ct);
+        }
+
+        await AsyncTestWait.UntilAsync(() => factory.LiveClients == (clearToken ? 0 : 1));
+        Assert.False(vm.IsLoading.Value);
+        Assert.Empty(vm.ErrorMessage.Value);
+        if (clearToken)
+        {
+            Assert.False(vm.CanLoadMore.Value);
+            Assert.Empty(vm.Repos);
+        }
+        else
+        {
+            Assert.True(vm.CanLoadMore.Value);
+            responses.When("/user/repos", ReposJson(("next", null)), LinkNoNext);
+            await vm.LoadMoreCommand.ExecuteAsync(null).WaitAsync(timeout, ct);
+            Assert.Equal(new[] { "current", "next" }, vm.Repos.Select(repo => repo.Name));
+            Assert.False(vm.CanLoadMore.Value);
+
+            await settings.ClearTokenCommand.ExecuteAsync(null).WaitAsync(timeout, ct);
+            Assert.Equal(0, factory.LiveClients);
+        }
+    }
+
     private sealed class ClearingCredentialStore(string? token) : ICredentialStore
     {
         public Task<string?> GetTokenAsync(CancellationToken ct = default)
