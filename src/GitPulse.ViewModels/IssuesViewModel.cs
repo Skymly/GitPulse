@@ -120,10 +120,10 @@ public sealed partial class IssuesViewModel : IDisposable
             {
                 _reloadQueued = false;
                 ErrorMessage.Value = string.Empty;
-                var result = await _cycle.LoadAsync(StateFilter.Value, async (client, ct) =>
+                var result = await _cycle.LoadAsync(StateFilter.Value, async client =>
                 {
                     var api = RestService.For<IGitHubReposApi>(client);
-                    var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync(ct);
+                    var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync();
                     return ApiResponses.PageOrThrow(response);
                 });
                 if (_reloadQueued)
@@ -161,10 +161,10 @@ public sealed partial class IssuesViewModel : IDisposable
 
         try
         {
-            var result = await _cycle.LoadMoreAsync(async (client, ct) =>
+            var result = await _cycle.LoadMoreAsync(async client =>
             {
                 var api = RestService.For<IGitHubReposApi>(client);
-                var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync(ct);
+                var response = await api.ListIssuesPaged(_owner, _repo).FirstAsync();
                 return ApiResponses.PageOrThrow(response);
             });
             if (result.Completed)

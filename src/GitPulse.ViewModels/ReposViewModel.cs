@@ -120,10 +120,10 @@ public sealed partial class ReposViewModel : IDisposable
             _allRepos.Clear();
             ApplyFilter(SearchText.Value);
 
-            var result = await _cycle.LoadAsync(null, async (client, ct) =>
+            var result = await _cycle.LoadAsync(null, async client =>
             {
                 var api = RestService.For<IGitHubReposApi>(client);
-                var response = await ListCurrentAsync(api, ct);
+                var response = await ListCurrentAsync(api);
                 return ApiResponses.PageOrThrow(response);
             });
             if (!result.Completed)
@@ -158,10 +158,10 @@ public sealed partial class ReposViewModel : IDisposable
 
         try
         {
-            var result = await _cycle.LoadMoreAsync(async (client, ct) =>
+            var result = await _cycle.LoadMoreAsync(async client =>
             {
                 var api = RestService.For<IGitHubReposApi>(client);
-                var response = await ListCurrentAsync(api, ct);
+                var response = await ListCurrentAsync(api);
                 return ApiResponses.PageOrThrow(response);
             });
             if (!result.Completed)
@@ -193,12 +193,12 @@ public sealed partial class ReposViewModel : IDisposable
         await LoadAsync();
     }
 
-    private Task<ApiResponse<Repo[]>> ListCurrentAsync(IGitHubReposApi api, CancellationToken cancellationToken)
+    private Task<ApiResponse<Repo[]>> ListCurrentAsync(IGitHubReposApi api)
     {
         var request = string.Equals(SelectedHub.Value, StarredHub, StringComparison.Ordinal)
             ? api.ListStarredReposPaged()
             : api.ListMyReposSortedPaged(MyReposSort);
-        return request.FirstAsync(cancellationToken);
+        return request.FirstAsync();
     }
 
     public void Dispose()

@@ -71,10 +71,10 @@ public sealed partial class CommitsViewModel : IDisposable
         try
         {
             Commits.Clear();
-            var result = await _cycle.LoadAsync(null, async (client, ct) =>
+            var result = await _cycle.LoadAsync(null, async client =>
             {
                 var api = RestService.For<IGitHubReposApi>(client);
-                var response = await api.ListCommitsPaged(_owner, _repo).FirstAsync(ct);
+                var response = await api.ListCommitsPaged(_owner, _repo).FirstAsync();
                 return ApiResponses.PageOrThrow(response);
             });
             if (!result.Completed)
@@ -106,10 +106,10 @@ public sealed partial class CommitsViewModel : IDisposable
 
         try
         {
-            var result = await _cycle.LoadMoreAsync(async (client, ct) =>
+            var result = await _cycle.LoadMoreAsync(async client =>
             {
                 var api = RestService.For<IGitHubReposApi>(client);
-                var response = await api.ListCommitsPaged(_owner, _repo).FirstAsync(ct);
+                var response = await api.ListCommitsPaged(_owner, _repo).FirstAsync();
                 return ApiResponses.PageOrThrow(response);
             });
             if (!result.Completed)
