@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using Observables.RestAPI;
 
 namespace GitPulse.Core.Http;
 
@@ -11,23 +12,37 @@ namespace GitPulse.Core.Http;
 /// </summary>
 public sealed class PagedGitHubSession : IDisposable
 {
-    private const int DefaultPerPage = 30;
-
-    private readonly GitHubQueryHandler _queryHandler;
+    private readonly GitHubQueryHandler? _legacyHandler;
     private int _currentPage = 1;
     private int? _loadMorePage;
     private bool _disposed;
 
     /// <summary>
     /// Creates a session over an authenticated (or unauthenticated) client whose
-    /// handler pipeline already includes <paramref name="queryHandler"/>.
+    /// handler pipeline already includes <see cref="GitHubQueryHandler"/>.
     /// </summary>
-    public PagedGitHubSession(HttpClient client, GitHubQueryHandler queryHandler)
+    public PagedGitHubSession(HttpClient client)
     {
         ArgumentNullException.ThrowIfNull(client);
-        ArgumentNullException.ThrowIfNull(queryHandler);
         Client = client;
-        _queryHandler = queryHandler;
+    }
+
+    // Retain the original entry points until all list and polling callers have migrated.
+    public PagedGitHubSession(HttpClient client, GitHubQueryHandler queryHandler) : this(client)
+    {
+        ArgumentNullException.ThrowIfNull(queryHandler);
+        _legacyHandler = queryHandler;
+    }
+
+    public void PrepareRequest()
+    {
+        ThrowIfDisposed();
+        if (_legacyHandler is null)
+            throw new InvalidOperationException("Use the scoped PrepareRequest overload with this session.");
+
+        _legacyHandler.Page = _loadMorePage ?? _currentPage;
+        _legacyHandler.PerPage = GitHubQueryHandler.DefaultPerPage;
+        _legacyHandler.State = State;
     }
 
     /// <summary>HttpClient for <c>RestService.For</c>.</summary>
@@ -38,7 +53,7 @@ public sealed class PagedGitHubSession : IDisposable
 
     /// <summary>
     /// Optional issues/PRs state filter (<c>open</c>, <c>closed</c>, <c>all</c>).
-    /// Written to the query handler on <see cref="PrepareRequest"/>.
+    /// Captured for each call to <see cref="PrepareRequest{T}"/>.
     /// </summary>
     public string? State { get; set; }
 
@@ -52,15 +67,20 @@ public sealed class PagedGitHubSession : IDisposable
     }
 
     /// <summary>
-    /// Copies the current page cursor, default per_page, and <see cref="State"/>
-    /// onto the query handler before a RestAPI call.
+    /// Invokes one generated RestAPI call with a snapshot of the current pagination options.
+    /// The invocation must create the proxy call synchronously; its observable may be subscribed later.
     /// </summary>
-    public void PrepareRequest()
+    public T PrepareRequest<T>(Func<T> invoke)
     {
         ThrowIfDisposed();
-        _queryHandler.Page = _loadMorePage ?? _currentPage;
-        _queryHandler.PerPage = DefaultPerPage;
-        _queryHandler.State = State;
+        ArgumentNullException.ThrowIfNull(invoke);
+        using var scope = RestApiCallScope.Push(new Dictionary<string, object?>
+        {
+            [GitHubQueryHandler.PageOption.Key] = _loadMorePage ?? _currentPage,
+            [GitHubQueryHandler.PerPageOption.Key] = GitHubQueryHandler.DefaultPerPage,
+            [GitHubQueryHandler.StateOption.Key] = State,
+        });
+        return invoke();
     }
 
     /// <summary>

@@ -15,7 +15,10 @@
         "contentHash": "c4bL37HGimYon/qfRTZOJE41M3cgdMJn/p4O5Jq+WHTJGNXUb1x2DlVI+iZk5phCBwq3ERfrgbaPu9WdG2OS+w=="
       },
       "gitpulse.core": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Observables.RestAPI.R3": "[0.4.1, )"
+        }
       },
       "gitpulse.githubapi": {
         "type": "Project",
