@@ -36,7 +36,7 @@ internal sealed class SearchInbox : IDisposable
 
     public ObservableCollection<SearchIssueItem> Items { get; }
 
-    public bool HasSession => _session.Paged is not null;
+    public bool HasSession => _session.HasSession;
 
     public bool HasSearched => _session.HasSearched;
 
@@ -57,16 +57,16 @@ internal sealed class SearchInbox : IDisposable
 
         try
         {
-            var paged = await StartPagedAsync(factory, version, isCurrent, cancellationToken);
-            if (paged is null)
+            if (!await StartPagedAsync(factory, version, isCurrent, cancellationToken))
             {
                 return isCurrent(version)
                     ? SearchInboxResult.Fail("No token configured. Open Settings to add a GitHub PAT.")
                     : SearchInboxResult.Stale;
             }
 
-            var api = RestService.For<IGitHubSearchApi>(paged.Client);
-            await FetchPageAsync(api, replace: true, version, isCurrent, cancellationToken);
+            await _session.RunPageAsync(
+                paged => FetchPageAsync(paged, replace: true, version, isCurrent, cancellationToken),
+                loadMore: false);
             if (!isCurrent(version))
                 return SearchInboxResult.Stale;
 
@@ -116,17 +116,14 @@ internal sealed class SearchInbox : IDisposable
         Func<int, bool> isCurrent,
         CancellationToken cancellationToken)
     {
-        if (_session.Paged is null || !_session.HasNextPage)
+        if (!HasSession || !_session.HasNextPage)
             return SearchInboxResult.Ok;
 
         try
         {
-            if (!_session.Paged.Advance())
-                return SearchInboxResult.Ok;
-
-            _session.Paged.PrepareRequest();
-            var api = RestService.For<IGitHubSearchApi>(_session.Paged.Client);
-            await FetchPageAsync(api, replace: false, version, isCurrent, cancellationToken);
+            await _session.RunPageAsync(
+                paged => FetchPageAsync(paged, replace: false, version, isCurrent, cancellationToken),
+                loadMore: true);
             return isCurrent(version) ? SearchInboxResult.Ok : SearchInboxResult.Stale;
         }
         catch (OperationCanceledException)
@@ -181,17 +178,22 @@ internal sealed class SearchInbox : IDisposable
     }
 
     private async Task FetchPageAsync(
-        IGitHubSearchApi api,
+        PagedGitHubSession paged,
         bool replace,
         int version,
         Func<int, bool> isCurrent,
         CancellationToken cancellationToken)
     {
-        using var response = _kind == SearchInboxKind.PullRequests
-            ? await api.SearchPullRequests(_query).FirstAsync(cancellationToken)
-            : await api.SearchIssues(_query).FirstAsync(cancellationToken);
+        var api = RestService.For<IGitHubSearchApi>(paged.Client);
+        using var response = await paged
+            .PrepareRequest(() => _kind == SearchInboxKind.PullRequests
+                ? api.SearchPullRequests(_query, cancellationToken)
+                : api.SearchIssues(_query, cancellationToken))
+            .FirstAsync();
         if (!isCurrent(version))
             return;
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!response.IsSuccessStatusCode)
         {
@@ -207,10 +209,10 @@ internal sealed class SearchInbox : IDisposable
             Items.Add(item);
 
         _session.TotalCount = response.Content?.TotalCount ?? 0;
-        _session.Paged?.ApplyLink(response.Headers);
+        paged.ApplyLink(response.Headers);
     }
 
-    private async Task<PagedGitHubSession?> StartPagedAsync(
+    private async Task<bool> StartPagedAsync(
         IGitHubClientFactory factory,
         int version,
         Func<int, bool> isCurrent,
@@ -220,20 +222,17 @@ internal sealed class SearchInbox : IDisposable
         if (!isCurrent(version))
         {
             paged.Dispose();
-            return null;
+            return false;
         }
 
         if (paged.Client.DefaultRequestHeaders.Authorization is null)
         {
             paged.Dispose();
-            return null;
+            return false;
         }
 
-        _session.Paged = paged;
-        _session.Query = _query;
-        paged.Reset();
-        paged.PrepareRequest();
-        return paged;
+        _session.StartPaging(paged);
+        return true;
     }
 
     private static SearchInboxResult ResultIfCurrent(
@@ -242,21 +241,6 @@ internal sealed class SearchInbox : IDisposable
         string error)
     {
         return isCurrent(version) ? SearchInboxResult.Fail(error) : SearchInboxResult.Stale;
-    }
-
-    private sealed class SearchSession
-    {
-        public PagedGitHubSession? Paged { get; set; }
-        public string Query { get; set; } = string.Empty;
-        public int TotalCount { get; set; }
-        public bool HasSearched { get; set; }
-        public bool HasNextPage => Paged?.HasNextPage == true;
-
-        public void DisposePaged()
-        {
-            Paged?.Dispose();
-            Paged = null;
-        }
     }
 
     private sealed class SearchInboxRequestException(
