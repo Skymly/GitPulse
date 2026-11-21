@@ -1,4 +1,9 @@
+using System.Net;
+using System.Net.Sockets;
 using GitPulse.Core.Abstractions;
+using GitPulse.GitHubApi;
+using Observables.RestAPI;
+using R3;
 using GitPulse.Services;
 using Xunit;
 
@@ -105,6 +110,38 @@ public class GitHubClientFactoryTests
 
         Assert.Null(session.Client.DefaultRequestHeaders.Authorization);
         Assert.False(session.HasNextPage);
+    }
+
+    [Fact]
+    public async Task CreatePagedSessionAsync_SendsScopedStateThroughTheProductionHandler()
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        var ct = timeout.Token;
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+
+        using var factory = new GitHubClientFactory(new FakeCredentialStore(null));
+        using var session = await factory.CreatePagedSessionAsync(ct);
+        session.Client.BaseAddress = new Uri($"http://{listener.LocalEndpoint}/");
+        session.State = "closed";
+        var api = RestService.For<IGitHubReposApi>(session.Client);
+        var pending = session.PrepareRequest(() => api.ListIssuesPaged("owner", "repo")).FirstAsync(ct);
+
+        using var connection = await listener.AcceptTcpClientAsync(ct);
+        await using var stream = connection.GetStream();
+        using var reader = new StreamReader(stream);
+        var requestLine = await reader.ReadLineAsync(ct);
+        while (await reader.ReadLineAsync(ct) is { Length: > 0 })
+        {
+            // Consume the request headers before sending the response.
+        }
+
+        await stream.WriteAsync("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n[]"u8.ToArray(), ct);
+        using var response = await pending;
+
+        Assert.True(response.IsSuccessStatusCode);
+        Assert.Equal("GET /repos/owner/repo/issues?state=closed HTTP/1.1", requestLine);
     }
 
     private sealed class FakeCredentialStore : ICredentialStore

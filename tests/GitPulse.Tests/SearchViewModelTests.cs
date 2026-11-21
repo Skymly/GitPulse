@@ -203,11 +203,10 @@ public class SearchViewModelTests
             staleRun = vm.SearchCommand.ExecuteAsync(null);
         }
 
-        RecordingHttpClient oldClient;
+        var oldClient = factory.Clients.First();
         try
         {
             await started.Task.WaitAsync(timeout, testCt);
-            oldClient = factory.Clients.First();
             vm.Query.Value = "second query";
             await vm.SearchCommand.ExecuteAsync(null).WaitAsync(timeout, testCt);
             await canceled.Task.WaitAsync(timeout, testCt);
