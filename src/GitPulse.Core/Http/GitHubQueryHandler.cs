@@ -14,9 +14,13 @@ public sealed class GitHubQueryHandler : DelegatingHandler
     internal static readonly HttpRequestOptionsKey<string> StateOption = new("GitPulse.Pagination.State");
     internal const int DefaultPerPage = 30;
 
-    // Older list callers still prepare the handler before invoking their proxy.
+    /// <summary>1-based page number for legacy requests (default 1).</summary>
     public int Page { get; set; } = 1;
+
+    /// <summary>Items per page for legacy requests (default 30).</summary>
     public int PerPage { get; set; } = DefaultPerPage;
+
+    /// <summary>Optional issue or pull request state filter for legacy requests.</summary>
     public string? State { get; set; }
 
     public GitHubQueryHandler() : base(new HttpClientHandler())
@@ -34,6 +38,7 @@ public sealed class GitHubQueryHandler : DelegatingHandler
         var hasPage = request.Options.TryGetValue(PageOption, out var page);
         var hasPerPage = request.Options.TryGetValue(PerPageOption, out var perPage);
         request.Options.TryGetValue(StateOption, out var state);
+        // A scoped call owns its entire snapshot, including an absent state filter.
         if (!hasPage && !hasPerPage && state is null)
         {
             page = Page;
@@ -60,6 +65,7 @@ public sealed class GitHubQueryHandler : DelegatingHandler
         return base.SendAsync(request, cancellationToken);
     }
 
+    // Decode generated query values here so BuildQuery escapes them exactly once.
     private static Dictionary<string, string> ParseQuery(string query)
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
