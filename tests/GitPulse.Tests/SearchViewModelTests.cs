@@ -161,7 +161,8 @@ public class SearchViewModelTests
 
         var requests = handler.Requests.ToArray();
         Assert.Equal(3, requests.Length);
-        Assert.DoesNotContain("page=", requests[0].Query);
+        Assert.DoesNotContain(requests[0].Query.TrimStart('?').Split('&'),
+            part => part.StartsWith("page=", StringComparison.OrdinalIgnoreCase));
         Assert.Contains("page=2", requests[1].Query.TrimStart('?').Split('&'));
         Assert.Equal(requests[1], requests[2]);
         Assert.Equal(["First", "Second"], vm.Repositories.Select(repo => repo.Name));
