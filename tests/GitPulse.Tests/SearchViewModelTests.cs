@@ -137,6 +137,40 @@ public class SearchViewModelTests
     }
 
     [Fact]
+    public async Task LoadMore_AfterHttpFailure_RetriesTheSamePageAndAppendsOnce()
+    {
+        var handler = new RecordingHandler((_, requestNumber, _) => Task.FromResult(requestNumber switch
+        {
+            1 => JsonResponse(RepositoryResults("First", totalCount: 2), NextLink),
+            2 => StatusResponse(HttpStatusCode.InternalServerError),
+            3 => JsonResponse(RepositoryResults("Second", totalCount: 2)),
+            _ => throw new InvalidOperationException("Unexpected page request."),
+        }));
+        using var vm = CreateViewModel(handler);
+        vm.Query.Value = "gitpulse";
+
+        await vm.SearchCommand.ExecuteAsync(null);
+        await vm.LoadMoreCommand.ExecuteAsync(null);
+
+        Assert.Equal("First", Assert.Single(vm.Repositories).Name);
+        Assert.True(vm.CanLoadMore.Value);
+        Assert.False(vm.IsLoading.Value);
+        Assert.NotEmpty(vm.ErrorMessage.Value);
+
+        await vm.LoadMoreCommand.ExecuteAsync(null);
+
+        var requests = handler.Requests.ToArray();
+        Assert.Equal(3, requests.Length);
+        Assert.DoesNotContain(requests[0].Query.TrimStart('?').Split('&'),
+            part => part.StartsWith("page=", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains("page=2", requests[1].Query.TrimStart('?').Split('&'));
+        Assert.Equal(requests[1], requests[2]);
+        Assert.Equal(["First", "Second"], vm.Repositories.Select(repo => repo.Name));
+        Assert.Empty(vm.ErrorMessage.Value);
+        Assert.False(vm.CanLoadMore.Value);
+    }
+
+    [Fact]
     public async Task SwitchingType_CancelsActiveRequestWithoutStartingAnother()
     {
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
