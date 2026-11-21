@@ -260,6 +260,43 @@ public class SearchViewModelTests
         Assert.False(vm.CanLoadMore.Value);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SupersededFactoryResult_IsDisposedWithoutSendingItsFirstPage(bool startInInbox)
+    {
+        var timeout = TimeSpan.FromSeconds(5);
+        var testCt = TestContext.Current.CancellationToken;
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new RecordingHandler((_, _, _) =>
+            Task.FromResult(JsonResponse(RepositoryResults("Current"))));
+        var factory = new RecordingClientFactory(handler) { DelayNextPagedSession = release.Task };
+        using var vm = new SearchViewModel(factory);
+        vm.Query.Value = "first query";
+        var older = startInInbox
+            ? vm.SelectHubCommand.ExecuteAsync(SearchViewModel.AssignedHub)
+            : vm.SearchCommand.ExecuteAsync(null);
+        var oldClient = Assert.Single(factory.Clients);
+
+        try
+        {
+            vm.Query.Value = "second query";
+            await vm.SearchCommand.ExecuteAsync(null).WaitAsync(timeout, testCt);
+            Assert.False(oldClient.IsDisposed);
+        }
+        finally
+        {
+            release.TrySetResult();
+            await older.WaitAsync(timeout, testCt);
+        }
+
+        Assert.True(oldClient.IsDisposed);
+        var request = Assert.Single(handler.Requests);
+        Assert.Contains("second%20query", request.Query, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Current", Assert.Single(vm.Repositories).Name);
+        Assert.Empty(vm.ErrorMessage.Value);
+    }
+
     [Fact]
     public async Task Search_WithNoItems_SetsEmptyState()
     {
@@ -760,16 +797,24 @@ public class SearchViewModelTests
         : IGitHubClientFactory
     {
         public ConcurrentQueue<RecordingHttpClient> Clients { get; } = [];
+        public Task? DelayNextPagedSession { get; set; }
 
         public Task<HttpClient> CreateClientAsync(CancellationToken ct = default)
         {
             return Task.FromResult<HttpClient>(BuildClient(handler));
         }
 
-        public Task<PagedGitHubSession> CreatePagedSessionAsync(CancellationToken ct = default)
+        public async Task<PagedGitHubSession> CreatePagedSessionAsync(CancellationToken ct = default)
         {
             var queryHandler = new GitHubQueryHandler(handler);
-            return Task.FromResult(new PagedGitHubSession(BuildClient(queryHandler)));
+            var session = new PagedGitHubSession(BuildClient(queryHandler));
+            if (DelayNextPagedSession is { } gate)
+            {
+                DelayNextPagedSession = null;
+                await gate;
+            }
+
+            return session;
         }
 
         private RecordingHttpClient BuildClient(HttpMessageHandler messageHandler)
