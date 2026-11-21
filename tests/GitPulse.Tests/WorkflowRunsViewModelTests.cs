@@ -171,6 +171,49 @@ public class WorkflowRunsViewModelTests
     private const string RepoJsonDevelop =
         "{\"id\":1,\"name\":\"repo\",\"full_name\":\"owner/repo\",\"default_branch\":\"develop\"}";
 
+    [Theory]
+    [InlineData("/repos/owner/repo/actions/workflows")]
+    [InlineData("/repos/owner/repo")]
+    public async Task RetiredPagingClient_DrainsWorkflowMetadataReads(string path)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var timeout = TimeSpan.FromSeconds(5);
+        var responses = new MockHttpHandler()
+            .When("/repos/owner/repo/actions/runs", RunsJson)
+            .When("/repos/owner/repo/actions/workflows", WorkflowsJson)
+            .When("/repos/owner/repo", RepoJsonDevelop);
+        using var handler = new GatedRequestHandler(responses, path);
+        var factory = new FakeGitHubClientFactory(handler);
+        using var vm = new WorkflowRunsViewModel(factory);
+        vm.Initialize("owner", "repo");
+        var oldLoad = vm.LoadCommand.ExecuteAsync(null);
+
+        try
+        {
+            await handler.Started.Task.WaitAsync(timeout, ct);
+            responses.When("/repos/owner/repo/actions/workflows", WorkflowsJson.Replace("CI", "Current"))
+                .When("/repos/owner/repo", RepoJsonDevelop.Replace("develop", "current-main"));
+            await vm.LoadCommand.ExecuteAsync(null).WaitAsync(timeout, ct);
+            await handler.Canceled.Task.WaitAsync(timeout, ct);
+            Assert.False(handler.Exited.Task.IsCompleted);
+            Assert.Equal(2, factory.LiveClients);
+        }
+        finally
+        {
+            handler.Release.TrySetResult();
+            if (handler.Started.Task.IsCompletedSuccessfully)
+            {
+                await oldLoad.WaitAsync(timeout, ct);
+                await handler.Exited.Task.WaitAsync(timeout, ct);
+            }
+        }
+
+        await AsyncTestWait.UntilAsync(() => factory.LiveClients == 1);
+        Assert.Equal("Current", Assert.Single(vm.Workflows).Name);
+        Assert.Equal("current-main", vm.DispatchRef.Value);
+        Assert.Empty(vm.ErrorMessage.Value);
+    }
+
     [Fact]
     public async Task Load_SetsDispatchRefFromDefaultBranch()
     {

@@ -6,19 +6,20 @@ namespace GitPulse.Tests.TestHelpers;
 
 /// <summary>
 /// <see cref="IGitHubClientFactory"/> stub for ViewModel tests. Builds an
-/// <see cref="HttpClient"/> backed by a <see cref="MockHttpHandler"/>,
+/// <see cref="HttpClient"/> backed by a test handler,
 /// optionally pre-loaded with a Bearer token so the ViewModel's auth guard
 /// passes. Mirrors the header setup of the real
 /// <c>GitHubClientFactory</c> (base address, Accept, API version, User-Agent).
 /// </summary>
 public sealed class FakeGitHubClientFactory : IGitHubClientFactory
 {
-    private readonly MockHttpHandler _handler;
+    private readonly HttpMessageHandler _handler;
     private readonly string? _token;
 
-    public int LiveClients { get; private set; }
+    private int _liveClients;
+    public int LiveClients => Volatile.Read(ref _liveClients);
 
-    public FakeGitHubClientFactory(MockHttpHandler handler, string? token = "ghp_fake_test_token")
+    public FakeGitHubClientFactory(HttpMessageHandler handler, string? token = "ghp_fake_test_token")
     {
         _handler = handler;
         _token = token;
@@ -38,8 +39,8 @@ public sealed class FakeGitHubClientFactory : IGitHubClientFactory
 
     private HttpClient BuildClient(HttpMessageHandler handler)
     {
-        LiveClients++;
-        var client = new CountedHttpClient(handler, () => LiveClients--)
+        Interlocked.Increment(ref _liveClients);
+        var client = new CountedHttpClient(handler, () => Interlocked.Decrement(ref _liveClients))
         {
             BaseAddress = new Uri("https://api.github.com/"),
         };
