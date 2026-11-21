@@ -182,7 +182,10 @@
         }
       },
       "gitpulse.core": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Observables.RestAPI.R3": "[0.4.1, )"
+        }
       },
       "gitpulse.githubapi": {
         "type": "Project",
