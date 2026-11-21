@@ -1,6 +1,9 @@
-using System.Net.Http.Headers;
+using System.Net;
+using System.Net.Sockets;
 using GitPulse.Core.Abstractions;
-using GitPulse.Core.Http;
+using GitPulse.GitHubApi;
+using Observables.RestAPI;
+using R3;
 using GitPulse.Services;
 using Xunit;
 
@@ -110,48 +113,35 @@ public class GitHubClientFactoryTests
     }
 
     [Fact]
-    public async Task CreatePagedSessionAsync_PrepareRequestAndAdvance_UsesWiredQueryHandler()
+    public async Task CreatePagedSessionAsync_SendsScopedStateThroughTheProductionHandler()
     {
-        var store = new FakeCredentialStore("ghp_test123");
-        var factory = new GitHubClientFactory(store);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        var ct = timeout.Token;
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
 
-        using var session = await factory.CreatePagedSessionAsync(TestContext.Current.CancellationToken);
-        var queryHandler = GetPrimaryQueryHandler(session.Client);
+        using var factory = new GitHubClientFactory(new FakeCredentialStore(null));
+        using var session = await factory.CreatePagedSessionAsync(ct);
+        session.Client.BaseAddress = new Uri($"http://{listener.LocalEndpoint}/");
+        session.State = "closed";
+        var api = RestService.For<IGitHubReposApi>(session.Client);
+        var pending = session.PrepareRequest(() => api.ListIssuesPaged("owner", "repo")).FirstAsync(ct);
 
-        session.PrepareRequest();
-        Assert.Equal(1, queryHandler.Page);
-        Assert.Equal(30, queryHandler.PerPage);
+        using var connection = await listener.AcceptTcpClientAsync(ct);
+        await using var stream = connection.GetStream();
+        using var reader = new StreamReader(stream);
+        var requestLine = await reader.ReadLineAsync(ct);
+        while (await reader.ReadLineAsync(ct) is { Length: > 0 })
+        {
+            // Consume the request headers before sending the response.
+        }
 
-        session.ApplyLink(HeadersWithNextPage(2));
-        Assert.True(session.HasNextPage);
-        Assert.True(session.Advance());
+        await stream.WriteAsync("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n[]"u8.ToArray(), ct);
+        using var response = await pending;
 
-        session.PrepareRequest();
-        Assert.Equal(2, queryHandler.Page);
-        Assert.Equal(30, queryHandler.PerPage);
-    }
-
-    /// <summary>
-    /// Production factory installs <see cref="GitHubQueryHandler"/> as the client's
-    /// primary handler; the session does not expose it. Reflection is the seam for
-    /// asserting page/per_page defaults after <c>PrepareRequest</c>.
-    /// </summary>
-    private static GitHubQueryHandler GetPrimaryQueryHandler(HttpClient client)
-    {
-        var field = typeof(HttpMessageInvoker).GetField(
-            "_handler",
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        Assert.NotNull(field);
-        return Assert.IsType<GitHubQueryHandler>(field.GetValue(client));
-    }
-
-    private static HttpResponseHeaders HeadersWithNextPage(int page)
-    {
-        var response = new HttpResponseMessage();
-        response.Headers.Add(
-            "Link",
-            $"<https://api.github.com/user/repos?page={page}>; rel=\"next\"");
-        return response.Headers;
+        Assert.True(response.IsSuccessStatusCode);
+        Assert.Equal("GET /repos/owner/repo/issues?state=closed HTTP/1.1", requestLine);
     }
 
     private sealed class FakeCredentialStore : ICredentialStore

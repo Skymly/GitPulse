@@ -1,5 +1,8 @@
 using System.Net.Http.Headers;
+using GitPulse.GitHubApi;
 using GitPulse.Tests.TestHelpers;
+using Observables.RestAPI;
+using R3;
 using Xunit;
 
 namespace GitPulse.Tests;
@@ -53,10 +56,11 @@ public class FakeGitHubClientFactoryTests
         session.ApplyLink(HeadersWithNextPage(2));
         Assert.True(session.HasNextPage);
         Assert.True(session.Advance());
-        session.PrepareRequest();
 
-        using var response = await session.Client.GetAsync(
-            "user/repos", TestContext.Current.CancellationToken);
+        var api = RestService.For<IGitHubReposApi>(session.Client);
+        using var response = await session
+            .PrepareRequest(() => api.ListMyReposSortedPaged("updated"))
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         Assert.True(response.IsSuccessStatusCode);
         Assert.Contains("page=2", capturedQuery);
@@ -77,10 +81,11 @@ public class FakeGitHubClientFactoryTests
         using var session = await factory.CreatePagedSessionAsync(TestContext.Current.CancellationToken);
         session.State = "closed";
         session.Reset();
-        session.PrepareRequest();
 
-        using var response = await session.Client.GetAsync(
-            "repos/owner/repo/issues", TestContext.Current.CancellationToken);
+        var api = RestService.For<IGitHubReposApi>(session.Client);
+        using var response = await session
+            .PrepareRequest(() => api.ListIssuesPaged("owner", "repo"))
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         Assert.True(response.IsSuccessStatusCode);
         Assert.Contains("state=closed", capturedQuery);
