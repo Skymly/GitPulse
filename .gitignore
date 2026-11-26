@@ -75,3 +75,7 @@ artifacts/
 *.keystore.pem
 *.keystore.pk8
 Platforms/Android/Resources/values/Secrets.xml
+
+# Local scratch directories
+.Local/
+.Temp/
