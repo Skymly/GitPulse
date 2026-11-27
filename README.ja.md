@@ -8,9 +8,7 @@
 ![MAUI](https://img.shields.io/badge/MAUI-10-512BD4.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Android-blue.svg)
 
-.NET MAUI で構築されたクロスプラットフォーム GitHub クライアントであり、[Observables](https://github.com/Skymly/Observables) ソースジェネレーターライブラリの実用ショーケースアプリです（R3 向けの宣言的リアクティブ HTTP / イベント連携）。
-
-単なるトイデモではなく、作者が日常的に使いながら実用性を高めているツールです。
+.NET MAUI と R3 で構築されたクロスプラットフォーム GitHub クライアントであり、[Observables](https://github.com/Skymly/Observables) ソースジェネレーターライブラリの実用ショーケースアプリです（宣言的リアクティブ HTTP / イベント連携）。
 
 ## クイックスタート
 
@@ -43,9 +41,12 @@ dotnet run --project src/GitPulse.App/GitPulse.App.csproj -c Debug -f net10.0-wi
 
 ## 機能
 
-現在も活発に開発中です。今後の計画は[マイルストーンロードマップ](./docs/ROADMAP.md)を参照してください。
+- **リポジトリとコード**：個人・Star リポジトリ、ブランチ、リリース、コミット、ファイル（インライン編集対応）の閲覧に加え、Star / Watch / Fork やクローン URL コピーに対応。
+- **Issue と Pull Request**：Issue / PR の一覧・作成・管理（ラベル、担当者、会話タイムライン、ファイル差分、レビュー、チェック実行、マージ／クローズ／ブランチ更新）に対応。
+- **通知と検索**：未読バッジ付きの通知受信トレイ（該当 Issue / PR / Commit をアプリ内で直接表示）と、検索および Review / Assigned / Mentions ハブを提供。
+- **Actions とネイティブ統合**：ワークフロー実行・ジョブの確認、`workflow_dispatch` の実行、Windows DPAPI / Android SecureStorage による PAT 暗号化保存、Windows トレイ／Toast 通知に対応。
 
-メンテナー向けドキュメント（ADR およびサブシステム設計書）は [`docs/`](./docs/README.md) にあります。
+今後の計画は[マイルストーンロードマップ](./docs/ROADMAP.md)、メンテナー向けドキュメント（ADR・設計書）は [`docs/`](./docs/README.md) を参照してください。
 
 ### ショーケース：Observables 連携
 
