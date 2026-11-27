@@ -8,9 +8,7 @@
 ![MAUI](https://img.shields.io/badge/MAUI-10-512BD4.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Android-blue.svg)
 
-以 .NET MAUI 建置的跨平台 GitHub 用戶端，同時作為 [Observables](https://github.com/Skymly/Observables) 原始碼產生器程式庫的真實世界展示應用程式（面向 R3 的宣告式反應式 HTTP / 事件橋接）。
-
-這並非玩具範例，而是作者日常使用的實際工具，並將持續迭代至真正實用。
+以 .NET MAUI 與 R3 建置的跨平台 GitHub 用戶端，同時作為 [Observables](https://github.com/Skymly/Observables) 原始碼產生器程式庫的真實應用展示（宣告式反應式 HTTP 與事件橋接）。
 
 ## 快速開始
 
@@ -43,9 +41,12 @@ dotnet run --project src/GitPulse.App/GitPulse.App.csproj -c Debug -f net10.0-wi
 
 ## 功能特色
 
-應用程式仍在積極開發中，規劃進度請參閱[里程碑路線圖](./docs/ROADMAP.md)。
+- **儲存庫與程式碼**：瀏覽個人與 Star 儲存庫、分支、發行版本、提交紀錄與檔案（支援線上編輯），以及 Star / Watch / Fork 與複製複製網址。
+- **Issue 與 Pull Request**：瀏覽、建立與管理 Issue 和 PR——支援標籤、指派人、對話時間軸、檔案 Diff、審查、檢查執行以及合併/關閉/更新分支操作。
+- **通知與搜尋**：具備未讀徽章的通知收件匣（可於應用內開啟對應 Issue、PR 或 Commit），以及儲存庫/Issue 搜尋與 Review / Assigned / Mentions 彙整視圖。
+- **Actions 與原生整合**：檢視工作流程執行與作業、觸發 `workflow_dispatch`，透過 Windows DPAPI / Android SecureStorage 加密儲存 PAT，並支援 Windows 系統匣與 Toast 通知。
 
-維護者文件（ADR 與各子系統設計文件）位於 [`docs/`](./docs/README.md)。
+後續規劃請參閱[里程碑路線圖](./docs/ROADMAP.md)，維護者文件（ADR 與各子系統設計文件）位於 [`docs/`](./docs/README.md)。
 
 ### 展示亮點：Observables 整合
 

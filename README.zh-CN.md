@@ -8,9 +8,7 @@
 [![MAUI](https://img.shields.io/badge/MAUI-10-512BD4.svg)](https://learn.microsoft.com/dotnet/maui/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Android-blue.svg)](#quick-start)
 
-基于 .NET MAUI 构建的跨平台 GitHub 客户端，同时作为 [Observables](https://github.com/Skymly/Observables) 源生成器库的真实世界展示应用（面向 R3 的声明式反应式 HTTP / 事件桥接）。
-
-这不是玩具 demo，而是作者日常使用的实际工具，并会持续迭代打磨。
+基于 .NET MAUI 与 R3 构建的跨平台 GitHub 客户端，同时作为 [Observables](https://github.com/Skymly/Observables) 源生成器库的真实应用展示（声明式反应式 HTTP 与事件桥接）。
 
 ## 快速开始
 
@@ -43,9 +41,12 @@ dotnet run --project src/GitPulse.App/GitPulse.App.csproj -c Debug -f net10.0-wi
 
 ## 功能特性
 
-应用仍在持续开发中，规划路线见 [里程碑路线图](./docs/ROADMAP.md)。
+- **仓库与代码**：浏览个人与 Star 仓库、分支、发布、提交历史与文件（支持在线编辑），以及 Star / Watch / Fork 与克隆地址复制。
+- **Issue 与 Pull Request**：浏览、创建与管理 Issue 和 PR——支持标签、指派人、对话流、文件 Diff、评审、检查运行以及合并/关闭/更新分支操作。
+- **通知与搜索**：带未读角标的通知收件箱（应用内直接打开对应 Issue、PR 或 Commit），以及仓库/Issue 搜索与 Review / Assigned / Mentions 聚合视图。
+- **Actions 与原生体验**：查看工作流运行与作业、触发 `workflow_dispatch`，通过 Windows DPAPI / Android SecureStorage 加密存储 PAT，并支持 Windows 托盘与 Toast 通知。
 
-维护者文档（ADR 与各子系统设计文档）位于 [`docs/`](./docs/README.md)。
+后续规划见[里程碑路线图](./docs/ROADMAP.md)，维护者文档（ADR 与子系统设计文档）位于 [`docs/`](./docs/README.md)。
 
 ### 展示亮点：Observables 集成
 

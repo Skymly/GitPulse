@@ -8,12 +8,7 @@
 ![MAUI](https://img.shields.io/badge/MAUI-10-512BD4.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Android-blue.svg)
 
-A cross-platform GitHub client built with .NET MAUI, serving as a real-world
-showcase application for the [Observables](https://github.com/Skymly/Observables)
-source-generator library (declarative reactive HTTP / events bridging for R3).
-
-This is not a toy demo — it is a working tool the author uses day-to-day and
-iterates on until genuinely useful.
+A cross-platform GitHub client built with .NET MAUI and R3, serving as a real-world showcase application for the [Observables](https://github.com/Skymly/Observables) source-generator library (declarative reactive HTTP and event bridging).
 
 ## Quick Start
 
@@ -47,11 +42,12 @@ On first launch, open **Settings** and paste a GitHub Personal Access Token
 
 ## Features
 
-The application is under active development. See the [milestone roadmap](./docs/ROADMAP.md)
-for the planned feature progression.
+- **Repositories & Code**: Browse personal and starred repositories, branches, releases, commits, and files (with inline editing), plus star, watch, fork, and clone URL copy.
+- **Issues & Pull Requests**: List, create, and manage issues and PRs — labels, assignees, conversation timeline, file diffs, reviews, check runs, and merge/close/update-branch actions.
+- **Notifications & Search**: Notifications inbox with unread badge (opens issues, PRs, and commits in-app) and search across repositories/issues plus Review, Assigned, and Mentions hubs.
+- **Actions & Native Shell**: Inspect workflow runs/jobs, trigger `workflow_dispatch`, store PATs via Windows DPAPI or Android SecureStorage, and integrate with Windows tray/toast notifications.
 
-Maintainer documentation (ADRs and subsystem design docs) lives in
-[`docs/`](./docs/README.md).
+See the [milestone roadmap](./docs/ROADMAP.md) for upcoming work, and [`docs/`](./docs/README.md) for ADRs and subsystem design docs.
 
 ### Showcase: Observables integration
 
